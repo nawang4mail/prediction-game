@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import api from '../../services/api.js';
 import LeaderboardRow from './LeaderboardRow.jsx';
 
@@ -8,13 +8,18 @@ export default function Leaderboard() {
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
-  const [lastUpdated, setLastUpdated] = useState(null);
+  const [lastChanged, setLastChanged] = useState(null);
+  const prevDataRef = useRef('');
 
   const load = useCallback(async () => {
     try {
       const { data } = await api.get('/leaderboard');
-      setRows(data);
-      setLastUpdated(new Date());
+      const incoming = JSON.stringify(data);
+      if (incoming !== prevDataRef.current) {
+        prevDataRef.current = incoming;
+        setRows(data);
+        setLastChanged(new Date());
+      }
       setError(false);
     } catch {
       setError(true);
@@ -85,10 +90,10 @@ export default function Leaderboard() {
         </table>
       </div>
 
-      {lastUpdated && (
+      {lastChanged && (
         <p className="text-center text-green-600 text-xs mt-4">
-          Updated {lastUpdated.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-          {' · '}refreshes every 15s
+          Last updated {lastChanged.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+          {' · '}live
         </p>
       )}
     </div>
