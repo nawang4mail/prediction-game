@@ -8,10 +8,11 @@ import api from '../../services/api.js';
 export default function UsersPage() {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [modal, setModal] = useState(null); // 'add' | 'bulk' | 'bulkPred' | { edit: user }
+  const [modal, setModal] = useState(null); // 'add' | 'bulk' | { edit: user }
   const [showBulkPred, setShowBulkPred] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [displayName, setDisplayName] = useState('');
+  const [phone, setPhone] = useState('');
   const [bulkNames, setBulkNames] = useState('');
   const [bulkResult, setBulkResult] = useState(null); // { added, skipped }
   const [saving, setSaving] = useState(false);
@@ -30,6 +31,7 @@ export default function UsersPage() {
 
   const openAdd = () => {
     setDisplayName('');
+    setPhone('');
     setError('');
     setModal('add');
   };
@@ -60,6 +62,7 @@ export default function UsersPage() {
 
   const openEdit = (user) => {
     setDisplayName(user.display_name);
+    setPhone(user.phone ?? '');
     setError('');
     setModal({ edit: user });
   };
@@ -71,10 +74,11 @@ export default function UsersPage() {
     setSaving(true);
     setError('');
     try {
+      const payload = { display_name: name, phone: phone.trim() || null };
       if (modal === 'add') {
-        await api.post('/admin/users', { display_name: name });
+        await api.post('/admin/users', payload);
       } else {
-        await api.put(`/admin/users/${modal.edit.id}`, { display_name: name });
+        await api.put(`/admin/users/${modal.edit.id}`, payload);
       }
       await load();
       setModal(null);
@@ -141,6 +145,7 @@ export default function UsersPage() {
               <tr>
                 <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">#</th>
                 <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Display Name</th>
+                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider hidden md:table-cell">Phone</th>
                 <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider hidden sm:table-cell">Joined</th>
                 <th className="px-4 py-3" />
               </tr>
@@ -150,6 +155,7 @@ export default function UsersPage() {
                 <tr key={u.id} className="hover:bg-gray-50 transition">
                   <td className="px-4 py-3 text-gray-400">{i + 1}</td>
                   <td className="px-4 py-3 font-medium text-gray-800">{u.display_name}</td>
+                  <td className="px-4 py-3 text-gray-500 text-xs hidden md:table-cell">{u.phone ?? '—'}</td>
                   <td className="px-4 py-3 text-gray-400 text-xs hidden sm:table-cell">
                     {new Date(u.created_at).toLocaleDateString()}
                   </td>
@@ -234,6 +240,17 @@ export default function UsersPage() {
                 onChange={(e) => setDisplayName(e.target.value)}
                 required
                 placeholder="e.g. Alice"
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">
+                Phone Number <span className="text-gray-400 font-normal">(optional)</span>
+              </label>
+              <input
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                placeholder="e.g. +1234567890"
                 className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
               />
             </div>

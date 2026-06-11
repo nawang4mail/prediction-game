@@ -1,0 +1,16 @@
+{
+  "name": "prediction-game",
+  "version": "1.0.0",
+  "description": "A real-time leaderboard app where players predict the outcomes of World Cup matches. An admin manages fixtures, players, and results through a protected panel — correct predictions earn points and the leaderboard updates automatically.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "devDependencies": {
+    "@playwright/test": "^1.60.0"
+  }
+}
