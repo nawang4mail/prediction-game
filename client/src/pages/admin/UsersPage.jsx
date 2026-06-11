@@ -2,12 +2,14 @@ import { useState, useEffect, useCallback } from 'react';
 import AdminLayout from '../../components/admin/AdminLayout.jsx';
 import Modal from '../../components/admin/Modal.jsx';
 import ConfirmDialog from '../../components/admin/ConfirmDialog.jsx';
+import BulkPredModal from '../../components/admin/BulkPredModal.jsx';
 import api from '../../services/api.js';
 
 export default function UsersPage() {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [modal, setModal] = useState(null); // 'add' | 'bulk' | { edit: user }
+  const [modal, setModal] = useState(null); // 'add' | 'bulk' | 'bulkPred' | { edit: user }
+  const [showBulkPred, setShowBulkPred] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [displayName, setDisplayName] = useState('');
   const [bulkNames, setBulkNames] = useState('');
@@ -99,12 +101,18 @@ export default function UsersPage() {
           <h2 className="text-lg font-semibold text-gray-800">Users</h2>
           <p className="text-sm text-gray-500">{users.length} participant{users.length !== 1 ? 's' : ''}</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap justify-end">
           <button
             onClick={openBulk}
             className="px-4 py-2 border border-green-700 text-green-700 hover:bg-green-50 text-sm font-medium rounded-lg transition"
           >
             + Bulk Add
+          </button>
+          <button
+            onClick={() => setShowBulkPred(true)}
+            className="px-4 py-2 border border-blue-600 text-blue-600 hover:bg-blue-50 text-sm font-medium rounded-lg transition"
+          >
+            + Bulk Add + Predictions
           </button>
           <button
             onClick={openAdd}
@@ -257,6 +265,13 @@ export default function UsersPage() {
           message={`Delete "${deleteTarget.display_name}"? All their predictions will also be removed.`}
           onConfirm={handleDelete}
           onCancel={() => setDeleteTarget(null)}
+        />
+      )}
+
+      {showBulkPred && (
+        <BulkPredModal
+          onClose={() => { setShowBulkPred(false); load(); }}
+          onDone={load}
         />
       )}
     </AdminLayout>

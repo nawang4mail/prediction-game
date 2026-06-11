@@ -1,4 +1,5 @@
 import * as User from '../../models/userModel.js';
+import { upsert as upsertPrediction } from '../../models/predictionModel.js';
 
 export const list = async (req, res, next) => {
   try {
@@ -55,6 +56,36 @@ export const bulkCreate = async (req, res, next) => {
       } catch (err) {
         if (err.code === 'ER_DUP_ENTRY') {
           skipped.push({ display_name: name, reason: 'duplicate' });
+        } else {
+          throw err;
+        }
+      }
+    }
+    res.status(201).json({ added, skipped });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const bulkCreateWithPredictions = async (req, res, next) => {
+  try {
+    const entries = req.body.entries ?? [];
+    const added = [];
+    const skipped = [];
+    for (const { name, predictions } of entries) {
+      const trimmed = (name ?? '').trim();
+      if (!trimmed) continue;
+      try {
+        const id = await User.create({ display_name: trimmed });
+        for (const [matchId, prediction] of Object.entries(predictions ?? {})) {
+          if (prediction) {
+            await upsertPrediction({ user_id: id, match_id: parseInt(matchId, 10), prediction });
+          }
+        }
+        added.push({ id, display_name: trimmed });
+      } catch (err) {
+        if (err.code === 'ER_DUP_ENTRY') {
+          skipped.push({ display_name: trimmed, reason: 'duplicate' });
         } else {
           throw err;
         }
