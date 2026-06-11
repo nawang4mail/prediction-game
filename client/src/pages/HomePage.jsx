@@ -1,7 +1,38 @@
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import Leaderboard from '../components/leaderboard/Leaderboard.jsx';
+import api from '../services/api.js';
+
+function PrizeRulesCard({ prize, rules }) {
+  if (!prize && !rules) return null;
+  return (
+    <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-5 text-white space-y-4 md:w-72 shrink-0">
+      {prize && (
+        <div>
+          <h2 className="text-sm font-bold text-green-300 uppercase tracking-wider mb-2">🏆 Prize</h2>
+          <p className="text-sm text-white/90 whitespace-pre-wrap leading-relaxed">{prize}</p>
+        </div>
+      )}
+      {prize && rules && <hr className="border-white/20" />}
+      {rules && (
+        <div>
+          <h2 className="text-sm font-bold text-green-300 uppercase tracking-wider mb-2">📋 Rules</h2>
+          <p className="text-sm text-white/90 whitespace-pre-wrap leading-relaxed">{rules}</p>
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function HomePage() {
+  const [settings, setSettings] = useState({ prize_text: '', rules_text: '' });
+
+  useEffect(() => {
+    api.get('/settings').then(({ data }) => setSettings(data)).catch(() => {});
+  }, []);
+
+  const hasPrizeOrRules = settings.prize_text || settings.rules_text;
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-green-800 to-green-950">
       <header className="px-4 pt-10 pb-8 text-center">
@@ -13,7 +44,16 @@ export default function HomePage() {
       </header>
 
       <main className="px-4 pb-16">
-        <Leaderboard />
+        {hasPrizeOrRules ? (
+          <div className="max-w-4xl mx-auto flex flex-col md:flex-row md:items-start gap-6">
+            <PrizeRulesCard prize={settings.prize_text} rules={settings.rules_text} />
+            <div className="flex-1 min-w-0">
+              <Leaderboard />
+            </div>
+          </div>
+        ) : (
+          <Leaderboard />
+        )}
       </main>
 
       <footer className="fixed bottom-4 right-4">

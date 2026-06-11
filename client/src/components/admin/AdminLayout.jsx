@@ -6,6 +6,7 @@ const navItems = [
   { to: '/admin/matches', label: 'Matches' },
   { to: '/admin/users', label: 'Users' },
   { to: '/admin/predictions', label: 'Predictions' },
+  { to: '/admin/settings', label: 'Settings' },
 ];
 
 export default function AdminLayout({ children }) {
