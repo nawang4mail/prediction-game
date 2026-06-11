@@ -27,6 +27,23 @@ export const remove = async ({ user_id, match_id }) => {
   return result.affectedRows;
 };
 
+export const findByUser = async (userId) => {
+  const [rows] = await pool.query(
+    `SELECT
+       m.id          AS match_id,
+       m.team_a,
+       m.team_b,
+       COALESCE(m.label, CONCAT(m.team_a, ' vs ', m.team_b)) AS match_label,
+       m.result      AS match_result,
+       p.prediction
+     FROM matches m
+     LEFT JOIN predictions p ON p.match_id = m.id AND p.user_id = ?
+     ORDER BY m.created_at ASC`,
+    [userId]
+  );
+  return rows;
+};
+
 export const leaderboard = async () => {
   const [rows] = await pool.query(`
     SELECT
