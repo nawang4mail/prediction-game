@@ -42,3 +42,26 @@ export const remove = async (req, res, next) => {
     next(err);
   }
 };
+
+export const bulkCreate = async (req, res, next) => {
+  try {
+    const names = (req.body.names ?? []).map((n) => n.trim()).filter(Boolean);
+    const added = [];
+    const skipped = [];
+    for (const name of names) {
+      try {
+        const id = await User.create({ display_name: name });
+        added.push({ id, display_name: name });
+      } catch (err) {
+        if (err.code === 'ER_DUP_ENTRY') {
+          skipped.push({ display_name: name, reason: 'duplicate' });
+        } else {
+          throw err;
+        }
+      }
+    }
+    res.status(201).json({ added, skipped });
+  } catch (err) {
+    next(err);
+  }
+};

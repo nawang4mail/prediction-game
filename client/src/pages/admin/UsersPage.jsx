@@ -7,9 +7,11 @@ import api from '../../services/api.js';
 export default function UsersPage() {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [modal, setModal] = useState(null); // 'add' | { edit: user }
+  const [modal, setModal] = useState(null); // 'add' | 'bulk' | { edit: user }
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [displayName, setDisplayName] = useState('');
+  const [bulkNames, setBulkNames] = useState('');
+  const [bulkResult, setBulkResult] = useState(null); // { added, skipped }
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
@@ -28,6 +30,30 @@ export default function UsersPage() {
     setDisplayName('');
     setError('');
     setModal('add');
+  };
+
+  const openBulk = () => {
+    setBulkNames('');
+    setBulkResult(null);
+    setError('');
+    setModal('bulk');
+  };
+
+  const handleBulkSave = async (e) => {
+    e.preventDefault();
+    const names = bulkNames.split('\n').map((n) => n.trim()).filter(Boolean);
+    if (names.length === 0) return;
+    setSaving(true);
+    setError('');
+    try {
+      const { data } = await api.post('/admin/users/bulk', { names });
+      setBulkResult(data);
+      await load();
+    } catch {
+      setError('Failed to save.');
+    } finally {
+      setSaving(false);
+    }
   };
 
   const openEdit = (user) => {
@@ -73,12 +99,20 @@ export default function UsersPage() {
           <h2 className="text-lg font-semibold text-gray-800">Users</h2>
           <p className="text-sm text-gray-500">{users.length} participant{users.length !== 1 ? 's' : ''}</p>
         </div>
-        <button
-          onClick={openAdd}
-          className="px-4 py-2 bg-green-700 hover:bg-green-800 text-white text-sm font-medium rounded-lg transition"
-        >
-          + Add User
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={openBulk}
+            className="px-4 py-2 border border-green-700 text-green-700 hover:bg-green-50 text-sm font-medium rounded-lg transition"
+          >
+            + Bulk Add
+          </button>
+          <button
+            onClick={openAdd}
+            className="px-4 py-2 bg-green-700 hover:bg-green-800 text-white text-sm font-medium rounded-lg transition"
+          >
+            + Add User
+          </button>
+        </div>
       </div>
 
       {loading ? (
@@ -134,7 +168,51 @@ export default function UsersPage() {
         </div>
       )}
 
-      {modal && (
+      {modal === 'bulk' && (
+        <Modal title="Bulk Add Users" onClose={() => setModal(null)}>
+          <form onSubmit={handleBulkSave} className="space-y-4">
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">
+                Display Names <span className="text-gray-400 font-normal">(one per line)</span>
+              </label>
+              <textarea
+                autoFocus
+                value={bulkNames}
+                onChange={(e) => setBulkNames(e.target.value)}
+                rows={6}
+                placeholder={"Alice\nBob\nCharlie\nDiana"}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 resize-y font-mono"
+              />
+            </div>
+            {error && (
+              <p className="text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{error}</p>
+            )}
+            {bulkResult && (
+              <div className="text-xs rounded-lg border px-3 py-2 space-y-1 bg-green-50 border-green-200">
+                <p className="font-medium text-green-700">✓ Added {bulkResult.added.length} user{bulkResult.added.length !== 1 ? 's' : ''}.</p>
+                {bulkResult.skipped.length > 0 && (
+                  <p className="text-amber-600">
+                    Skipped {bulkResult.skipped.length} duplicate{bulkResult.skipped.length !== 1 ? 's' : ''}:{' '}
+                    {bulkResult.skipped.map((s) => s.display_name).join(', ')}
+                  </p>
+                )}
+              </div>
+            )}
+            <div className="flex justify-end gap-3 pt-1">
+              <button type="button" onClick={() => setModal(null)} className="px-4 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50">
+                {bulkResult ? 'Close' : 'Cancel'}
+              </button>
+              {!bulkResult && (
+                <button type="submit" disabled={saving} className="px-4 py-2 text-sm bg-green-700 hover:bg-green-800 disabled:bg-green-400 text-white rounded-lg">
+                  {saving ? 'Adding…' : 'Add All'}
+                </button>
+              )}
+            </div>
+          </form>
+        </Modal>
+      )}
+
+      {(modal === 'add' || (modal && modal.edit)) && (
         <Modal
           title={modal === 'add' ? 'Add User' : 'Edit User'}
           onClose={() => setModal(null)}
