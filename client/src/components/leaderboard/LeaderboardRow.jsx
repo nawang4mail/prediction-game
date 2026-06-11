@@ -10,21 +10,23 @@ const rankStyle = {
 };
 
 export default function LeaderboardRow({ row }) {
-  const [open, setOpen] = useState(false);
+  const [hovering, setHovering] = useState(false);
+  const [pinned, setPinned] = useState(false);
+  const open = hovering || pinned;
 
   const isTop3 = row.rank <= 3;
 
   return (
     <tbody
-      onMouseEnter={() => setOpen(true)}
-      onMouseLeave={() => setOpen(false)}
+      onMouseEnter={() => setHovering(true)}
+      onMouseLeave={() => setHovering(false)}
     >
       <tr
         className={`border-b border-gray-100 cursor-pointer transition-colors
           ${open ? 'bg-green-50' : 'hover:bg-gray-50'}
           ${row.rank === 1 ? 'bg-yellow-50/40' : ''}
         `}
-        onClick={() => setOpen((v) => !v)}
+        onClick={() => setPinned((v) => !v)}
       >
         <td className="py-4 pl-4 pr-2 w-12">
           <span className={`text-sm ${rankStyle[row.rank] ?? 'text-gray-400'}`}>
