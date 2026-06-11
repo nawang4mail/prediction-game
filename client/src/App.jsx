@@ -8,6 +8,7 @@ import DashboardPage from './pages/admin/DashboardPage.jsx';
 import MatchesPage from './pages/admin/MatchesPage.jsx';
 import UsersPage from './pages/admin/UsersPage.jsx';
 import PredictionsPage from './pages/admin/PredictionsPage.jsx';
+import SettingsPage from './pages/admin/SettingsPage.jsx';
 
 export default function App() {
   return (
@@ -21,6 +22,7 @@ export default function App() {
             <Route path="/admin/matches" element={<MatchesPage />} />
             <Route path="/admin/users" element={<UsersPage />} />
             <Route path="/admin/predictions" element={<PredictionsPage />} />
+            <Route path="/admin/settings" element={<SettingsPage />} />
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
