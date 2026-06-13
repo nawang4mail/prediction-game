@@ -20,7 +20,7 @@ A web application where an admin manages a set of 10 World Cup matches and user 
 
 ## Epic 1 — Public Leaderboard
 
-### US-01 · View Leaderboard
+### US-01 · View Leaderboard ✅
 **As a** visitor,  
 **I want to** see a leaderboard showing all players ranked by total points,  
 **So that** I can follow who is winning the prediction competition.
@@ -33,7 +33,7 @@ A web application where an admin manages a set of 10 World Cup matches and user 
 
 ---
 
-### US-02 · Smart Leaderboard Updates
+### US-02 · Smart Leaderboard Updates ✅
 **As a** visitor,  
 **I want** the leaderboard to refresh only when the data has actually changed,  
 **So that** I always see current standings without unnecessary network noise or flickering.
@@ -46,7 +46,7 @@ A web application where an admin manages a set of 10 World Cup matches and user 
 
 ---
 
-### US-03 · Click to See Predictions
+### US-03 · Click to See Predictions ✅
 **As a** visitor,  
 **I want to** click on a player's row to see their predictions,  
 **So that** I can explore individual picks without accidentally triggering the panel on hover.
@@ -60,7 +60,7 @@ A web application where an admin manages a set of 10 World Cup matches and user 
 
 ---
 
-### US-04 · Mobile-Friendly Layout
+### US-04 · Mobile-Friendly Layout ✅
 **As a** visitor on a phone,  
 **I want** the leaderboard to display cleanly on a small screen,  
 **So that** I can check standings on mobile without horizontal scrolling.
@@ -74,7 +74,7 @@ A web application where an admin manages a set of 10 World Cup matches and user 
 
 ## Epic 2 — Admin Authentication
 
-### US-05 · Admin Login
+### US-05 · Admin Login ✅
 **As an** admin,  
 **I want to** log in with a username and password,  
 **So that** only I can access the admin panel.
@@ -87,7 +87,7 @@ A web application where an admin manages a set of 10 World Cup matches and user 
 
 ---
 
-### US-06 · Admin Logout
+### US-06 · Admin Logout ✅
 **As an** admin,  
 **I want to** log out,  
 **So that** my session is ended and the panel is secured.
@@ -99,7 +99,7 @@ A web application where an admin manages a set of 10 World Cup matches and user 
 
 ---
 
-### US-07 · Protected Admin Routes
+### US-07 · Protected Admin Routes ✅
 **As the** system,  
 **I want** all admin pages to require authentication,  
 **So that** unauthenticated visitors cannot access admin features.
@@ -112,7 +112,7 @@ A web application where an admin manages a set of 10 World Cup matches and user 
 
 ## Epic 2.5 — Admin Dashboard
 
-### US-19 · Admin Dashboard Overview
+### US-19 · Admin Dashboard Overview ✅
 **As an** admin,
 **I want to** see a summary of the game's current state when I log in,
 **So that** I can quickly understand how many matches, users, and predictions exist without navigating to each section.
@@ -129,7 +129,7 @@ A web application where an admin manages a set of 10 World Cup matches and user 
 
 ## Epic 3 — Match Management (Admin)
 
-### US-08 · Add a Match
+### US-08 · Add a Match ✅
 **As an** admin,  
 **I want to** add a match with two competing countries,  
 **So that** users have matches to predict.
@@ -141,7 +141,7 @@ A web application where an admin manages a set of 10 World Cup matches and user 
 
 ---
 
-### US-09 · Edit a Match
+### US-09 · Edit a Match ✅
 **As an** admin,  
 **I want to** edit a match's details,  
 **So that** I can correct mistakes before predictions are locked in.
@@ -152,7 +152,7 @@ A web application where an admin manages a set of 10 World Cup matches and user 
 
 ---
 
-### US-10 · Delete a Match
+### US-10 · Delete a Match ✅
 **As an** admin,  
 **I want to** delete a match,  
 **So that** I can remove a fixture that was added by mistake.
@@ -163,7 +163,7 @@ A web application where an admin manages a set of 10 World Cup matches and user 
 
 ---
 
-### US-11 · Set Match Result
+### US-11 · Set Match Result ✅
 **As an** admin,  
 **I want to** set the official result for a completed match (Team A wins / Team B wins / Draw),  
 **So that** the system can automatically calculate points for all users.
@@ -178,7 +178,7 @@ A web application where an admin manages a set of 10 World Cup matches and user 
 
 ## Epic 4 — User Management (Admin)
 
-### US-12 · Add a User
+### US-12 · Add a User ✅
 **As an** admin,  
 **I want to** add a user with a display name,  
 **So that** they appear on the leaderboard and I can record their predictions.
@@ -190,7 +190,7 @@ A web application where an admin manages a set of 10 World Cup matches and user 
 
 ---
 
-### US-22 · Bulk Add Users
+### US-22 · Bulk Add Users ✅
 **As an** admin,  
 **I want to** add multiple users at once by entering several names in one go,  
 **So that** I don't have to submit the form repeatedly when setting up a new game.
@@ -203,7 +203,7 @@ A web application where an admin manages a set of 10 World Cup matches and user 
 
 ---
 
-### US-23 · Bulk Add Users with Predictions
+### US-23 · Bulk Add Users with Predictions ✅
 **As an** admin,  
 **I want to** add multiple users and their predictions in one paste,  
 **So that** I can set up an entire group of participants without navigating to the predictions grid separately.
@@ -249,7 +249,7 @@ A web application where an admin manages a set of 10 World Cup matches and user 
 
 ---
 
-### US-13 · Edit a User
+### US-13 · Edit a User ✅
 **As an** admin,  
 **I want to** edit a user's display name,  
 **So that** I can fix typos or update their name.
@@ -260,7 +260,7 @@ A web application where an admin manages a set of 10 World Cup matches and user 
 
 ---
 
-### US-14 · Delete a User
+### US-14 · Delete a User ✅
 **As an** admin,  
 **I want to** delete a user,  
 **So that** I can remove someone who should no longer participate.
@@ -274,7 +274,7 @@ A web application where an admin manages a set of 10 World Cup matches and user 
 
 ## Epic 5 — Prediction Management (Admin)
 
-### US-15 · Set / Edit a User's Prediction
+### US-15 · Set / Edit a User's Prediction ✅
 **As an** admin,  
 **I want to** set or change a user's prediction for any match,  
 **So that** I can enter or correct their choices on their behalf.
@@ -286,7 +286,7 @@ A web application where an admin manages a set of 10 World Cup matches and user 
 
 ---
 
-### US-16 · Prediction Grid Overview
+### US-16 · Prediction Grid Overview ✅
 **As an** admin,  
 **I want to** see all users and all their predictions in a single grid/table,  
 **So that** I can review and edit everything efficiently without navigating user-by-user.
@@ -302,7 +302,7 @@ A web application where an admin manages a set of 10 World Cup matches and user 
 
 ## Epic 6 — Scoring System
 
-### US-17 · Automatic Point Calculation
+### US-17 · Automatic Point Calculation ✅
 **As the** system,  
 **When** an admin sets or changes a match result,  
 **I want** points to be recalculated automatically for all users,  
@@ -316,7 +316,7 @@ A web application where an admin manages a set of 10 World Cup matches and user 
 
 ---
 
-### US-18 · Points Summary Per User
+### US-18 · Points Summary Per User ✅
 **As the** system,  
 **I want** each user's total points to be stored and served efficiently,  
 **So that** the leaderboard loads quickly even with many users.
@@ -330,7 +330,7 @@ A web application where an admin manages a set of 10 World Cup matches and user 
 
 ## Epic 7 — Prize & Rules
 
-### US-20 · Set Prize and Rules Content
+### US-20 · Set Prize and Rules Content ✅
 **As an** admin,  
 **I want to** write a prize description and game rules from the admin panel,  
 **So that** visitors on the homepage know what they are playing for and how scoring works.
@@ -343,7 +343,7 @@ A web application where an admin manages a set of 10 World Cup matches and user 
 
 ---
 
-### US-21 · Display Prize and Rules on Homepage
+### US-21 · Display Prize and Rules on Homepage ✅
 **As a** visitor,  
 **I want to** see the prize and rules alongside the leaderboard,  
 **So that** I understand the reward and the scoring system at a glance.
