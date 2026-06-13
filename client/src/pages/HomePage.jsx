@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import Leaderboard from '../components/leaderboard/Leaderboard.jsx';
+import PublicGameNav from '../components/PublicGameNav.jsx';
 import api from '../services/api.js';
 
 function PrizeRulesCard({ prize, rules }) {
@@ -27,9 +28,16 @@ function PrizeRulesCard({ prize, rules }) {
 export default function HomePage() {
   const [settings, setSettings] = useState({ prize_text: '', rules_text: '' });
   const [hasOpenGame, setHasOpenGame] = useState(false);
+  const [params] = useSearchParams();
+  const gameId = params.get('game');
 
   useEffect(() => {
-    api.get('/settings').then(({ data }) => setSettings(data)).catch(() => {});
+    api.get('/settings', { params: gameId ? { game_id: gameId } : {} })
+      .then(({ data }) => setSettings(data))
+      .catch(() => {});
+  }, [gameId]);
+
+  useEffect(() => {
     api.get('/games')
       .then(({ data }) => setHasOpenGame(data.some((g) => g.status === 'open')))
       .catch(() => {});
@@ -63,6 +71,7 @@ export default function HomePage() {
             </Link>
           )
         )}
+        <PublicGameNav active="leaderboard" />
       </header>
 
       <main className="px-4 pb-16">
@@ -70,11 +79,11 @@ export default function HomePage() {
           <div className="max-w-4xl mx-auto flex flex-col md:flex-row md:items-start gap-6">
             <PrizeRulesCard prize={settings.prize_text} rules={settings.rules_text} />
             <div className="flex-1 min-w-0">
-              <Leaderboard />
+              <Leaderboard key={gameId ?? 'active'} gameId={gameId} />
             </div>
           </div>
         ) : (
-          <Leaderboard />
+          <Leaderboard key={gameId ?? 'active'} gameId={gameId} />
         )}
       </main>
 

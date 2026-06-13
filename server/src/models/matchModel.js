@@ -31,6 +31,26 @@ export const remove = async (id) => {
   return result.affectedRows;
 };
 
+export const findAllWithPredictionCounts = async (gameId) => {
+  const [rows] = await pool.query(
+    `
+    SELECT
+      m.id, m.team_a, m.team_b, m.label, m.result,
+      COALESCE(m.label, CONCAT(m.team_a, ' vs ', m.team_b)) AS match_label,
+      COUNT(CASE WHEN p.prediction = 'team_a' THEN 1 END) AS team_a_count,
+      COUNT(CASE WHEN p.prediction = 'team_b' THEN 1 END) AS team_b_count,
+      COUNT(CASE WHEN p.prediction = 'draw'   THEN 1 END) AS draw_count
+    FROM matches m
+    LEFT JOIN predictions p ON p.match_id = m.id
+    WHERE m.game_id = ?
+    GROUP BY m.id
+    ORDER BY m.created_at ASC
+  `,
+    [gameId]
+  );
+  return rows;
+};
+
 export const count = async (gameId) => {
   const [rows] = await pool.query(
     'SELECT COUNT(*) AS total FROM matches WHERE game_id = ?',

@@ -4,6 +4,7 @@ import ProtectedRoute from './components/admin/ProtectedRoute.jsx';
 
 import HomePage from './pages/HomePage.jsx';
 import JoinPage from './pages/JoinPage.jsx';
+import MatchesListPage from './pages/MatchesListPage.jsx';
 import MyPredictionsPage from './pages/MyPredictionsPage.jsx';
 import LoginPage from './pages/admin/LoginPage.jsx';
 import DashboardPage from './pages/admin/DashboardPage.jsx';
@@ -20,6 +21,7 @@ export default function App() {
         <Routes>
           <Route path="/" element={<HomePage />} />
           <Route path="/join" element={<JoinPage />} />
+          <Route path="/matches" element={<MatchesListPage />} />
           <Route path="/my-predictions" element={<MyPredictionsPage />} />
           <Route path="/admin/login" element={<LoginPage />} />
           <Route element={<ProtectedRoute />}>
