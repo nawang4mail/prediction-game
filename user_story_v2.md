@@ -25,7 +25,7 @@ Numbering continues from v1: new stories start at **US-26**.
 
 ## Epic 8 — Game Management (Admin)
 
-### US-26 · Create a New Game
+### US-26 · Create a New Game ✅
 **As an** admin,
 **I want to** create a new game with its own name (e.g. "World Cup 2026"),
 **So that** I can run a fresh prediction round without losing any previous game's history.
@@ -38,7 +38,7 @@ Numbering continues from v1: new stories start at **US-26**.
 
 ---
 
-### US-27 · Game Lifecycle
+### US-27 · Game Lifecycle ✅
 **As an** admin,
 **I want to** move a game through the statuses `open → locked → finished`,
 **So that** joining and predicting only happen before kickoff, and completed games become archived history.
@@ -52,7 +52,7 @@ Numbering continues from v1: new stories start at **US-26**.
 
 ---
 
-### US-28 · Preserve v1 Data as the First Game
+### US-28 · Preserve v1 Data as the First Game ✅
 **As the** system,
 **I want** all existing v1 matches, users, predictions, and prize/rules content attached to an auto-created first game during migration,
 **So that** the current game's history survives the multi-game schema change.
@@ -67,7 +67,7 @@ Numbering continues from v1: new stories start at **US-26**.
 
 ## Epic 9 — Self-Service Participation (No Login)
 
-### US-29 · Join the Active Game Without Login
+### US-29 · Join the Active Game Without Login ✅
 **As a** visitor,
 **I want to** join the active game by entering my display name (and optionally my phone number),
 **So that** I can play without creating an account or password.
@@ -81,7 +81,7 @@ Numbering continues from v1: new stories start at **US-26**.
 
 ---
 
-### US-30 · Make and Edit My Own Predictions
+### US-30 · Make and Edit My Own Predictions ✅
 **As a** participant,
 **I want to** pick Team A / Team B / Draw for each match and change my picks while the game is open,
 **So that** I control my own predictions instead of sending them to the admin.
@@ -95,7 +95,7 @@ Numbering continues from v1: new stories start at **US-26**.
 
 ---
 
-### US-31 · Predictions Lock at Game Start
+### US-31 · Predictions Lock at Game Start ✅
 **As the** system,
 **I want** joining and prediction editing disabled the moment the admin sets the game to `locked`,
 **So that** nobody can change picks after the tournament starts.
@@ -110,7 +110,7 @@ Numbering continues from v1: new stories start at **US-26**.
 
 ## Epic 10 — Public Game Views
 
-### US-32 · Browse Past Games
+### US-32 · Browse Past Games ✅
 **As a** visitor,
 **I want to** switch the leaderboard between the active game and finished games,
 **So that** I can revisit past tournaments' standings and predictions.
@@ -123,7 +123,7 @@ Numbering continues from v1: new stories start at **US-26**.
 
 ---
 
-### US-33 · Match List with Prediction Breakdown
+### US-33 · Match List with Prediction Breakdown ✅
 **As a** visitor,
 **I want to** open a Matches tab on the homepage and click a match to see how many participants picked each option,
 **So that** I can see the crowd's predictions per match (e.g. USA vs Paraguay: 10 picked USA, 5 picked Paraguay, 3 picked Draw).

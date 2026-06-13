@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Games** — multi-game support: admin creates games with an
+  open/locked/finished lifecycle, one active game at a time, all v1 data
+  preserved as "Game 1" (US-26 to US-28)
+- **Join without login** — visitors self-register by display name and manage
+  their own predictions per device; everything locks when the game starts
+  (US-29 to US-31)
+- **Public game views** — Leaderboard/Matches tabs, finished-game archive
+  selector, and per-match prediction breakdowns with winner highlight
+  (US-32, US-33)
+
+### Changed
+
+- **BREAKING** — schema migration adds `game_id` to matches, users, and
+  settings; display names are now unique per game (next release: v2.0.0)
+
 ## [1.0.0] - 2026-06-12
 
 First release. Covers all 25 user stories (US-01 to US-25).
