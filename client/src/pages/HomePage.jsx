@@ -26,12 +26,17 @@ function PrizeRulesCard({ prize, rules }) {
 
 export default function HomePage() {
   const [settings, setSettings] = useState({ prize_text: '', rules_text: '' });
+  const [hasOpenGame, setHasOpenGame] = useState(false);
 
   useEffect(() => {
     api.get('/settings').then(({ data }) => setSettings(data)).catch(() => {});
+    api.get('/games')
+      .then(({ data }) => setHasOpenGame(data.some((g) => g.status === 'open')))
+      .catch(() => {});
   }, []);
 
   const hasPrizeOrRules = settings.prize_text || settings.rules_text;
+  const isParticipant = !!localStorage.getItem('entry_token');
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-green-800 to-green-950">
@@ -41,6 +46,23 @@ export default function HomePage() {
           World Cup 2026
         </h1>
         <p className="text-green-300 mt-1 text-sm">Prediction Leaderboard</p>
+        {isParticipant ? (
+          <Link
+            to="/my-predictions"
+            className="inline-block mt-4 px-5 py-2 bg-green-500 hover:bg-green-400 text-white text-sm font-semibold rounded-full transition"
+          >
+            🎯 My Predictions
+          </Link>
+        ) : (
+          hasOpenGame && (
+            <Link
+              to="/join"
+              className="inline-block mt-4 px-5 py-2 bg-green-500 hover:bg-green-400 text-white text-sm font-semibold rounded-full transition"
+            >
+              ⚽ Join the Game
+            </Link>
+          )
+        )}
       </header>
 
       <main className="px-4 pb-16">

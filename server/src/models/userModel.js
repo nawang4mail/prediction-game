@@ -21,14 +21,14 @@ export const create = async ({ game_id, display_name, phone }) => {
   return result.insertId;
 };
 
-export const createWithAutoSuffix = async ({ game_id, display_name, phone }) => {
+export const createWithAutoSuffix = async ({ game_id, display_name, phone, entry_token }) => {
   let name = display_name;
   let n = 1;
   while (n <= 99) {
     try {
       const [result] = await pool.query(
-        'INSERT INTO users (game_id, display_name, phone) VALUES (?, ?, ?)',
-        [game_id, name, phone ?? null]
+        'INSERT INTO users (game_id, display_name, phone, entry_token) VALUES (?, ?, ?, ?)',
+        [game_id, name, phone ?? null, entry_token ?? null]
       );
       return { id: result.insertId, display_name: name };
     } catch (err) {
@@ -38,6 +38,11 @@ export const createWithAutoSuffix = async ({ game_id, display_name, phone }) => 
     }
   }
   throw new Error('Too many users with the same name');
+};
+
+export const findByEntryToken = async (token) => {
+  const [rows] = await pool.query('SELECT * FROM users WHERE entry_token = ?', [token]);
+  return rows[0] ?? null;
 };
 
 export const update = async (id, { display_name, phone }) => {

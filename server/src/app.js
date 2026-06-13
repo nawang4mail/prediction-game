@@ -9,6 +9,8 @@ import usersRouter from './routes/admin/users.js';
 import predictionsRouter from './routes/admin/predictions.js';
 import dashboardRouter from './routes/admin/dashboard.js';
 import gamesRouter from './routes/admin/games.js';
+import publicGamesRouter from './routes/games.js';
+import participantsRouter from './routes/participants.js';
 import settingsRouter from './routes/settings.js';
 import adminSettingsRouter from './routes/admin/settings.js';
 import errorHandler from './middleware/errorHandler.js';
@@ -25,6 +27,8 @@ app.use('/api/admin/users', usersRouter);
 app.use('/api/admin/predictions', predictionsRouter);
 app.use('/api/admin/dashboard', dashboardRouter);
 app.use('/api/admin/games', gamesRouter);
+app.use('/api/games', publicGamesRouter);
+app.use('/api/participants', participantsRouter);
 app.use('/api/settings', settingsRouter);
 app.use('/api/admin/settings', adminSettingsRouter);
 

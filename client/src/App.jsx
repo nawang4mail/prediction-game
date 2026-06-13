@@ -3,6 +3,8 @@ import { AuthProvider } from './context/AuthContext.jsx';
 import ProtectedRoute from './components/admin/ProtectedRoute.jsx';
 
 import HomePage from './pages/HomePage.jsx';
+import JoinPage from './pages/JoinPage.jsx';
+import MyPredictionsPage from './pages/MyPredictionsPage.jsx';
 import LoginPage from './pages/admin/LoginPage.jsx';
 import DashboardPage from './pages/admin/DashboardPage.jsx';
 import GamesPage from './pages/admin/GamesPage.jsx';
@@ -17,6 +19,8 @@ export default function App() {
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<HomePage />} />
+          <Route path="/join" element={<JoinPage />} />
+          <Route path="/my-predictions" element={<MyPredictionsPage />} />
           <Route path="/admin/login" element={<LoginPage />} />
           <Route element={<ProtectedRoute />}>
             <Route path="/admin" element={<DashboardPage />} />
