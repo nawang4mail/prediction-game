@@ -394,9 +394,29 @@ settings (key VARCHAR PRIMARY KEY, value TEXT, updated_at)
 
 ---
 
-## Out of Scope (for this version)
+## Out of Scope (for v1)
 
 - Users logging in themselves to submit their own predictions
 - Email notifications
 - Match scheduling / countdown timers
 - Historical tournaments / multiple seasons
+
+---
+
+## v2 Backlog
+
+v1.0.0 shipped with US-01 to US-25. The v2 stories (**US-26 to US-33**) live in
+[`user_story_v2.md`](user_story_v2.md): multi-game support with preserved
+history, and self-service participation without login. They require a schema
+migration (`game_id`), so the target release is v2.0.0 per SemVer.
+
+### Known tech debt
+
+- 3 ESLint errors in `client/`: `react-hooks/set-state-in-effect` in
+  `Leaderboard.jsx` and `PredictionsPage.jsx` (async-load false positives worth
+  restructuring), and `react-refresh/only-export-components` in
+  `AuthContext.jsx` (move `useAuth` to its own file)
+- Playwright suite hardcodes the admin password `admin123`
+  (`tests/us24-us25-phone-auto-suffix.spec.js`); make it configurable via env
+  so it runs against any local setup
+- No CI pipeline — CLAUDE.md requires lint + tests to gate PRs
