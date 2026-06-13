@@ -4,7 +4,7 @@ const MAX_MATCHES = 10;
 
 export const list = async (req, res, next) => {
   try {
-    res.json(await Match.findAll());
+    res.json(await Match.findAll(req.gameId));
   } catch (err) {
     next(err);
   }
@@ -12,10 +12,10 @@ export const list = async (req, res, next) => {
 
 export const create = async (req, res, next) => {
   try {
-    if ((await Match.count()) >= MAX_MATCHES) {
+    if ((await Match.count(req.gameId)) >= MAX_MATCHES) {
       return res.status(400).json({ message: 'Maximum of 10 matches reached' });
     }
-    const id = await Match.create(req.body);
+    const id = await Match.create({ ...req.body, game_id: req.gameId });
     res.status(201).json({ id });
   } catch (err) {
     next(err);

@@ -1,7 +1,10 @@
 import pool from '../config/db.js';
 
-export const findAll = async () => {
-  const [rows] = await pool.query('SELECT * FROM matches ORDER BY created_at ASC');
+export const findAll = async (gameId) => {
+  const [rows] = await pool.query(
+    'SELECT * FROM matches WHERE game_id = ? ORDER BY created_at ASC',
+    [gameId]
+  );
   return rows;
 };
 
@@ -10,10 +13,10 @@ export const findById = async (id) => {
   return rows[0] ?? null;
 };
 
-export const create = async ({ team_a, team_b, label, match_date }) => {
+export const create = async ({ game_id, team_a, team_b, label, match_date }) => {
   const [result] = await pool.query(
-    'INSERT INTO matches (team_a, team_b, label, match_date) VALUES (?, ?, ?, ?)',
-    [team_a, team_b, label ?? null, match_date ?? null]
+    'INSERT INTO matches (game_id, team_a, team_b, label, match_date) VALUES (?, ?, ?, ?, ?)',
+    [game_id, team_a, team_b, label ?? null, match_date ?? null]
   );
   return result.insertId;
 };
@@ -28,7 +31,10 @@ export const remove = async (id) => {
   return result.affectedRows;
 };
 
-export const count = async () => {
-  const [rows] = await pool.query('SELECT COUNT(*) AS total FROM matches');
+export const count = async (gameId) => {
+  const [rows] = await pool.query(
+    'SELECT COUNT(*) AS total FROM matches WHERE game_id = ?',
+    [gameId]
+  );
   return rows[0].total;
 };

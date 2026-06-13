@@ -2,7 +2,7 @@ import { leaderboard, findByUser } from '../models/predictionModel.js';
 
 export const getLeaderboard = async (req, res, next) => {
   try {
-    res.json(await leaderboard());
+    res.json(await leaderboard(req.gameId));
   } catch (err) {
     next(err);
   }
