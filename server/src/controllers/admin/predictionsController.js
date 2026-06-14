@@ -2,7 +2,7 @@ import * as Prediction from '../../models/predictionModel.js';
 
 export const list = async (req, res, next) => {
   try {
-    res.json(await Prediction.findAll());
+    res.json(await Prediction.findAll(req.gameId));
   } catch (err) {
     next(err);
   }

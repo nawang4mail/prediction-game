@@ -4,7 +4,7 @@ import LeaderboardRow from './LeaderboardRow.jsx';
 
 const POLL_INTERVAL = 15000;
 
-export default function Leaderboard() {
+export default function Leaderboard({ gameId = null }) {
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -13,7 +13,9 @@ export default function Leaderboard() {
 
   const load = useCallback(async () => {
     try {
-      const { data } = await api.get('/leaderboard');
+      const { data } = await api.get('/leaderboard', {
+        params: gameId ? { game_id: gameId } : {},
+      });
       const incoming = JSON.stringify(data);
       if (incoming !== prevDataRef.current) {
         prevDataRef.current = incoming;
@@ -26,7 +28,7 @@ export default function Leaderboard() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [gameId]);
 
   useEffect(() => {
     load();

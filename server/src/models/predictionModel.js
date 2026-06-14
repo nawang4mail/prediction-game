@@ -1,13 +1,17 @@
 import pool from '../config/db.js';
 
-export const findAll = async () => {
-  const [rows] = await pool.query(`
+export const findAll = async (gameId) => {
+  const [rows] = await pool.query(
+    `
     SELECT p.*, u.display_name, m.team_a, m.team_b, m.label,
            (p.prediction = m.result) AS is_correct
     FROM predictions p
     JOIN users u   ON u.id = p.user_id
     JOIN matches m ON m.id = p.match_id
-  `);
+    WHERE m.game_id = ?
+  `,
+    [gameId]
+  );
   return rows;
 };
 
@@ -38,14 +42,16 @@ export const findByUser = async (userId) => {
        p.prediction
      FROM matches m
      LEFT JOIN predictions p ON p.match_id = m.id AND p.user_id = ?
+     WHERE m.game_id = (SELECT game_id FROM users WHERE id = ?)
      ORDER BY m.created_at ASC`,
-    [userId]
+    [userId, userId]
   );
   return rows;
 };
 
-export const leaderboard = async () => {
-  const [rows] = await pool.query(`
+export const leaderboard = async (gameId) => {
+  const [rows] = await pool.query(
+    `
     SELECT
       u.id,
       u.display_name,
@@ -54,8 +60,11 @@ export const leaderboard = async () => {
     FROM users u
     LEFT JOIN predictions p ON p.user_id = u.id
     LEFT JOIN matches     m ON m.id = p.match_id
+    WHERE u.game_id = ?
     GROUP BY u.id, u.display_name
     ORDER BY total_points DESC
-  `);
+  `,
+    [gameId]
+  );
   return rows;
 };

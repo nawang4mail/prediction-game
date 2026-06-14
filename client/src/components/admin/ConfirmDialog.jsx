@@ -1,6 +1,6 @@
 import Modal from './Modal.jsx';
 
-export default function ConfirmDialog({ message, onConfirm, onCancel }) {
+export default function ConfirmDialog({ message, onConfirm, onCancel, confirmLabel = 'Delete' }) {
   return (
     <Modal title="Confirm" onClose={onCancel}>
       <p className="text-sm text-gray-600 mb-6">{message}</p>
@@ -15,7 +15,7 @@ export default function ConfirmDialog({ message, onConfirm, onCancel }) {
           onClick={onConfirm}
           className="px-4 py-2 text-sm text-white bg-red-600 rounded-lg hover:bg-red-700"
         >
-          Delete
+          {confirmLabel}
         </button>
       </div>
     </Modal>

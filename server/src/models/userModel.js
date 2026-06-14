@@ -1,7 +1,10 @@
 import pool from '../config/db.js';
 
-export const findAll = async () => {
-  const [rows] = await pool.query('SELECT * FROM users ORDER BY created_at ASC');
+export const findAll = async (gameId) => {
+  const [rows] = await pool.query(
+    'SELECT * FROM users WHERE game_id = ? ORDER BY created_at ASC',
+    [gameId]
+  );
   return rows;
 };
 
@@ -10,22 +13,22 @@ export const findById = async (id) => {
   return rows[0] ?? null;
 };
 
-export const create = async ({ display_name, phone }) => {
+export const create = async ({ game_id, display_name, phone }) => {
   const [result] = await pool.query(
-    'INSERT INTO users (display_name, phone) VALUES (?, ?)',
-    [display_name, phone ?? null]
+    'INSERT INTO users (game_id, display_name, phone) VALUES (?, ?, ?)',
+    [game_id, display_name, phone ?? null]
   );
   return result.insertId;
 };
 
-export const createWithAutoSuffix = async ({ display_name, phone }) => {
+export const createWithAutoSuffix = async ({ game_id, display_name, phone, entry_token }) => {
   let name = display_name;
   let n = 1;
   while (n <= 99) {
     try {
       const [result] = await pool.query(
-        'INSERT INTO users (display_name, phone) VALUES (?, ?)',
-        [name, phone ?? null]
+        'INSERT INTO users (game_id, display_name, phone, entry_token) VALUES (?, ?, ?, ?)',
+        [game_id, name, phone ?? null, entry_token ?? null]
       );
       return { id: result.insertId, display_name: name };
     } catch (err) {
@@ -35,6 +38,11 @@ export const createWithAutoSuffix = async ({ display_name, phone }) => {
     }
   }
   throw new Error('Too many users with the same name');
+};
+
+export const findByEntryToken = async (token) => {
+  const [rows] = await pool.query('SELECT * FROM users WHERE entry_token = ?', [token]);
+  return rows[0] ?? null;
 };
 
 export const update = async (id, { display_name, phone }) => {

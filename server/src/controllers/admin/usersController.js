@@ -3,7 +3,7 @@ import { upsert as upsertPrediction } from '../../models/predictionModel.js';
 
 export const list = async (req, res, next) => {
   try {
-    res.json(await User.findAll());
+    res.json(await User.findAll(req.gameId));
   } catch (err) {
     next(err);
   }
@@ -12,7 +12,11 @@ export const list = async (req, res, next) => {
 export const create = async (req, res, next) => {
   try {
     const { display_name, phone } = req.body;
-    const result = await User.createWithAutoSuffix({ display_name: display_name.trim(), phone });
+    const result = await User.createWithAutoSuffix({
+      game_id: req.gameId,
+      display_name: display_name.trim(),
+      phone,
+    });
     res.status(201).json(result);
   } catch (err) {
     next(err);
@@ -47,7 +51,7 @@ export const bulkCreate = async (req, res, next) => {
     const names = (req.body.names ?? []).map((n) => n.trim()).filter(Boolean);
     const added = [];
     for (const name of names) {
-      const result = await User.createWithAutoSuffix({ display_name: name });
+      const result = await User.createWithAutoSuffix({ game_id: req.gameId, display_name: name });
       added.push(result);
     }
     res.status(201).json({ added, skipped: [] });
@@ -63,7 +67,7 @@ export const bulkCreateWithPredictions = async (req, res, next) => {
     for (const { name, predictions } of entries) {
       const trimmed = (name ?? '').trim();
       if (!trimmed) continue;
-      const result = await User.createWithAutoSuffix({ display_name: trimmed });
+      const result = await User.createWithAutoSuffix({ game_id: req.gameId, display_name: trimmed });
       for (const [matchId, prediction] of Object.entries(predictions ?? {})) {
         if (prediction) {
           await upsertPrediction({ user_id: result.id, match_id: parseInt(matchId, 10), prediction });

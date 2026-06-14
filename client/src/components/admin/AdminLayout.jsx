@@ -1,8 +1,11 @@
+import { useState, useEffect } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext.jsx';
+import api from '../../services/api.js';
 
 const navItems = [
   { to: '/admin', label: 'Dashboard' },
+  { to: '/admin/games', label: 'Games' },
   { to: '/admin/matches', label: 'Matches' },
   { to: '/admin/users', label: 'Users' },
   { to: '/admin/predictions', label: 'Predictions' },
@@ -12,6 +15,22 @@ const navItems = [
 export default function AdminLayout({ children }) {
   const { logout } = useAuth();
   const navigate = useNavigate();
+  const [games, setGames] = useState([]);
+
+  useEffect(() => {
+    api.get('/admin/games').then(({ data }) => setGames(data)).catch(() => {});
+  }, []);
+
+  const selectedGame = sessionStorage.getItem('admin_game_id') ?? '';
+
+  const handleGameChange = (e) => {
+    if (e.target.value) {
+      sessionStorage.setItem('admin_game_id', e.target.value);
+    } else {
+      sessionStorage.removeItem('admin_game_id');
+    }
+    window.location.reload();
+  };
 
   const handleLogout = () => {
     logout();
@@ -40,12 +59,28 @@ export default function AdminLayout({ children }) {
               </NavLink>
             ))}
           </div>
-          <button
-            onClick={handleLogout}
-            className="text-xs text-red-500 hover:text-red-700 font-medium shrink-0 transition"
-          >
-            Logout
-          </button>
+          <div className="flex items-center gap-3 shrink-0">
+            {games.length > 1 && (
+              <select
+                value={selectedGame}
+                onChange={handleGameChange}
+                className="text-xs border border-gray-300 rounded-lg px-2 py-1.5 text-gray-600 focus:outline-none focus:ring-2 focus:ring-green-500"
+              >
+                <option value="">Active game</option>
+                {games.map((g) => (
+                  <option key={g.id} value={g.id}>
+                    {g.name} ({g.status})
+                  </option>
+                ))}
+              </select>
+            )}
+            <button
+              onClick={handleLogout}
+              className="text-xs text-red-500 hover:text-red-700 font-medium transition"
+            >
+              Logout
+            </button>
+          </div>
         </div>
       </nav>
       <main className="max-w-5xl mx-auto px-4 py-8">{children}</main>

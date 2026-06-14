@@ -12,6 +12,9 @@ function StatCard({ label, value, sub, color }) {
   );
 }
 
+const money = (n) =>
+  `$${(Number(n) || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
 export default function DashboardPage() {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -56,6 +59,54 @@ export default function DashboardPage() {
             sub="available to score"
             color="text-blue-600"
           />
+        </div>
+      )}
+
+      {!loading && stats.finance && (
+        <div className="mb-8" data-testid="finance-section">
+          <h3 className="text-sm font-semibold text-gray-700 mb-3">Prize Pool</h3>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-4">
+            <StatCard
+              label="Total Collected"
+              value={money(stats.finance.total_collected)}
+              sub={`${stats.users} × ${money(stats.finance.entry_cost)} entry`}
+              color="text-green-700"
+            />
+            <StatCard
+              label="Commission"
+              value={money(stats.finance.commission_amount)}
+              sub={`${stats.finance.commission_pct}% of collected`}
+              color="text-amber-600"
+            />
+            <StatCard
+              label="Prize Pool"
+              value={money(stats.finance.prize_pool)}
+              sub="collected − commission"
+              color="text-blue-600"
+            />
+          </div>
+          {stats.finance.tiers.length > 0 && (
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+              <table className="w-full text-sm">
+                <thead className="bg-gray-50 border-b border-gray-100">
+                  <tr>
+                    <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Prize</th>
+                    <th className="text-right px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Share</th>
+                    <th className="text-right px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Amount</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {stats.finance.tiers.map((t, i) => (
+                    <tr key={i} className="hover:bg-gray-50 transition">
+                      <td className="px-4 py-3 font-medium text-gray-800">{t.label}</td>
+                      <td className="px-4 py-3 text-right text-gray-500">{t.percentage}%</td>
+                      <td className="px-4 py-3 text-right font-bold text-green-700">{money(t.amount)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       )}
 

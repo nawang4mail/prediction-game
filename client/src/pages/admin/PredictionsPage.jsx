@@ -26,18 +26,28 @@ function shortLabel(match) {
   return match.label ?? `${match.team_a} vs ${match.team_b}`;
 }
 
+// Mirrors the server gameScope fallback: explicit selection, else the active
+// (open/locked) game, else the most recent.
+function resolveScopedGame(games) {
+  const selected = sessionStorage.getItem('admin_game_id');
+  if (selected) return games.find((g) => String(g.id) === String(selected)) ?? null;
+  return games.find((g) => g.status === 'open' || g.status === 'locked') ?? games[0] ?? null;
+}
+
 export default function PredictionsPage() {
   const [users, setUsers] = useState([]);
   const [matches, setMatches] = useState([]);
   const [cells, setCells] = useState({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState({});
+  const [readOnly, setReadOnly] = useState(false);
 
   const load = useCallback(async () => {
-    const [{ data: u }, { data: m }, { data: p }] = await Promise.all([
+    const [{ data: u }, { data: m }, { data: p }, { data: games }] = await Promise.all([
       api.get('/admin/users'),
       api.get('/admin/matches'),
       api.get('/admin/predictions'),
+      api.get('/admin/games'),
     ]);
 
     const map = {};
@@ -50,12 +60,14 @@ export default function PredictionsPage() {
     setUsers(u);
     setMatches(m);
     setCells(map);
+    setReadOnly(resolveScopedGame(games)?.status === 'finished');
     setLoading(false);
   }, []);
 
   useEffect(() => { load(); }, [load]);
 
   const handleChange = async (userId, matchId, value) => {
+    if (readOnly) return;
     const key = `${userId}-${matchId}`;
     setSaving((s) => ({ ...s, [key]: true }));
     setCells((prev) => ({
@@ -87,6 +99,15 @@ export default function PredictionsPage() {
           </span>
         </p>
       </div>
+
+      {readOnly && (
+        <div
+          data-testid="finished-banner"
+          className="mb-4 text-sm text-gray-600 bg-gray-100 border border-gray-200 rounded-lg px-4 py-3"
+        >
+          🔒 This game is finished — predictions are locked and cannot be edited.
+        </div>
+      )}
 
       {loading ? (
         <div className="space-y-3">
@@ -149,11 +170,11 @@ export default function PredictionsPage() {
                           <select
                             value={prediction}
                             onChange={(e) => handleChange(u.id, m.id, e.target.value)}
-                            disabled={isSaving}
+                            disabled={isSaving || readOnly}
                             data-testid={`cell-${u.id}-${m.id}`}
                             className={`w-full text-xs rounded px-1 py-1 border focus:outline-none focus:ring-1 focus:ring-green-400
                               ${cellClass(prediction, m) || 'bg-white'}
-                              ${isSaving ? 'opacity-50 cursor-not-allowed' : 'border-gray-200 cursor-pointer'}
+                              ${isSaving || readOnly ? 'opacity-50 cursor-not-allowed' : 'border-gray-200 cursor-pointer'}
                             `}
                           >
                             {PICK_OPTIONS.map((opt) => (
