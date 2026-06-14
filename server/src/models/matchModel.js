@@ -50,11 +50,3 @@ export const findAllWithPredictionCounts = async (gameId) => {
   );
   return rows;
 };
-
-export const count = async (gameId) => {
-  const [rows] = await pool.query(
-    'SELECT COUNT(*) AS total FROM matches WHERE game_id = ?',
-    [gameId]
-  );
-  return rows[0].total;
-};

@@ -309,7 +309,7 @@ _Management & scope:_
 
 ---
 
-### US-43 · Remove the 10-Match Limit per Game
+### US-43 · Remove the 10-Match Limit per Game ✅
 **As an** admin,
 **I want to** add as many matches to a game as I need, with no fixed cap,
 **So that** I can run tournaments with more than 10 fixtures (full group stages, knockout rounds, etc.).

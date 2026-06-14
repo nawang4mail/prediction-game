@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.1.0] - 2026-06-14
+
+### Changed
+
+- **Matches** — removed the 10-match-per-game cap; admins can now add an
+  unlimited number of matches to a game (US-43)
+
 ## [2.0.0] - 2026-06-14
 
 Multi-game release. Covers user stories US-26 to US-42.
@@ -67,5 +74,6 @@ First release. Covers all 25 user stories (US-01 to US-25).
 - **Prize & rules** — admin-managed prize and rules content displayed on the
   homepage (US-20, US-21)
 
+[2.1.0]: https://github.com/nawang4mail/prediction-game/releases/tag/v2.1.0
 [2.0.0]: https://github.com/nawang4mail/prediction-game/releases/tag/v2.0.0
 [1.0.0]: https://github.com/nawang4mail/prediction-game/releases/tag/v1.0.0

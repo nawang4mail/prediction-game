@@ -1,6 +1,5 @@
 import * as Match from '../../models/matchModel.js';
 
-const MAX_MATCHES = 10;
 const RESULTS = ['team_a', 'team_b', 'draw'];
 
 export const list = async (req, res, next) => {
@@ -13,9 +12,6 @@ export const list = async (req, res, next) => {
 
 export const create = async (req, res, next) => {
   try {
-    if ((await Match.count(req.gameId)) >= MAX_MATCHES) {
-      return res.status(400).json({ message: 'Maximum of 10 matches reached' });
-    }
     const id = await Match.create({ ...req.body, game_id: req.gameId });
     res.status(201).json({ id });
   } catch (err) {
