@@ -25,8 +25,17 @@ function resultBadge(match) {
   );
 }
 
+// Mirrors the server gameScope fallback: explicit selection, else the active
+// (open/locked) game, else the most recent.
+function resolveScopedGame(games) {
+  const selected = sessionStorage.getItem('admin_game_id');
+  if (selected) return games.find((g) => String(g.id) === String(selected)) ?? null;
+  return games.find((g) => g.status === 'open' || g.status === 'locked') ?? games[0] ?? null;
+}
+
 export default function MatchesPage() {
   const [matches, setMatches] = useState([]);
+  const [status, setStatus] = useState(null); // scoped game status
   const [loading, setLoading] = useState(true);
   const [modal, setModal] = useState(null); // 'add' | { edit: match }
   const [deleteTarget, setDeleteTarget] = useState(null);
@@ -34,16 +43,34 @@ export default function MatchesPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
+  // Fixtures are editable only before kickoff (draft/open); results may still be
+  // recorded once a game is open or locked; a finished game is fully read-only.
+  const canEditFixtures = status === 'draft' || status === 'open';
+  const canSetResult = status === 'open' || status === 'locked';
+
   const load = useCallback(async () => {
     try {
-      const { data } = await api.get('/admin/matches');
+      const [{ data }, { data: games }] = await Promise.all([
+        api.get('/admin/matches'),
+        api.get('/admin/games'),
+      ]);
       setMatches(data);
+      setStatus(resolveScopedGame(games)?.status ?? null);
     } finally {
       setLoading(false);
     }
   }, []);
 
   useEffect(() => { load(); }, [load]);
+
+  const handleResult = async (matchId, value) => {
+    try {
+      await api.put(`/admin/matches/${matchId}/result`, { result: value || null });
+      await load();
+    } catch (err) {
+      setError(err.response?.data?.message ?? 'Failed to save result.');
+    }
+  };
 
   const openAdd = () => {
     setForm(EMPTY_FORM);
@@ -57,7 +84,6 @@ export default function MatchesPage() {
       team_b: match.team_b,
       label: match.label ?? '',
       match_date: match.match_date ? match.match_date.slice(0, 16) : '',
-      result: match.result ?? '',
     });
     setError('');
     setModal({ edit: match });
@@ -76,7 +102,6 @@ export default function MatchesPage() {
         team_b: form.team_b.trim(),
         label: form.label.trim() || null,
         match_date: form.match_date || null,
-        ...(modal?.edit && { result: form.result || null }),
       };
       if (modal === 'add') {
         await api.post('/admin/matches', payload);
@@ -108,15 +133,34 @@ export default function MatchesPage() {
           <h2 className="text-lg font-semibold text-gray-800">Matches</h2>
           <p className="text-sm text-gray-500">{matches.length} / 10 matches added</p>
         </div>
-        <button
-          onClick={openAdd}
-          disabled={matches.length >= 10}
-          className="px-4 py-2 bg-green-700 hover:bg-green-800 disabled:bg-gray-300
-            text-white text-sm font-medium rounded-lg transition"
-        >
-          + Add Match
-        </button>
+        {canEditFixtures && (
+          <button
+            onClick={openAdd}
+            disabled={matches.length >= 10}
+            className="px-4 py-2 bg-green-700 hover:bg-green-800 disabled:bg-gray-300
+              text-white text-sm font-medium rounded-lg transition"
+          >
+            + Add Match
+          </button>
+        )}
       </div>
+
+      {status === 'locked' && (
+        <div
+          data-testid="matches-locked-banner"
+          className="mb-4 text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-4 py-3"
+        >
+          🔒 The game has started — fixtures are locked. You can still record results below.
+        </div>
+      )}
+      {status === 'finished' && (
+        <div
+          data-testid="matches-finished-banner"
+          className="mb-4 text-sm text-gray-600 bg-gray-100 border border-gray-200 rounded-lg px-4 py-3"
+        >
+          🔒 This game is finished — matches are read-only.
+        </div>
+      )}
 
       {loading ? (
         <div className="space-y-3">
@@ -149,22 +193,43 @@ export default function MatchesPage() {
                     {m.team_a} <span className="text-gray-400 font-normal">vs</span> {m.team_b}
                   </td>
                   <td className="px-4 py-3 text-gray-500 hidden sm:table-cell">{m.label ?? '—'}</td>
-                  <td className="px-4 py-3">{resultBadge(m)}</td>
+                  <td className="px-4 py-3">
+                    {canSetResult ? (
+                      <select
+                        value={m.result ?? ''}
+                        onChange={(e) => handleResult(m.id, e.target.value)}
+                        data-testid={`result-${m.id}`}
+                        className="text-xs border border-gray-300 rounded-lg px-2 py-1 focus:outline-none focus:ring-2 focus:ring-green-500 cursor-pointer"
+                      >
+                        {RESULT_OPTIONS.map((opt) => (
+                          <option key={opt.value} value={opt.value}>
+                            {typeof opt.label === 'function' ? opt.label(m) : opt.label}
+                          </option>
+                        ))}
+                      </select>
+                    ) : (
+                      resultBadge(m)
+                    )}
+                  </td>
                   <td className="px-4 py-3 text-right">
-                    <div className="flex justify-end gap-2">
-                      <button
-                        onClick={() => openEdit(m)}
-                        className="text-xs text-blue-600 hover:text-blue-800 font-medium"
-                      >
-                        Edit
-                      </button>
-                      <button
-                        onClick={() => setDeleteTarget(m)}
-                        className="text-xs text-red-500 hover:text-red-700 font-medium"
-                      >
-                        Delete
-                      </button>
-                    </div>
+                    {canEditFixtures ? (
+                      <div className="flex justify-end gap-2">
+                        <button
+                          onClick={() => openEdit(m)}
+                          className="text-xs text-blue-600 hover:text-blue-800 font-medium"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => setDeleteTarget(m)}
+                          className="text-xs text-red-500 hover:text-red-700 font-medium"
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    ) : (
+                      <span className="text-xs text-gray-300">locked</span>
+                    )}
                   </td>
                 </tr>
               ))}
@@ -223,23 +288,6 @@ export default function MatchesPage() {
                 className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
               />
             </div>
-            {modal?.edit && (
-              <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">Result</label>
-                <select
-                  name="result"
-                  value={form.result ?? ''}
-                  onChange={handleChange}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
-                >
-                  {RESULT_OPTIONS.map((opt) => (
-                    <option key={opt.value} value={opt.value}>
-                      {typeof opt.label === 'function' ? opt.label(modal.edit) : opt.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            )}
             {error && <p className="text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{error}</p>}
             <div className="flex justify-end gap-3 pt-1">
               <button type="button" onClick={() => setModal(null)} className="px-4 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50">
