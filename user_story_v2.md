@@ -309,6 +309,24 @@ _Management & scope:_
 
 ---
 
+### US-43 · Remove the 10-Match Limit per Game
+**As an** admin,
+**I want to** add as many matches to a game as I need, with no fixed cap,
+**So that** I can run tournaments with more than 10 fixtures (full group stages, knockout rounds, etc.).
+
+**Root cause:** match creation is capped at 10 — `matchesController.create` enforces `MAX_MATCHES = 10` and returns "Maximum of 10 matches reached", while the admin Matches page shows a "N / 10 matches" counter and disables the Add button once 10 matches exist.
+
+**Acceptance Criteria:**
+- An admin can add an unlimited number of matches to a game; there is no maximum
+- The server no longer rejects match creation with "Maximum of 10 matches reached" — the `MAX_MATCHES` guard is removed from `POST /api/admin/matches`
+- The admin Matches page no longer shows "N / 10 matches" or disables the Add button at 10; it shows the current match count (e.g. "N matches")
+- The cap removal applies per game and does not change when matches are editable — the locked/finished match locks (US-39) continue to apply unchanged
+- Existing games are unaffected; no schema change or migration is required
+
+**Notes:** The "open games in advance / run multiple open games at the same time" part of this request is already delivered — see **US-38** (prepare a game in `draft` while another is active) and **US-42** (multiple concurrent `open` games). US-43 only covers lifting the per-game match cap.
+
+---
+
 ## Navigation & Tabs (v2 additions)
 
 | Tab | Route | Access |
