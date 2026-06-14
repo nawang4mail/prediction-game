@@ -309,6 +309,46 @@ _Management & scope:_
 
 ---
 
+### US-43 · Remove the 10-Match Limit per Game ✅
+**As an** admin,
+**I want to** add as many matches to a game as I need, with no fixed cap,
+**So that** I can run tournaments with more than 10 fixtures (full group stages, knockout rounds, etc.).
+
+**Root cause:** match creation is capped at 10 — `matchesController.create` enforces `MAX_MATCHES = 10` and returns "Maximum of 10 matches reached", while the admin Matches page shows a "N / 10 matches" counter and disables the Add button once 10 matches exist.
+
+**Acceptance Criteria:**
+- An admin can add an unlimited number of matches to a game; there is no maximum
+- The server no longer rejects match creation with "Maximum of 10 matches reached" — the `MAX_MATCHES` guard is removed from `POST /api/admin/matches`
+- The admin Matches page no longer shows "N / 10 matches" or disables the Add button at 10; it shows the current match count (e.g. "N matches")
+- The cap removal applies per game and does not change when matches are editable — the locked/finished match locks (US-39) continue to apply unchanged
+- Existing games are unaffected; no schema change or migration is required
+
+**Notes:** The "open games in advance / run multiple open games at the same time" part of this request is already delivered — see **US-38** (prepare a game in `draft` while another is active) and **US-42** (multiple concurrent `open` games). US-43 only covers lifting the per-game match cap.
+
+---
+
+### US-44 · Separate "My Predictions" and "Join" Buttons on the Homepage ✅
+**As a** returning visitor who has already made predictions in one game,
+**I want** the homepage to show a "Join" button for any newly opened game **alongside** my "My Predictions" button, instead of one button that swaps between the two,
+**So that** I can join a new game without being confused by a single button that hides the action I need.
+
+**Root cause:** the homepage header renders the two actions as an either/or (`HomePage.jsx`): it shows **"My Predictions"** when the visitor is a participant in any active game (`isParticipant`), and **otherwise** shows **"Join the Game"** when a game is open. Once a visitor has joined one game, the Join button disappears entirely — even though US-42 now allows several games to be open at once, so there may be another game they have not joined yet. The single, dynamically-swapping button makes it unclear that joining is still possible.
+
+**Acceptance Criteria:**
+- The homepage shows **two distinct buttons** rather than one button that changes label/target:
+  - **My Predictions** — shown whenever the visitor holds an entry in any currently active game (existing `isParticipant` logic), linking to `/my-predictions`
+  - **Join the Game** — shown whenever at least one game is `open`, linking to `/join`
+- Both buttons can appear at the same time, side by side (e.g. a participant in Game A while Game B is open) — they are independent, not mutually exclusive
+- When the visitor is a participant but no game is currently open, only **My Predictions** is shown
+- When the visitor is not a participant but a game is open, only **Join the Game** is shown (unchanged from today for first-time visitors, US-29)
+- When neither applies (no open game and no active entry), no action button is shown
+- Buttons remain clearly labelled and distinguishable (icon + text), and the layout works on mobile within the existing responsive header (US-04)
+- Behaviour is consistent with US-34 (stale tokens from finished games still do not count as participation) and US-41/US-42 (entries and open games are per game)
+
+**Notes:** Client-only change in `HomePage.jsx` — replace the `isParticipant ? … : (hasOpenGame && …)` ternary in the header with two independent conditional buttons. No API or schema change.
+
+---
+
 ## Navigation & Tabs (v2 additions)
 
 | Tab | Route | Access |

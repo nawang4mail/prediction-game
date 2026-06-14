@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.1.0] - 2026-06-14
+
+### Changed
+
+- **Matches** — removed the 10-match-per-game cap; admins can now add an
+  unlimited number of matches to a game (US-43)
+
+### Fixed
+
+- **Games** — the admin Games page no longer disables the "Open" action while
+  another game is active; drafts can be opened freely so multiple games can run
+  at the same time, matching the server behaviour shipped in US-42
+- **Homepage** — "My Predictions" and "Join the Game" are now two independent
+  buttons instead of one that swaps between them, so a returning participant can
+  still join a newly opened game (US-44)
+
 ## [2.0.0] - 2026-06-14
 
 Multi-game release. Covers user stories US-26 to US-42.
@@ -67,5 +83,6 @@ First release. Covers all 25 user stories (US-01 to US-25).
 - **Prize & rules** — admin-managed prize and rules content displayed on the
   homepage (US-20, US-21)
 
+[2.1.0]: https://github.com/nawang4mail/prediction-game/releases/tag/v2.1.0
 [2.0.0]: https://github.com/nawang4mail/prediction-game/releases/tag/v2.0.0
 [1.0.0]: https://github.com/nawang4mail/prediction-game/releases/tag/v1.0.0
