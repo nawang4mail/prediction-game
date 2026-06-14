@@ -28,6 +28,8 @@ function PrizeRulesCard({ prize, rules }) {
 export default function HomePage() {
   const [settings, setSettings] = useState({ prize_text: '', rules_text: '' });
   const [hasOpenGame, setHasOpenGame] = useState(false);
+  // null = unknown/not a current participant; true = token belongs to the active game
+  const [isParticipant, setIsParticipant] = useState(false);
   const [params] = useSearchParams();
   const gameId = params.get('game');
 
@@ -37,14 +39,41 @@ export default function HomePage() {
       .catch(() => {});
   }, [gameId]);
 
+  // Resolve the "Join the Game" vs "My Predictions" button. A saved entry_token
+  // only counts if it belongs to the current active game — a token left over
+  // from a previous (finished) game is cleared so the visitor can join the new
+  // one instead of being stuck on My Predictions forever. (US-34)
   useEffect(() => {
-    api.get('/games')
-      .then(({ data }) => setHasOpenGame(data.some((g) => g.status === 'open')))
-      .catch(() => {});
+    let cancelled = false;
+    (async () => {
+      let active;
+      try {
+        const { data: games } = await api.get('/games');
+        active = games.find((g) => g.status === 'open' || g.status === 'locked') ?? null;
+      } catch {
+        return;
+      }
+      if (cancelled) return;
+      setHasOpenGame(!!active && active.status === 'open');
+
+      const token = localStorage.getItem('entry_token');
+      if (!token) return;
+      try {
+        const { data: me } = await api.get('/participants/me');
+        if (cancelled) return;
+        if (active && me.game.id === active.id) {
+          setIsParticipant(true);
+        } else {
+          localStorage.removeItem('entry_token'); // stale token from a past game
+        }
+      } catch {
+        localStorage.removeItem('entry_token');
+      }
+    })();
+    return () => { cancelled = true; };
   }, []);
 
   const hasPrizeOrRules = settings.prize_text || settings.rules_text;
-  const isParticipant = !!localStorage.getItem('entry_token');
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-green-800 to-green-950">

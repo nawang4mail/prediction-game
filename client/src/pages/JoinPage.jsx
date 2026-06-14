@@ -11,13 +11,38 @@ export default function JoinPage() {
   const [joining, setJoining] = useState(false);
 
   useEffect(() => {
-    if (localStorage.getItem('entry_token')) {
-      navigate('/my-predictions', { replace: true });
-      return;
-    }
-    api.get('/games')
-      .then(({ data }) => setOpenGame(data.find((g) => g.status === 'open') ?? null))
-      .finally(() => setLoading(false));
+    let cancelled = false;
+    (async () => {
+      let open;
+      try {
+        const { data: games } = await api.get('/games');
+        open = games.find((g) => g.status === 'open') ?? null;
+      } catch {
+        if (!cancelled) setLoading(false);
+        return;
+      }
+      if (cancelled) return;
+      setOpenGame(open);
+
+      // Only skip to My Predictions if the saved token is for the open game.
+      // A leftover token from a previous game is cleared so this visitor can
+      // join the new one. (US-34)
+      const token = localStorage.getItem('entry_token');
+      if (token) {
+        try {
+          const { data: me } = await api.get('/participants/me');
+          if (!cancelled && open && me.game.id === open.id) {
+            navigate('/my-predictions', { replace: true });
+            return;
+          }
+          localStorage.removeItem('entry_token');
+        } catch {
+          localStorage.removeItem('entry_token');
+        }
+      }
+      if (!cancelled) setLoading(false);
+    })();
+    return () => { cancelled = true; };
   }, [navigate]);
 
   const handleJoin = async (e) => {
