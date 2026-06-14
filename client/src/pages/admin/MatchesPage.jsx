@@ -131,12 +131,13 @@ export default function MatchesPage() {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h2 className="text-lg font-semibold text-gray-800">Matches</h2>
-          <p className="text-sm text-gray-500">{matches.length} / 10 matches added</p>
+          <p className="text-sm text-gray-500">
+            {matches.length} {matches.length === 1 ? 'match' : 'matches'} added
+          </p>
         </div>
         {canEditFixtures && (
           <button
             onClick={openAdd}
-            disabled={matches.length >= 10}
             className="px-4 py-2 bg-green-700 hover:bg-green-800 disabled:bg-gray-300
               text-white text-sm font-medium rounded-lg transition"
           >
