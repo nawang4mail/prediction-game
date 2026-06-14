@@ -136,7 +136,7 @@ Numbering continues from v1: new stories start at **US-26**.
 - If the match result is set, the breakdown highlights the winning option
 - Visible without any login; works on mobile within the existing responsive layout (US-04)
 
-### US-34 · Re-join a New Game After a Previous One
+### US-34 · Re-join a New Game After a Previous One ✅
 **As a** returning visitor who participated in a previous game,
 **I want** the homepage to recognise that my saved token belongs to an old game and offer me the option to join the new active game,
 **So that** I am not permanently stuck on "My Predictions" from a past game and can participate in every new game.
