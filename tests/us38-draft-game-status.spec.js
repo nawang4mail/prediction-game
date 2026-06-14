@@ -41,14 +41,6 @@ test.describe.serial('US-38: draft games', () => {
     expect(pub.every((g) => g.status !== 'draft')).toBe(true);
   });
 
-  test('opening a draft while another game is active returns 409', async ({ request }) => {
-    const res = await request.put(`${API}/api/admin/games/${draftId}/status`, {
-      headers: auth,
-      data: { status: 'open' },
-    });
-    expect(res.status()).toBe(409);
-  });
-
   test('a non-draft (finished) game cannot be deleted', async ({ request }) => {
     const finished = (await games(request)).find((g) => g.status === 'finished');
     expect(finished).toBeTruthy();

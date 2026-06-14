@@ -42,16 +42,7 @@ export const updateStatus = async (req, res, next) => {
         message: `Cannot change status from ${game.status} to ${status}`,
       });
     }
-    // Opening a game (draft -> open) requires no other game to be active. A
-    // locked game reopening to open is the active game itself, so it is allowed.
-    if (status === 'open') {
-      const active = await Game.findActive();
-      if (active && active.id !== game.id) {
-        return res.status(409).json({
-          message: `Finish or lock "${active.name}" before opening another game`,
-        });
-      }
-    }
+    // Multiple games may be open or locked at the same time. (US-42)
     await Game.updateStatus(game.id, status);
     res.json({ message: 'Updated' });
   } catch (err) {

@@ -86,7 +86,8 @@ export default function MyPredictionsPage() {
     setAddBusy(true);
     setError(null);
     try {
-      const { data: res } = await api.post('/participants', { display_name: name });
+      // Add to the same game as the current entry — several games may be open. (US-42)
+      const { data: res } = await api.post('/participants', { display_name: name, game_id: data.game.id });
       upsertEntry({
         token: res.entry_token,
         name: res.display_name,

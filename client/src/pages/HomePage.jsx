@@ -47,25 +47,28 @@ export default function HomePage() {
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      let active;
+      let games;
       try {
-        const { data: games } = await api.get('/games');
-        active = games.find((g) => g.status === 'open' || g.status === 'locked') ?? null;
+        ({ data: games } = await api.get('/games'));
       } catch {
         return;
       }
       if (cancelled) return;
-      setHasOpenGame(!!active && active.status === 'open');
+      setHasOpenGame(games.some((g) => g.status === 'open'));
 
-      // The player is a participant if they hold any entry in the active game.
-      // Point the current token at one of those entries so "My Predictions"
-      // opens the active game. (US-34, US-41)
+      // The player is a participant if they hold an entry in any active game
+      // (several may be open at once). Point the current token at one of those
+      // entries so "My Predictions" opens an active game. (US-34, US-41, US-42)
       await migrateLegacy();
-      if (cancelled || !active) return;
-      const mine = entriesForGame(active.id);
-      if (mine.length) {
-        setCurrentToken(mine[0].token);
-        setIsParticipant(true);
+      if (cancelled) return;
+      const activeGames = games.filter((g) => g.status === 'open' || g.status === 'locked');
+      for (const g of activeGames) {
+        const mine = entriesForGame(g.id);
+        if (mine.length) {
+          setCurrentToken(mine[0].token);
+          setIsParticipant(true);
+          break;
+        }
       }
     })();
     return () => { cancelled = true; };
