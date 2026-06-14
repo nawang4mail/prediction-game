@@ -3,14 +3,20 @@ import AdminLayout from '../../components/admin/AdminLayout.jsx';
 import api from '../../services/api.js';
 
 export default function SettingsPage() {
-  const [form, setForm] = useState({ prize_text: '', rules_text: '' });
+  const [form, setForm] = useState({ prize_text: '', rules_text: '', finish_message: '' });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [status, setStatus] = useState(null); // 'saved' | 'error'
 
   useEffect(() => {
     api.get('/admin/settings')
-      .then(({ data }) => setForm({ prize_text: data.prize_text ?? '', rules_text: data.rules_text ?? '' }))
+      .then(({ data }) =>
+        setForm({
+          prize_text: data.prize_text ?? '',
+          rules_text: data.rules_text ?? '',
+          finish_message: data.finish_message ?? '',
+        })
+      )
       .finally(() => setLoading(false));
   }, []);
 
@@ -69,6 +75,22 @@ export default function SettingsPage() {
                 className="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 resize-y"
               />
               <p className="text-xs text-gray-400 mt-1">Leave empty to hide the Rules section.</p>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                ✓ Finish Message
+              </label>
+              <textarea
+                value={form.finish_message}
+                onChange={(e) => setForm((p) => ({ ...p, finish_message: e.target.value }))}
+                rows={2}
+                placeholder="e.g. Game set — your predictions are saved. Good luck!"
+                className="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 resize-y"
+              />
+              <p className="text-xs text-gray-400 mt-1">
+                Shown to players when they tap Finish. Leave empty to use the default message.
+              </p>
             </div>
 
             {status === 'saved' && (

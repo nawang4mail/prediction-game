@@ -13,6 +13,8 @@ export default function MyPredictionsPage() {
   const [data, setData] = useState(null);
   const [saving, setSaving] = useState({});
   const [error, setError] = useState(null);
+  const [finishMsg, setFinishMsg] = useState(null);
+  const [finishing, setFinishing] = useState(false);
 
   useEffect(() => {
     if (!localStorage.getItem('entry_token')) {
@@ -32,6 +34,20 @@ export default function MyPredictionsPage() {
   }, [navigate]);
 
   const locked = data && data.game.status !== 'open';
+  const hasPicks = !!data && data.predictions.some((p) => p.prediction);
+
+  const finish = async () => {
+    setFinishing(true);
+    setError(null);
+    try {
+      const { data: res } = await api.post('/participants/me/finish');
+      setFinishMsg(res.message);
+    } catch (err) {
+      setError(err.response?.data?.message ?? 'Could not confirm your predictions.');
+    } finally {
+      setFinishing(false);
+    }
+  };
 
   const pick = async (match, value) => {
     if (locked) return;
@@ -39,6 +55,7 @@ export default function MyPredictionsPage() {
     const next = current?.prediction === value ? null : value;
     setSaving((s) => ({ ...s, [match.match_id]: true }));
     setError(null);
+    setFinishMsg(null); // editing after finishing lets the participant re-confirm
     try {
       await api.put('/participants/me/predictions', { match_id: match.match_id, prediction: next });
       setData((d) => ({
@@ -122,6 +139,30 @@ export default function MyPredictionsPage() {
                 </div>
               </div>
             ))}
+          </div>
+        )}
+
+        {!locked && data && (
+          <div className="mt-6 text-center">
+            {finishMsg ? (
+              <p
+                data-testid="finish-message"
+                className="text-sm text-green-950 bg-green-400 rounded-xl px-4 py-3 font-medium"
+              >
+                ✓ {finishMsg}
+              </p>
+            ) : (
+              hasPicks && (
+                <button
+                  onClick={finish}
+                  disabled={finishing}
+                  data-testid="finish-button"
+                  className="w-full py-2.5 bg-green-500 hover:bg-green-400 disabled:bg-green-700 text-white text-sm font-semibold rounded-lg transition"
+                >
+                  {finishing ? 'Confirming…' : '✓ Finish — Send My Predictions'}
+                </button>
+              )
+            )}
           </div>
         )}
 

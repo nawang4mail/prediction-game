@@ -1,6 +1,6 @@
 import pool from '../config/db.js';
 
-const DEFAULTS = { prize_text: '', rules_text: '' };
+const DEFAULTS = { prize_text: '', rules_text: '', finish_message: '' };
 
 export const getAll = async (gameId) => {
   const [rows] = await pool.query(

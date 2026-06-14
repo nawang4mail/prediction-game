@@ -2,9 +2,11 @@ import { randomUUID } from 'crypto';
 import * as User from '../models/userModel.js';
 import * as Game from '../models/gameModel.js';
 import * as Match from '../models/matchModel.js';
+import { getAll as getSettings } from '../models/settingsModel.js';
 import { upsert, remove, findByUser } from '../models/predictionModel.js';
 
 const PREDICTIONS = ['team_a', 'team_b', 'draw'];
+const DEFAULT_FINISH_MESSAGE = 'Game set — your predictions are saved. Good luck!';
 
 export const join = async (req, res, next) => {
   try {
@@ -62,6 +64,22 @@ export const savePrediction = async (req, res, next) => {
     }
     await upsert({ user_id: req.participant.id, match_id, prediction });
     res.json({ message: 'Saved' });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// Confirms a participant has finished entering predictions and returns the
+// admin-configured confirmation message (or a sensible default). Predictions
+// already save as they are picked, so this is a confirmation, not a lock. (US-35)
+export const finish = async (req, res, next) => {
+  try {
+    if (req.game.status !== 'open') {
+      return res.status(403).json({ message: 'The game has started — predictions are locked' });
+    }
+    const settings = await getSettings(req.game.id);
+    const message = settings.finish_message?.trim() || DEFAULT_FINISH_MESSAGE;
+    res.json({ message });
   } catch (err) {
     next(err);
   }

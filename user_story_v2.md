@@ -198,7 +198,7 @@ Numbering continues from v1: new stories start at **US-26**.
 
 ---
 
-### US-35 · Confirm Predictions with a Finish Button
+### US-35 · Confirm Predictions with a Finish Button ✅
 **As a** participant,
 **I want to** click a "Finish" button after filling in my predictions,
 **So that** I have a clear moment of confirmation that my picks have been submitted and are ready.
