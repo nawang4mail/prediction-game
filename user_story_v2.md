@@ -184,7 +184,7 @@ Numbering continues from v1: new stories start at **US-26**.
 
 ---
 
-### US-37 · Lock Prediction Grid for Finished Games
+### US-37 · Lock Prediction Grid for Finished Games ✅
 **As an** admin,
 **I want** the predictions grid to be read-only when the selected game is `finished`,
 **So that** the final standings and prediction history cannot be accidentally altered after a game is over.
