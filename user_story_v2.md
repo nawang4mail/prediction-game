@@ -258,6 +258,57 @@ _Example:_
 
 ---
 
+### US-41 · Join Multiple Entries in the Same Game
+**As a** player,
+**I want to** add multiple entries to the same game without retyping my name each time, and optionally add an entry on someone else's behalf,
+**So that** I can quickly run several prediction sets (mine or my friends') and have each one ranked on the leaderboard.
+
+**Acceptance Criteria:**
+
+_First entry:_
+- The first time a player joins, the join form asks for their display name (this becomes their **base name**), exactly as today (US-29)
+
+_Additional entries:_
+- After the first entry, "Add another entry" does **not** ask for a name by default — it auto-creates the next entry as **base name + # + number** (e.g. "Alice #2", "Alice #3")
+- The add-entry form has a checkbox/toggle: **"Whose entry is this?"** with options **Myself** (selected by default) and **Someone else**
+- When **Myself** is selected (default), no name is requested — the auto-numbered base name is used
+- When **Someone else** is selected, the form asks for that person's name; that name is used for the entry (duplicates auto-suffixed per US-25)
+- There is no limit on the number of entries a player can create
+
+_Management & scope:_
+- Each entry has its own predictions and its own line on the leaderboard
+- The device remembers all of the player's entries for the active game; My Predictions shows a switcher to move between them and the "Add another entry" action
+- Switching entries shows that entry's picks; editing or finishing (US-35) affects only the selected entry
+- Adding entries is only possible while the game is open; once locked, all of the player's entries are read-only (US-31)
+- Only entries belonging to the current active game appear in the switcher; tokens from previous games are not shown (consistent with US-34)
+- Each entry counts as a participant for the prize pool, so totals/commission/tiers already include every entry (US-36)
+
+**Notes:** No schema change — `users` already allows multiple rows per game and one `entry_token` per row; the server join flow already creates a fresh entry per call. The work is client-side: remember the base name and the list of entry tokens (migrating the existing single `entry_token`), generate "base #N" names for self entries, prompt only for "someone else" entries, and add the switcher + add-entry UX scoped to the active game.
+
+---
+
+### US-42 · Run Multiple Open Games at the Same Time
+**As an** admin,
+**I want to** have more than one game open (and accepting predictions) at the same time,
+**So that** I can run several tournaments/pools concurrently instead of one at a time.
+
+**Acceptance Criteria:**
+- More than one game can be in `open` (and `locked`) status simultaneously; opening a game no longer requires every other game to be finished
+- Admin can create, open, lock, and finish each game independently of the others
+- **Public side** — visitors can see and choose among all currently open games:
+  - The join page lists every `open` game and lets the visitor pick which one to join (instead of assuming a single open game)
+  - The leaderboard/matches game selector (US-32) includes all open games, not just finished ones
+  - When no game is explicitly selected, a sensible default is shown (e.g. the most recently opened game) and the visitor can switch
+- **Participants** — a player's entries and `entry_token`s are already scoped to a specific game; joining one open game does not affect another. My Predictions makes clear which game an entry belongs to (carried through with US-41's switcher)
+- **Admin scoping** — the existing per-game scope selector (dashboard, matches, users, predictions, settings) continues to work; each open game is managed independently
+- Every game's prize pool, leaderboard, and locks (US-36, US-37, US-39, US-40) operate per game, unchanged
+
+**Amends:** US-27 and US-38 — removes the "at most one game may be open or locked at a time" constraint. Game creation and the draft → open transition no longer block on another active game.
+
+**Notes:** No schema change. The main work is removing the single-active-game guards (`gamesController.create`/`updateStatus`, which use `Game.findActive()`), redefining how the public default game is resolved when several are open (`gameScope` / `findActive` currently return a single game), and updating the join page and public game selector to handle a list of open games rather than one. Needs care around `participantsController.join` and US-34/US-41, which currently assume a single active game per device.
+
+---
+
 ## Navigation & Tabs (v2 additions)
 
 | Tab | Route | Access |
@@ -293,5 +344,6 @@ prize_tiers (id, game_id FK, rank INT, label VARCHAR(100), percentage DECIMAL(5,
 
 - Accounts or passwords for participants
 - Email notifications
-- Multiple concurrent active games
 - Match scheduling / countdown timers
+
+_(Multiple concurrent active games moved into scope — see US-42.)_
