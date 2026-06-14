@@ -1,6 +1,12 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import api from '../services/api.js';
+import {
+  entriesForGame,
+  migrateLegacy,
+  setCurrentToken,
+  upsertEntry,
+} from '../services/entries.js';
 
 export default function JoinPage() {
   const navigate = useNavigate();
@@ -24,20 +30,17 @@ export default function JoinPage() {
       if (cancelled) return;
       setOpenGame(open);
 
-      // Only skip to My Predictions if the saved token is for the open game.
-      // A leftover token from a previous game is cleared so this visitor can
-      // join the new one. (US-34)
-      const token = localStorage.getItem('entry_token');
-      if (token) {
-        try {
-          const { data: me } = await api.get('/participants/me');
-          if (!cancelled && open && me.game.id === open.id) {
-            navigate('/my-predictions', { replace: true });
-            return;
-          }
-          localStorage.removeItem('entry_token');
-        } catch {
-          localStorage.removeItem('entry_token');
+      // If the player already has any entry in the open game, manage it from
+      // My Predictions (where they can also add more). Otherwise show the
+      // first-join form. (US-34, US-41)
+      await migrateLegacy();
+      if (cancelled) return;
+      if (open) {
+        const existing = entriesForGame(open.id);
+        if (existing.length) {
+          setCurrentToken(existing[0].token);
+          navigate('/my-predictions', { replace: true });
+          return;
         }
       }
       if (!cancelled) setLoading(false);
@@ -54,7 +57,8 @@ export default function JoinPage() {
         display_name: form.display_name,
         phone: form.phone || undefined,
       });
-      localStorage.setItem('entry_token', data.entry_token);
+      upsertEntry({ token: data.entry_token, name: data.display_name, game_id: data.game.id, is_self: true });
+      setCurrentToken(data.entry_token);
       navigate('/my-predictions');
     } catch (err) {
       setError(err.response?.data?.message ?? 'Failed to join. Please try again.');

@@ -258,7 +258,7 @@ _Example:_
 
 ---
 
-### US-41 · Join Multiple Entries in the Same Game
+### US-41 · Join Multiple Entries in the Same Game ✅
 **As a** player,
 **I want to** add multiple entries to the same game without retyping my name each time, and optionally add an entry on someone else's behalf,
 **So that** I can quickly run several prediction sets (mine or my friends') and have each one ranked on the leaderboard.
