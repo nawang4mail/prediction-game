@@ -151,7 +151,7 @@ Numbering continues from v1: new stories start at **US-26**.
 - After joining the new game, the new token is stored and "My Predictions" is shown correctly
 - If no game is currently `open`, neither button is shown regardless of token state (US-29 behaviour unchanged)
 
-### US-38 · Prepare a New Game While the Current Game Is Still Active
+### US-38 · Prepare a New Game While the Current Game Is Still Active ✅
 **As an** admin,
 **I want to** create and configure a new game (add matches, set prize/cost settings) while the current game is still running,
 **So that** the next game is ready to open the moment the current one finishes, without any downtime between rounds.

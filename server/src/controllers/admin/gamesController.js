@@ -1,6 +1,7 @@
 import * as Game from '../../models/gameModel.js';
 
 const TRANSITIONS = {
+  draft: ['open'],
   open: ['locked'],
   locked: ['open', 'finished'],
   finished: [],
@@ -14,16 +15,13 @@ export const list = async (req, res, next) => {
   }
 };
 
+// A new game is created as a draft. Drafts can be prepared at any time, even
+// while another game is open or locked — they only become the active game when
+// the admin opens them. (US-38)
 export const create = async (req, res, next) => {
   try {
     const name = (req.body.name ?? '').trim();
     if (!name) return res.status(400).json({ message: 'Game name is required' });
-    const active = await Game.findActive();
-    if (active) {
-      return res.status(409).json({
-        message: `Finish "${active.name}" before creating a new game`,
-      });
-    }
     const id = await Game.create({ name });
     res.status(201).json({ id });
   } catch (err) {
@@ -44,8 +42,34 @@ export const updateStatus = async (req, res, next) => {
         message: `Cannot change status from ${game.status} to ${status}`,
       });
     }
+    // Opening a game (draft -> open) requires no other game to be active. A
+    // locked game reopening to open is the active game itself, so it is allowed.
+    if (status === 'open') {
+      const active = await Game.findActive();
+      if (active && active.id !== game.id) {
+        return res.status(409).json({
+          message: `Finish or lock "${active.name}" before opening another game`,
+        });
+      }
+    }
     await Game.updateStatus(game.id, status);
     res.json({ message: 'Updated' });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// Only an unpublished draft can be deleted; live and archived games keep their
+// history. (US-38)
+export const remove = async (req, res, next) => {
+  try {
+    const game = await Game.findById(req.params.id);
+    if (!game) return res.status(404).json({ message: 'Game not found' });
+    if (game.status !== 'draft') {
+      return res.status(409).json({ message: 'Only draft games can be deleted' });
+    }
+    await Game.remove(game.id);
+    res.json({ message: 'Deleted' });
   } catch (err) {
     next(err);
   }

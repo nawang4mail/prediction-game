@@ -4,6 +4,7 @@ import ConfirmDialog from '../../components/admin/ConfirmDialog.jsx';
 import api from '../../services/api.js';
 
 const STATUS_STYLES = {
+  draft: 'bg-blue-100 text-blue-700',
   open: 'bg-green-100 text-green-700',
   locked: 'bg-amber-100 text-amber-700',
   finished: 'bg-gray-200 text-gray-600',
@@ -14,7 +15,8 @@ export default function GamesPage() {
   const [loading, setLoading] = useState(true);
   const [name, setName] = useState('');
   const [error, setError] = useState(null);
-  const [confirm, setConfirm] = useState(null); // { game, status, message }
+  const [confirm, setConfirm] = useState(null); // { game, status, message } — status change
+  const [deleteTarget, setDeleteTarget] = useState(null); // draft to delete
 
   const load = async () => {
     const { data } = await api.get('/admin/games');
@@ -27,7 +29,9 @@ export default function GamesPage() {
       .finally(() => setLoading(false));
   }, []);
 
-  const hasActive = games.some((g) => g.status !== 'finished');
+  // Only one game may be open or locked at a time; a draft can be prepared
+  // alongside it but cannot be opened until the active game is done. (US-38)
+  const hasActive = games.some((g) => g.status === 'open' || g.status === 'locked');
 
   const handleCreate = async (e) => {
     e.preventDefault();
@@ -51,13 +55,25 @@ export default function GamesPage() {
     }
   };
 
+  const handleDelete = async () => {
+    setError(null);
+    try {
+      await api.delete(`/admin/games/${deleteTarget.id}`);
+      await load();
+    } catch (err) {
+      setError(err.response?.data?.message ?? 'Failed to delete game');
+    } finally {
+      setDeleteTarget(null);
+    }
+  };
+
   return (
     <AdminLayout>
       <div className="mb-6">
         <h2 className="text-lg font-semibold text-gray-800">Games</h2>
         <p className="text-sm text-gray-500">
-          One game can be active (open or locked) at a time. Finished games keep their full
-          history.
+          New games start as a draft you can prepare anytime. Only one game is active
+          (open or locked) at a time; finished games keep their full history.
         </p>
       </div>
 
@@ -68,20 +84,19 @@ export default function GamesPage() {
           onChange={(e) => setName(e.target.value)}
           placeholder="New game name, e.g. World Cup 2026"
           required
-          disabled={hasActive}
-          className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 disabled:bg-gray-100"
+          className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
         />
         <button
           type="submit"
-          disabled={hasActive}
-          className="px-4 py-2 bg-green-700 hover:bg-green-800 disabled:bg-green-400 text-white text-sm font-medium rounded-lg transition"
+          className="px-4 py-2 bg-green-700 hover:bg-green-800 text-white text-sm font-medium rounded-lg transition"
         >
-          + New Game
+          + New Draft
         </button>
       </form>
       {hasActive && (
         <p className="text-xs text-gray-400 -mt-4 mb-6">
-          Finish the current game to create a new one.
+          A game is currently active — you can prepare a draft now and open it once the
+          active game finishes.
         </p>
       )}
 
@@ -119,6 +134,30 @@ export default function GamesPage() {
                     {new Date(game.created_at).toLocaleDateString()}
                   </td>
                   <td className="px-4 py-3 text-right space-x-3">
+                    {game.status === 'draft' && (
+                      <>
+                        <button
+                          onClick={() =>
+                            setConfirm({
+                              game,
+                              status: 'open',
+                              message: `Open "${game.name}"? Participants will be able to join and make predictions.`,
+                            })
+                          }
+                          disabled={hasActive}
+                          title={hasActive ? 'Finish the active game first' : undefined}
+                          className="text-green-600 hover:text-green-800 disabled:text-gray-300 disabled:cursor-not-allowed text-xs font-medium"
+                        >
+                          Open
+                        </button>
+                        <button
+                          onClick={() => setDeleteTarget(game)}
+                          className="text-red-600 hover:text-red-800 text-xs font-medium"
+                        >
+                          Delete
+                        </button>
+                      </>
+                    )}
                     {game.status === 'open' && (
                       <button
                         onClick={() =>
@@ -176,12 +215,23 @@ export default function GamesPage() {
       {confirm && (
         <ConfirmDialog
           message={confirm.message}
-          confirmLabel={confirm.status === 'finished' ? 'Finish' : 'Start'}
+          confirmLabel={
+            confirm.status === 'finished' ? 'Finish' : confirm.status === 'open' ? 'Open' : 'Start'
+          }
           onConfirm={async () => {
             await changeStatus(confirm.game, confirm.status);
             setConfirm(null);
           }}
           onCancel={() => setConfirm(null)}
+        />
+      )}
+
+      {deleteTarget && (
+        <ConfirmDialog
+          message={`Delete draft "${deleteTarget.name}"? This cannot be undone.`}
+          confirmLabel="Delete"
+          onConfirm={handleDelete}
+          onCancel={() => setDeleteTarget(null)}
         />
       )}
     </AdminLayout>
