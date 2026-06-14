@@ -136,6 +136,112 @@ Numbering continues from v1: new stories start at **US-26**.
 - If the match result is set, the breakdown highlights the winning option
 - Visible without any login; works on mobile within the existing responsive layout (US-04)
 
+### US-34 · Re-join a New Game After a Previous One
+**As a** returning visitor who participated in a previous game,
+**I want** the homepage to recognise that my saved token belongs to an old game and offer me the option to join the new active game,
+**So that** I am not permanently stuck on "My Predictions" from a past game and can participate in every new game.
+
+**Root cause:** the app stores an `entry_token` in `localStorage` after joining a game, but never validates whether that token belongs to the current active game. When a new game opens, the stale token makes the homepage show "My Predictions" (for the finished game) instead of "Join Game" (for the new one).
+
+**Acceptance Criteria:**
+- On page load, if a token exists in `localStorage`, the app validates it against the server (`GET /api/participants/me`) and checks whether the returned game is the current active game
+- If the token belongs to a finished or locked game that is **not** the current active game, the app clears the stale token from `localStorage` and shows "Join Game" (if a game is open)
+- If the token belongs to the current active game, the app continues to show "My Predictions" as before (US-30 behaviour unchanged)
+- The validation is done server-side; the client trusts the server response
+- After joining the new game, the new token is stored and "My Predictions" is shown correctly
+- If no game is currently `open`, neither button is shown regardless of token state (US-29 behaviour unchanged)
+
+### US-38 · Prepare a New Game While the Current Game Is Still Active
+**As an** admin,
+**I want to** create and configure a new game (add matches, set prize/cost settings) while the current game is still running,
+**So that** the next game is ready to open the moment the current one finishes, without any downtime between rounds.
+
+**Acceptance Criteria:**
+- A new `draft` status is added to the game lifecycle: `draft → open → locked → finished`
+- Admin can create a new game at any time — even while another game is `open` or `locked` — and it starts in `draft` status
+- While in `draft`, the admin can add matches, configure entry cost, commission, prize tiers, and prize/rules content for the upcoming game
+- A draft game is not visible to participants; the join page and public leaderboard never show a draft game
+- Admin can transition a draft game to `open` only when no other game is currently `open` or `locked`
+- At most one game may be `open` or `locked` at any time (existing constraint from US-27 preserved)
+- The admin game list shows all games including drafts, with a "Draft" status badge
+- A draft game can be deleted if the admin decides not to use it (no participants or predictions yet)
+
+**Amends:** US-26 (game creation now always results in `draft` first, not `open`) and US-27 (lifecycle is now `draft → open → locked → finished`).
+
+---
+
+### US-39 · Lock Match Management Once a Game Has Started
+**As the** system,
+**I want** the admin matches tab to become read-only once the game is `locked` or `finished`,
+**So that** match fixtures cannot be altered after participants have already locked in their picks.
+
+**Acceptance Criteria:**
+- When the selected game is `open` or `draft`: admin has full CRUD on matches (add, edit, delete) — existing behaviour unchanged
+- When the selected game is `locked`: all match add/edit/delete controls are disabled; a notice explains why (e.g. "Game has started — matches are locked")
+- When the selected game is `finished`: same read-only state as `locked`
+- The restriction is enforced server-side: match write endpoints (`POST`, `PUT`, `DELETE` on `/api/admin/matches`) return 403 for `locked` or `finished` games
+- Setting match results (`PUT /api/admin/matches/:id/result`) remains allowed while `locked` — that is the intended workflow for recording scores (US-10)
+
+---
+
+### US-37 · Lock Prediction Grid for Finished Games
+**As an** admin,
+**I want** the predictions grid to be read-only when the selected game is `finished`,
+**So that** the final standings and prediction history cannot be accidentally altered after a game is over.
+
+**Acceptance Criteria:**
+- On the admin Predictions page, all pick controls (dropdowns, buttons, or inputs) are disabled when the selected game's status is `finished`
+- A clear notice is shown at the top of the page explaining why editing is disabled (e.g. "This game is finished — predictions are locked")
+- The read-only state is enforced server-side: the API rejects any prediction write (`PUT /api/admin/predictions`) for a `finished` game and returns 403
+- Games with status `open` or `locked` are unaffected — the existing edit behaviour (US-15) continues as before
+- The lock applies to all predictions in the grid, not just individual rows
+
+---
+
+### US-35 · Confirm Predictions with a Finish Button
+**As a** participant,
+**I want to** click a "Finish" button after filling in my predictions,
+**So that** I have a clear moment of confirmation that my picks have been submitted and are ready.
+
+**Acceptance Criteria:**
+- A "Finish" button is shown on the My Predictions page once the participant has made at least one pick
+- Clicking Finish sends a confirmation request to the server and displays a success message
+- The success message is configurable by the admin (new setting: `finish_message`); if not set, the default message is displayed (e.g. "Game set — good luck!")
+- The admin sets the custom finish message from the game settings page alongside prize/rules content
+- After finishing, the participant can still return and change picks while the game is `open` (Finish is a confirmation, not a lock)
+- Finish button and message are not shown when the game is `locked` or `finished`
+
+---
+
+### US-36 · Game Cost, Commission, and Prize Pool
+**As an** admin,
+**I want to** set the entry cost per player, a commission percentage, and a tiered prize structure for each game,
+**So that** the system can calculate and display the total fund collected, commission amount, and exact prize money for each prize tier automatically.
+
+**Acceptance Criteria:**
+
+_Configuration (admin game settings):_
+- Admin sets **entry cost** per player (e.g. $10) for the game
+- Admin sets **commission percentage** (e.g. 10%) — the organiser's cut taken from total collected before prizes
+- Admin can add **one or more prize tiers**, each with a label (e.g. "1st Prize", "2nd Prize") and a percentage of the prize pool
+- Prize tier percentages refer to the **prize pool** = total collected − commission
+- The UI shows the running total of all tier percentages and warns if they exceed 100%
+- Admin can add, edit, or remove prize tiers at any time while the game is not finished
+
+_Calculations:_
+- Total collected = number of participants × entry cost
+- Commission (dollar amount) = total collected × commission %
+- Prize pool = total collected − commission
+- Each prize tier amount = prize pool × tier percentage
+
+_Dashboard display:_
+- Dashboard shows (for the selected game): total participants, total collected, commission amount (in dollars), prize pool, and each prize tier with its label and calculated dollar amount
+- All amounts update automatically as participants join
+
+_Example:_
+> 20 players × $10 = $200 collected. 10% commission = $20. Prize pool = $180.
+> 1st Prize (60%) = $108 · 2nd Prize (40%) = $72.
+
 ---
 
 ## Navigation & Tabs (v2 additions)
@@ -153,12 +259,16 @@ Numbering continues from v1: new stories start at **US-26**.
 
 ```sql
 -- New: one row per game/tournament
-games (id, name UNIQUE, status ENUM('open','locked','finished'), created_at)
+games (id, name UNIQUE, status ENUM('draft','open','locked','finished'), created_at)
 
 -- Existing tables gain a game scope
 matches     + game_id FK
 users       + game_id FK, entry_token (device re-identification), UNIQUE(game_id, display_name)
 settings    + game_id FK (prize/rules per game)
+             + entry_cost DECIMAL(10,2), commission_pct DECIMAL(5,2), finish_message TEXT
+
+-- New: one row per prize tier per game
+prize_tiers (id, game_id FK, rank INT, label VARCHAR(100), percentage DECIMAL(5,2))
 
 -- predictions unchanged: already scoped via user_id/match_id
 ```
