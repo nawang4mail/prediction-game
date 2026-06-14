@@ -3,6 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 import Leaderboard from '../components/leaderboard/Leaderboard.jsx';
 import PublicGameNav from '../components/PublicGameNav.jsx';
 import api from '../services/api.js';
+import { entriesForGame, migrateLegacy, setCurrentToken } from '../services/entries.js';
 
 function PrizeRulesCard({ prize, rules }) {
   if (!prize && !rules) return null;
@@ -56,18 +57,15 @@ export default function HomePage() {
       if (cancelled) return;
       setHasOpenGame(!!active && active.status === 'open');
 
-      const token = localStorage.getItem('entry_token');
-      if (!token) return;
-      try {
-        const { data: me } = await api.get('/participants/me');
-        if (cancelled) return;
-        if (active && me.game.id === active.id) {
-          setIsParticipant(true);
-        } else {
-          localStorage.removeItem('entry_token'); // stale token from a past game
-        }
-      } catch {
-        localStorage.removeItem('entry_token');
+      // The player is a participant if they hold any entry in the active game.
+      // Point the current token at one of those entries so "My Predictions"
+      // opens the active game. (US-34, US-41)
+      await migrateLegacy();
+      if (cancelled || !active) return;
+      const mine = entriesForGame(active.id);
+      if (mine.length) {
+        setCurrentToken(mine[0].token);
+        setIsParticipant(true);
       }
     })();
     return () => { cancelled = true; };
