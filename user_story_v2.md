@@ -244,6 +244,20 @@ _Example:_
 
 ---
 
+### US-40 · Lock User Management for Finished Games ✅
+**As an** admin,
+**I want** the Users tab to be read-only when the selected game is `finished`,
+**So that** the participant list for a completed game cannot be altered after the fact, keeping its final results and history intact.
+
+**Acceptance Criteria:**
+- On the admin Users page, the Add User, Bulk Add, Edit, and Delete controls are disabled (or hidden) when the selected game's status is `finished`
+- A clear notice is shown at the top of the page explaining why editing is disabled (e.g. "This game is finished — the participant list is locked")
+- The read-only state is enforced server-side: user write endpoints (`POST`, `PUT`, `DELETE` on `/api/admin/users`, including bulk add) return 403 for a `finished` game
+- Games with status `draft`, `open`, or `locked` are unaffected — existing user management (US-12 to US-14, US-22 to US-25) continues as before
+- Mirrors the finished-game lock already applied to matches (US-39) and predictions (US-37)
+
+---
+
 ## Navigation & Tabs (v2 additions)
 
 | Tab | Route | Access |

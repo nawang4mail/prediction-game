@@ -5,8 +5,17 @@ import ConfirmDialog from '../../components/admin/ConfirmDialog.jsx';
 import BulkPredModal from '../../components/admin/BulkPredModal.jsx';
 import api from '../../services/api.js';
 
+// Mirrors the server gameScope fallback: explicit selection, else the active
+// (open/locked) game, else the most recent.
+function resolveScopedGame(games) {
+  const selected = sessionStorage.getItem('admin_game_id');
+  if (selected) return games.find((g) => String(g.id) === String(selected)) ?? null;
+  return games.find((g) => g.status === 'open' || g.status === 'locked') ?? games[0] ?? null;
+}
+
 export default function UsersPage() {
   const [users, setUsers] = useState([]);
+  const [readOnly, setReadOnly] = useState(false);
   const [loading, setLoading] = useState(true);
   const [modal, setModal] = useState(null); // 'add' | 'bulk' | { edit: user }
   const [showBulkPred, setShowBulkPred] = useState(false);
@@ -20,8 +29,12 @@ export default function UsersPage() {
 
   const load = useCallback(async () => {
     try {
-      const { data } = await api.get('/admin/users');
+      const [{ data }, { data: games }] = await Promise.all([
+        api.get('/admin/users'),
+        api.get('/admin/games'),
+      ]);
       setUsers(data);
+      setReadOnly(resolveScopedGame(games)?.status === 'finished');
     } finally {
       setLoading(false);
     }
@@ -105,27 +118,38 @@ export default function UsersPage() {
           <h2 className="text-lg font-semibold text-gray-800">Users</h2>
           <p className="text-sm text-gray-500">{users.length} participant{users.length !== 1 ? 's' : ''}</p>
         </div>
-        <div className="flex gap-2 flex-wrap justify-end">
-          <button
-            onClick={openBulk}
-            className="px-4 py-2 border border-green-700 text-green-700 hover:bg-green-50 text-sm font-medium rounded-lg transition"
-          >
-            + Bulk Add
-          </button>
-          <button
-            onClick={() => setShowBulkPred(true)}
-            className="px-4 py-2 border border-blue-600 text-blue-600 hover:bg-blue-50 text-sm font-medium rounded-lg transition"
-          >
-            + Bulk Add + Predictions
-          </button>
-          <button
-            onClick={openAdd}
-            className="px-4 py-2 bg-green-700 hover:bg-green-800 text-white text-sm font-medium rounded-lg transition"
-          >
-            + Add User
-          </button>
-        </div>
+        {!readOnly && (
+          <div className="flex gap-2 flex-wrap justify-end">
+            <button
+              onClick={openBulk}
+              className="px-4 py-2 border border-green-700 text-green-700 hover:bg-green-50 text-sm font-medium rounded-lg transition"
+            >
+              + Bulk Add
+            </button>
+            <button
+              onClick={() => setShowBulkPred(true)}
+              className="px-4 py-2 border border-blue-600 text-blue-600 hover:bg-blue-50 text-sm font-medium rounded-lg transition"
+            >
+              + Bulk Add + Predictions
+            </button>
+            <button
+              onClick={openAdd}
+              className="px-4 py-2 bg-green-700 hover:bg-green-800 text-white text-sm font-medium rounded-lg transition"
+            >
+              + Add User
+            </button>
+          </div>
+        )}
       </div>
+
+      {readOnly && (
+        <div
+          data-testid="users-finished-banner"
+          className="mb-4 text-sm text-gray-600 bg-gray-100 border border-gray-200 rounded-lg px-4 py-3"
+        >
+          🔒 This game is finished — the participant list is locked.
+        </div>
+      )}
 
       {loading ? (
         <div className="space-y-3">
@@ -160,20 +184,24 @@ export default function UsersPage() {
                     {new Date(u.created_at).toLocaleDateString()}
                   </td>
                   <td className="px-4 py-3 text-right">
-                    <div className="flex justify-end gap-2">
-                      <button
-                        onClick={() => openEdit(u)}
-                        className="text-xs text-blue-600 hover:text-blue-800 font-medium"
-                      >
-                        Edit
-                      </button>
-                      <button
-                        onClick={() => setDeleteTarget(u)}
-                        className="text-xs text-red-500 hover:text-red-700 font-medium"
-                      >
-                        Delete
-                      </button>
-                    </div>
+                    {readOnly ? (
+                      <span className="text-xs text-gray-300">locked</span>
+                    ) : (
+                      <div className="flex justify-end gap-2">
+                        <button
+                          onClick={() => openEdit(u)}
+                          className="text-xs text-blue-600 hover:text-blue-800 font-medium"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => setDeleteTarget(u)}
+                          className="text-xs text-red-500 hover:text-red-700 font-medium"
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    )}
                   </td>
                 </tr>
               ))}
