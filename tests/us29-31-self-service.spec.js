@@ -19,7 +19,8 @@ const NAME = `SelfServe_${Date.now()}`;
 
 async function setGameStatus(request, status) {
   const games = await (await request.get(`${API}/api/admin/games`, { headers: admin })).json();
-  const game = games.find((g) => g.status !== 'finished');
+  // The active game is the open/locked one — drafts (US-38) are not active.
+  const game = games.find((g) => g.status === 'open' || g.status === 'locked');
   if (game.status !== status) {
     const res = await request.put(`${API}/api/admin/games/${game.id}/status`, {
       headers: admin,
