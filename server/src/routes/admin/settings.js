@@ -17,11 +17,13 @@ router.get('/', async (req, res, next) => {
 
 router.put('/', async (req, res, next) => {
   try {
-    const { prize_text, rules_text, finish_message } = req.body;
+    const { prize_text, rules_text, finish_message, entry_cost, commission_pct } = req.body;
     await setMany(req.gameId, {
       prize_text: prize_text ?? '',
       rules_text: rules_text ?? '',
       finish_message: finish_message ?? '',
+      entry_cost: String(entry_cost ?? '0'),
+      commission_pct: String(commission_pct ?? '0'),
     });
     res.json({ message: 'Saved' });
   } catch (err) {

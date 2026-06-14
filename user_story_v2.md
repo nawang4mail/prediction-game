@@ -213,7 +213,7 @@ Numbering continues from v1: new stories start at **US-26**.
 
 ---
 
-### US-36 · Game Cost, Commission, and Prize Pool
+### US-36 · Game Cost, Commission, and Prize Pool ✅
 **As an** admin,
 **I want to** set the entry cost per player, a commission percentage, and a tiered prize structure for each game,
 **So that** the system can calculate and display the total fund collected, commission amount, and exact prize money for each prize tier automatically.
