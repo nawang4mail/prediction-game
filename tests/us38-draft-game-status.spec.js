@@ -74,7 +74,8 @@ test.describe('US-38: admin Games page UI', () => {
 
     const draftRow = page.locator('tbody tr', { hasText: 'Next Cup' });
     await expect(draftRow.getByRole('button', { name: 'Delete' })).toBeVisible();
-    // Open is present but disabled because Live Cup is active.
-    await expect(draftRow.getByRole('button', { name: 'Open' })).toBeDisabled();
+    // US-42 removed the single-active-game constraint: a draft can be opened
+    // even while another game is already open.
+    await expect(draftRow.getByRole('button', { name: 'Open' })).toBeEnabled();
   });
 });
