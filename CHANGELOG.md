@@ -19,6 +19,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Games** — the admin Games page no longer disables the "Open" action while
   another game is active; drafts can be opened freely so multiple games can run
   at the same time, matching the server behaviour shipped in US-42
+- **Homepage** — "My Predictions" and "Join the Game" are now two independent
+  buttons instead of one that swaps between them, so a returning participant can
+  still join a newly opened game (US-44)
 
 ## [2.0.0] - 2026-06-14
 
