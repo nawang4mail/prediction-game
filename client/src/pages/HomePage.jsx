@@ -84,22 +84,25 @@ export default function HomePage() {
           World Cup 2026
         </h1>
         <p className="text-green-300 mt-1 text-sm">Prediction Leaderboard</p>
-        {isParticipant ? (
-          <Link
-            to="/my-predictions"
-            className="inline-block mt-4 px-5 py-2 bg-green-500 hover:bg-green-400 text-white text-sm font-semibold rounded-full transition"
-          >
-            🎯 My Predictions
-          </Link>
-        ) : (
-          hasOpenGame && (
-            <Link
-              to="/join"
-              className="inline-block mt-4 px-5 py-2 bg-green-500 hover:bg-green-400 text-white text-sm font-semibold rounded-full transition"
-            >
-              ⚽ Join the Game
-            </Link>
-          )
+        {(isParticipant || hasOpenGame) && (
+          <div className="mt-4 flex flex-wrap items-center justify-center gap-3">
+            {isParticipant && (
+              <Link
+                to="/my-predictions"
+                className="inline-block px-5 py-2 bg-green-500 hover:bg-green-400 text-white text-sm font-semibold rounded-full transition"
+              >
+                🎯 My Predictions
+              </Link>
+            )}
+            {hasOpenGame && (
+              <Link
+                to="/join"
+                className="inline-block px-5 py-2 bg-white/10 hover:bg-white/20 text-white text-sm font-semibold rounded-full ring-1 ring-white/30 transition"
+              >
+                ⚽ Join the Game
+              </Link>
+            )}
+          </div>
         )}
         <PublicGameNav active="leaderboard" />
       </header>

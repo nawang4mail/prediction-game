@@ -327,7 +327,7 @@ _Management & scope:_
 
 ---
 
-### US-44 · Separate "My Predictions" and "Join" Buttons on the Homepage
+### US-44 · Separate "My Predictions" and "Join" Buttons on the Homepage ✅
 **As a** returning visitor who has already made predictions in one game,
 **I want** the homepage to show a "Join" button for any newly opened game **alongside** my "My Predictions" button, instead of one button that swaps between the two,
 **So that** I can join a new game without being confused by a single button that hides the action I need.
