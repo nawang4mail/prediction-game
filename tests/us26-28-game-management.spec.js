@@ -41,9 +41,7 @@ test.describe('US-26/US-27: game management UI', () => {
 });
 
 test.describe('US-26/US-27/US-38: game API rules', () => {
-  test('creating a game while one is active makes a draft (not a 409)', async ({ request }) => {
-    expect(activeOf(await adminGames(request)), 'need an active game').toBeTruthy();
-
+  test('a newly created game starts as a draft', async ({ request }) => {
     const res = await request.post(`${API}/api/admin/games`, {
       headers: authHeaders,
       data: { name: `Draft ${Date.now()}` },
@@ -53,13 +51,6 @@ test.describe('US-26/US-27/US-38: game API rules', () => {
 
     const created = (await adminGames(request)).find((g) => g.id === id);
     expect(created.status).toBe('draft');
-
-    // What's blocked now is *opening* a second game while one is active.
-    const open = await request.put(`${API}/api/admin/games/${id}/status`, {
-      headers: authHeaders,
-      data: { status: 'open' },
-    });
-    expect(open.status()).toBe(409);
 
     await request.delete(`${API}/api/admin/games/${id}`, { headers: authHeaders });
   });

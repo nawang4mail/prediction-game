@@ -13,9 +13,13 @@ export const join = async (req, res, next) => {
     const display_name = (req.body.display_name ?? '').trim();
     if (!display_name) return res.status(400).json({ message: 'Display name is required' });
 
-    const game = await Game.findActive();
+    // A specific game can be chosen (several may be open at once); otherwise
+    // fall back to the most recently opened game. (US-42)
+    const game = req.body.game_id
+      ? await Game.findById(req.body.game_id)
+      : await Game.findActive();
     if (!game || game.status !== 'open') {
-      return res.status(403).json({ message: 'No game is open for joining right now' });
+      return res.status(403).json({ message: 'That game is not open for joining right now' });
     }
 
     const entry_token = randomUUID();

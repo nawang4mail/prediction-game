@@ -18,8 +18,11 @@ export default function PublicGameNav({ active }) {
     api.get('/games').then(({ data }) => setGames(data)).catch(() => {});
   }, []);
 
-  const activeGame = games.find((g) => g.status !== 'finished');
+  // Several games may be open/locked at once (US-42); list them all alongside
+  // finished games. The first is the server's default (most recent active).
+  const activeGames = games.filter((g) => g.status === 'open' || g.status === 'locked');
   const finished = games.filter((g) => g.status === 'finished');
+  const selectable = [...activeGames, ...finished];
   const gameQuery = current ? `?game=${current}` : '';
 
   return (
@@ -36,16 +39,16 @@ export default function PublicGameNav({ active }) {
           {label}
         </Link>
       ))}
-      {finished.length > 0 && (
+      {selectable.length > 1 && (
         <select
           value={current}
           onChange={(e) => setParams(e.target.value ? { game: e.target.value } : {})}
           className="px-3 py-1.5 rounded-full text-sm bg-white/10 text-green-200 border border-white/20 focus:outline-none focus:ring-2 focus:ring-green-400"
         >
-          {activeGame && <option value="" className="text-gray-800">{activeGame.name}</option>}
-          {finished.map((g) => (
+          <option value="" className="text-gray-800">{selectable[0].name}</option>
+          {selectable.slice(1).map((g) => (
             <option key={g.id} value={g.id} className="text-gray-800">
-              {g.name} (finished)
+              {g.name}{g.status === 'finished' ? ' (finished)' : ''}
             </option>
           ))}
         </select>

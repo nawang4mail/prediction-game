@@ -287,7 +287,7 @@ _Management & scope:_
 
 ---
 
-### US-42 · Run Multiple Open Games at the Same Time
+### US-42 · Run Multiple Open Games at the Same Time ✅
 **As an** admin,
 **I want to** have more than one game open (and accepting predictions) at the same time,
 **So that** I can run several tournaments/pools concurrently instead of one at a time.

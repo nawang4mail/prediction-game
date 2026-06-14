@@ -10,7 +10,8 @@ import {
 
 export default function JoinPage() {
   const navigate = useNavigate();
-  const [openGame, setOpenGame] = useState(null);
+  const [openGames, setOpenGames] = useState([]);
+  const [selectedGame, setSelectedGame] = useState(null); // game chosen to join
   const [loading, setLoading] = useState(true);
   const [form, setForm] = useState({ display_name: '', phone: '' });
   const [error, setError] = useState(null);
@@ -19,29 +20,31 @@ export default function JoinPage() {
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      let open;
+      let games;
       try {
-        const { data: games } = await api.get('/games');
-        open = games.find((g) => g.status === 'open') ?? null;
+        ({ data: games } = await api.get('/games'));
       } catch {
         if (!cancelled) setLoading(false);
         return;
       }
       if (cancelled) return;
-      setOpenGame(open);
+      const open = games.filter((g) => g.status === 'open');
+      setOpenGames(open);
 
-      // If the player already has any entry in the open game, manage it from
-      // My Predictions (where they can also add more). Otherwise show the
-      // first-join form. (US-34, US-41)
       await migrateLegacy();
       if (cancelled) return;
-      if (open) {
-        const existing = entriesForGame(open.id);
+
+      // With a single open game, behave as before: if the player already has an
+      // entry there, manage it from My Predictions; otherwise go straight to the
+      // join form. With several open games, show a picker. (US-34, US-41, US-42)
+      if (open.length === 1) {
+        const existing = entriesForGame(open[0].id);
         if (existing.length) {
           setCurrentToken(existing[0].token);
           navigate('/my-predictions', { replace: true });
           return;
         }
+        setSelectedGame(open[0]);
       }
       if (!cancelled) setLoading(false);
     })();
@@ -54,6 +57,7 @@ export default function JoinPage() {
     setError(null);
     try {
       const { data } = await api.post('/participants', {
+        game_id: selectedGame.id,
         display_name: form.display_name,
         phone: form.phone || undefined,
       });
@@ -72,12 +76,30 @@ export default function JoinPage() {
         <div className="text-center mb-6">
           <div className="text-5xl mb-3">⚽</div>
           <h1 className="text-2xl font-bold text-white">Join the Game</h1>
-          {openGame && <p className="text-green-300 mt-1 text-sm">{openGame.name}</p>}
+          {selectedGame && <p className="text-green-300 mt-1 text-sm">{selectedGame.name}</p>}
         </div>
 
         {loading ? (
           <div className="h-48 bg-white/10 rounded-2xl animate-pulse" />
-        ) : openGame ? (
+        ) : openGames.length === 0 ? (
+          <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 text-center">
+            <p className="text-white text-sm">No game is open for joining right now. Check back later!</p>
+          </div>
+        ) : !selectedGame ? (
+          <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 space-y-3" data-testid="game-picker">
+            <p className="text-sm text-green-100 text-center mb-1">Choose a game to join:</p>
+            {openGames.map((g) => (
+              <button
+                key={g.id}
+                onClick={() => { setSelectedGame(g); setError(null); }}
+                data-testid={`pick-game-${g.id}`}
+                className="w-full py-2.5 bg-white/10 hover:bg-white/20 text-white text-sm font-medium rounded-lg transition"
+              >
+                {g.name}
+              </button>
+            ))}
+          </div>
+        ) : (
           <form onSubmit={handleJoin} className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 space-y-4">
             <div>
               <label className="block text-sm font-medium text-green-200 mb-1">Display Name</label>
@@ -114,13 +136,16 @@ export default function JoinPage() {
             >
               {joining ? 'Joining…' : 'Join & Make Predictions'}
             </button>
+            {openGames.length > 1 && (
+              <button
+                type="button"
+                onClick={() => setSelectedGame(null)}
+                className="w-full text-xs text-green-300 hover:text-green-100 transition"
+              >
+                ← Choose a different game
+              </button>
+            )}
           </form>
-        ) : (
-          <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 text-center">
-            <p className="text-white text-sm">
-              No game is open for joining right now. Check back later!
-            </p>
-          </div>
         )}
 
         <p className="text-center mt-6">
