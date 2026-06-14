@@ -17,8 +17,12 @@ router.get('/', async (req, res, next) => {
 
 router.put('/', async (req, res, next) => {
   try {
-    const { prize_text, rules_text } = req.body;
-    await setMany(req.gameId, { prize_text: prize_text ?? '', rules_text: rules_text ?? '' });
+    const { prize_text, rules_text, finish_message } = req.body;
+    await setMany(req.gameId, {
+      prize_text: prize_text ?? '',
+      rules_text: rules_text ?? '',
+      finish_message: finish_message ?? '',
+    });
     res.json({ message: 'Saved' });
   } catch (err) {
     next(err);
