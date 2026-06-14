@@ -29,10 +29,6 @@ export default function GamesPage() {
       .finally(() => setLoading(false));
   }, []);
 
-  // Only one game may be open or locked at a time; a draft can be prepared
-  // alongside it but cannot be opened until the active game is done. (US-38)
-  const hasActive = games.some((g) => g.status === 'open' || g.status === 'locked');
-
   const handleCreate = async (e) => {
     e.preventDefault();
     setError(null);
@@ -72,8 +68,9 @@ export default function GamesPage() {
       <div className="mb-6">
         <h2 className="text-lg font-semibold text-gray-800">Games</h2>
         <p className="text-sm text-gray-500">
-          New games start as a draft you can prepare anytime. Only one game is active
-          (open or locked) at a time; finished games keep their full history.
+          New games start as a draft you can prepare anytime. You can open as many
+          games as you like — several can run at once; finished games keep their full
+          history.
         </p>
       </div>
 
@@ -93,13 +90,6 @@ export default function GamesPage() {
           + New Draft
         </button>
       </form>
-      {hasActive && (
-        <p className="text-xs text-gray-400 -mt-4 mb-6">
-          A game is currently active — you can prepare a draft now and open it once the
-          active game finishes.
-        </p>
-      )}
-
       {error && (
         <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2 mb-4 max-w-md">
           {error}
@@ -144,9 +134,7 @@ export default function GamesPage() {
                               message: `Open "${game.name}"? Participants will be able to join and make predictions.`,
                             })
                           }
-                          disabled={hasActive}
-                          title={hasActive ? 'Finish the active game first' : undefined}
-                          className="text-green-600 hover:text-green-800 disabled:text-gray-300 disabled:cursor-not-allowed text-xs font-medium"
+                          className="text-green-600 hover:text-green-800 text-xs font-medium"
                         >
                           Open
                         </button>
