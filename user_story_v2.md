@@ -170,7 +170,7 @@ Numbering continues from v1: new stories start at **US-26**.
 
 ---
 
-### US-39 · Lock Match Management Once a Game Has Started
+### US-39 · Lock Match Management Once a Game Has Started ✅
 **As the** system,
 **I want** the admin matches tab to become read-only once the game is `locked` or `finished`,
 **So that** match fixtures cannot be altered after participants have already locked in their picks.
