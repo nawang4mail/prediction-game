@@ -185,6 +185,60 @@ stage score aggregates `stage_selections` joined to `stage_teams.is_winner` and
 
 ---
 
+### US-50 · View a Player's Bracket Predictions from the Leaderboard
+**As a** visitor,
+**I want to** tap or click a player on a Bracket Prediction leaderboard and see the teams they picked in each stage,
+**So that** I can review other players' brackets, just like I can for a Guess the Winners game.
+
+**Root cause:** the leaderboard's click-to-view detail (US-03) calls
+`GET /api/leaderboard/:userId/predictions`, which returns match-based predictions
+(`predictionModel.findByUser`). For a `bracket_prediction` game that player has no
+match predictions, so the panel is empty — there is no way to see a player's stage
+picks.
+
+**Acceptance Criteria:**
+- On a `bracket_prediction` leaderboard, tapping/clicking a player row expands a panel
+  showing each stage and the teams that player picked in it (same toggle behaviour as
+  US-03; tapping again collapses it)
+- Once the game's results are set, each shown pick indicates whether it was correct
+  (the team actually qualified/won), consistent with how the game reveals winners
+  (US-48: winners stay hidden until the game is `finished`)
+- The per-player detail endpoint is **type-aware**: `bracket_prediction` games return
+  the player's stage picks; `guess_winners` games keep returning match predictions
+  (US-03) unchanged
+- Works without any login and on mobile within the existing responsive layout (US-04)
+- A player who has not picked in a stage simply shows no picks for that stage
+
+**Notes:** Make `GET /api/leaderboard/:userId/predictions` (or a sibling endpoint)
+branch on the player's game type, returning stages with the player's selected
+`stage_team`s. The leaderboard detail panel renders stages for bracket games and the
+existing match list otherwise.
+
+---
+
+### US-51 · Rank the Bracket Breakdown by Number of Selections
+**As a** visitor,
+**I want** the Matches/Bracket tab to list each stage's teams ordered by how many players picked them, with the pick count shown,
+**So that** I can see the most-backed teams in each stage at a glance.
+
+**Acceptance Criteria:**
+- On the public Bracket breakdown (the Matches tab for a `bracket_prediction` game,
+  US-49), each stage lists its teams **ranked by number of selections, most-picked
+  first**
+- Each team row shows its selection count (and the relative bar already used for the
+  match breakdown, US-33)
+- Ties are broken stably (e.g. by the stage's original team order) so the list does not
+  jump around between refreshes
+- Qualifying/winning teams remain highlighted once results are set (US-49 behaviour
+  preserved)
+- The Guess the Winners match breakdown (US-33) is unchanged
+
+**Amends:** US-49 (its per-stage breakdown was ordered by the admin's team order; it is
+now ordered by selection count). **Notes:** order `breakdown()` results by `picks DESC`
+with `sort_order` as the tie-breaker.
+
+---
+
 ## Navigation & Tabs (v3 additions)
 
 | Tab | Route | Access |
