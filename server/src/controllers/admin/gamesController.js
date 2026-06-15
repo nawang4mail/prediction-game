@@ -7,6 +7,8 @@ const TRANSITIONS = {
   finished: [],
 };
 
+const GAME_TYPES = ['guess_winners', 'bracket_prediction'];
+
 export const list = async (req, res, next) => {
   try {
     res.json(await Game.findAll());
@@ -22,12 +24,38 @@ export const create = async (req, res, next) => {
   try {
     const name = (req.body.name ?? '').trim();
     if (!name) return res.status(400).json({ message: 'Game name is required' });
-    const id = await Game.create({ name });
+    const type = req.body.type ?? 'guess_winners';
+    if (!GAME_TYPES.includes(type)) {
+      return res.status(400).json({ message: 'Invalid game type' });
+    }
+    const id = await Game.create({ name, type });
     res.status(201).json({ id });
   } catch (err) {
     if (err.code === 'ER_DUP_ENTRY') {
       return res.status(409).json({ message: 'A game with that name already exists' });
     }
+    next(err);
+  }
+};
+
+// The game type is fixed once the game leaves draft, so changing it is only
+// allowed while the game is still a draft. (US-45)
+export const updateType = async (req, res, next) => {
+  try {
+    const { type } = req.body;
+    if (!GAME_TYPES.includes(type)) {
+      return res.status(400).json({ message: 'Invalid game type' });
+    }
+    const game = await Game.findById(req.params.id);
+    if (!game) return res.status(404).json({ message: 'Game not found' });
+    if (game.status !== 'draft') {
+      return res
+        .status(409)
+        .json({ message: 'Game type can only be changed while the game is a draft' });
+    }
+    await Game.updateType(game.id, type);
+    res.json({ message: 'Updated' });
+  } catch (err) {
     next(err);
   }
 };
