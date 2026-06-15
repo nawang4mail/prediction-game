@@ -185,7 +185,7 @@ stage score aggregates `stage_selections` joined to `stage_teams.is_winner` and
 
 ---
 
-### US-50 · View a Player's Bracket Predictions from the Leaderboard
+### US-50 · View a Player's Bracket Predictions from the Leaderboard ✅
 **As a** visitor,
 **I want to** tap or click a player on a Bracket Prediction leaderboard and see the teams they picked in each stage,
 **So that** I can review other players' brackets, just like I can for a Guess the Winners game.
