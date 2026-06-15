@@ -298,6 +298,8 @@ the player's view and when validating a save.
   shown beside it; an **incorrect** pick shows no points
 - When **all** of a player's picks in a stage are correct, that stage's `all_correct_bonus`
   is shown beside the stage name (e.g. "Group Stage · +5 bonus")
+- The `+points` sit **outside** the team chip with no background — only the team name is
+  highlighted green — so the score reads as visually separate from the team
 - Points and bonus are shown once the stage's results are set by the admin (US-47) — the
   same moment the leaderboard total and the public breakdown reflect them; before any
   result is set nothing is revealed

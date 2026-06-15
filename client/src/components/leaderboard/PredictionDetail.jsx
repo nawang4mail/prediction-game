@@ -61,15 +61,20 @@ function BracketDetail({ stages }) {
           ) : (
             <div className="flex flex-wrap gap-1.5">
               {s.teams.map((t) => (
-                <span
-                  key={t.id}
-                  className={`px-2 py-0.5 rounded-full text-xs ${
-                    t.is_winner ? 'bg-green-200 text-green-800 font-medium' : 'bg-white text-gray-700'
-                  }`}
-                >
-                  {t.is_winner ? '✓ ' : ''}
-                  {t.name}
-                  {t.is_winner && s.points_per_correct ? ` +${s.points_per_correct}` : ''}
+                <span key={t.id} className="inline-flex items-center gap-1">
+                  <span
+                    className={`px-2 py-0.5 rounded-full text-xs ${
+                      t.is_winner ? 'bg-green-200 text-green-800 font-medium' : 'bg-white text-gray-700'
+                    }`}
+                  >
+                    {t.is_winner ? '✓ ' : ''}
+                    {t.name}
+                  </span>
+                  {t.is_winner && s.points_per_correct ? (
+                    <span className="text-xs font-medium text-green-700">
+                      +{s.points_per_correct}
+                    </span>
+                  ) : null}
                 </span>
               ))}
             </div>
