@@ -310,7 +310,7 @@ got every pick in the stage correct); render the per-pick points and per-stage b
 
 ---
 
-### US-54 · Fix and Improve the Matches Tab for Bracket Games
+### US-54 · Fix and Improve the Matches Tab for Bracket Games ✅
 **As a** visitor,
 **I want** the Matches tab to actually show a Bracket Prediction game's stages and how many players picked each country,
 **So that** I can browse the crowd's picks for a bracket game the same way I can for a match game.
