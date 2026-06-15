@@ -7,6 +7,8 @@ const parseStage = (body) => {
   const name = (body.name ?? '').trim();
   if (!name) return { error: 'Stage name is required' };
 
+  const description = (body.description ?? '').trim() || null;
+
   const parent_ids = Array.isArray(body.parent_ids)
     ? [...new Set(body.parent_ids.map(Number).filter(Number.isInteger))]
     : [];
@@ -36,7 +38,9 @@ const parseStage = (body) => {
       return { error: 'Pick count must be between 1 and the number of teams' };
     }
   }
-  return { value: { name, teams, pick_count, points_per_correct, all_correct_bonus, parent_ids } };
+  return {
+    value: { name, description, teams, pick_count, points_per_correct, all_correct_bonus, parent_ids },
+  };
 };
 
 // Validates a combined stage's parent links: each must belong to the game and be
