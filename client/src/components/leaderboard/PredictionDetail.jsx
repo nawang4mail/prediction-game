@@ -40,15 +40,50 @@ function StatusBadge({ prediction, matchResult }) {
   );
 }
 
+function BracketDetail({ stages }) {
+  if (!stages.length) {
+    return <p className="text-xs text-gray-400 py-1">No stages available yet.</p>;
+  }
+  return (
+    <div className="space-y-2">
+      {stages.map((s) => (
+        <div key={s.id}>
+          <p className="text-[11px] font-semibold text-green-700 mb-1">{s.name}</p>
+          {s.teams.length === 0 ? (
+            <p className="text-xs text-gray-300 italic px-1">No picks</p>
+          ) : (
+            <div className="flex flex-wrap gap-1.5">
+              {s.teams.map((t) => (
+                <span
+                  key={t.id}
+                  className={`px-2 py-0.5 rounded-full text-xs ${
+                    t.is_winner ? 'bg-green-200 text-green-800 font-medium' : 'bg-white text-gray-700'
+                  }`}
+                >
+                  {t.is_winner ? '✓ ' : ''}
+                  {t.name}
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export default function PredictionDetail({ userId, displayName }) {
-  const [predictions, setPredictions] = useState([]);
+  const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     api.get(`/leaderboard/${userId}/predictions`)
-      .then(({ data }) => setPredictions(data))
+      .then(({ data }) => setData(data))
       .finally(() => setLoading(false));
   }, [userId]);
+
+  const isBracketDetail = data && !Array.isArray(data) && data.bracket;
+  const predictions = Array.isArray(data) ? data : [];
 
   return (
     <tr>
@@ -63,6 +98,8 @@ export default function PredictionDetail({ userId, displayName }) {
               <div key={i} className="h-7 bg-green-100 rounded animate-pulse" />
             ))}
           </div>
+        ) : isBracketDetail ? (
+          <BracketDetail stages={data.stages} />
         ) : predictions.length === 0 ? (
           <p className="text-xs text-gray-400 py-1">No matches available yet.</p>
         ) : (

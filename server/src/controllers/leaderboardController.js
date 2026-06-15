@@ -1,6 +1,8 @@
 import { leaderboard, findByUser } from '../models/predictionModel.js';
-import { leaderboard as bracketLeaderboard } from '../models/bracketStageModel.js';
+import { leaderboard as bracketLeaderboard, findByGame as findStages } from '../models/bracketStageModel.js';
+import { findByUser as findUserSelections } from '../models/stageSelectionModel.js';
 import { findById as findGame } from '../models/gameModel.js';
+import { findById as findUser } from '../models/userModel.js';
 
 export const getLeaderboard = async (req, res, next) => {
   try {
@@ -17,6 +19,27 @@ export const getLeaderboard = async (req, res, next) => {
 
 export const getUserPredictions = async (req, res, next) => {
   try {
+    const user = await findUser(req.params.userId);
+    if (!user) return res.json([]);
+    const game = await findGame(user.game_id);
+
+    if (game?.type === 'bracket_prediction') {
+      // Reveal which picks were correct only once the game is finished, matching
+      // how the participant view hides winners during play (US-48).
+      const reveal = game.status === 'finished';
+      const stages = await findStages(game.id);
+      const picked = new Set((await findUserSelections(user.id)).map((s) => s.stage_team_id));
+      const detail = stages.map((s) => ({
+        id: s.id,
+        name: s.name,
+        pick_count: s.pick_count,
+        teams: s.teams
+          .filter((t) => picked.has(t.id))
+          .map((t) => ({ id: t.id, name: t.name, is_winner: reveal ? t.is_winner : 0 })),
+      }));
+      return res.json({ bracket: true, stages: detail });
+    }
+
     res.json(await findByUser(req.params.userId));
   } catch (err) {
     next(err);
