@@ -30,7 +30,7 @@ test.describe('US-26/US-27: game management UI', () => {
   test('Games page lists the migrated Game 1', async ({ page }) => {
     const row = page.locator('tbody tr', { hasText: 'Game 1' });
     await expect(row).toBeVisible();
-    await expect(row.locator('span').first()).toHaveText(/draft|open|locked|finished/);
+    await expect(row.getByText(/^(draft|open|locked|finished)$/)).toBeVisible();
   });
 
   // US-38 amended US-26: drafts can be prepared at any time, so the form is

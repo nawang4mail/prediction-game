@@ -2,15 +2,22 @@ import { useState, useEffect } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext.jsx';
 import api from '../../services/api.js';
+import { isBracket } from '../../constants/gameTypes.js';
 
-const navItems = [
-  { to: '/admin', label: 'Dashboard' },
-  { to: '/admin/games', label: 'Games' },
+// Tabs that differ by the scoped game's type: a Bracket Prediction game manages
+// stages on one Bracket tab; a Guess the Winners game has Matches + Predictions.
+const BRACKET_TABS = [{ to: '/admin/bracket', label: 'Bracket' }];
+const GUESS_TABS = [
   { to: '/admin/matches', label: 'Matches' },
-  { to: '/admin/users', label: 'Users' },
   { to: '/admin/predictions', label: 'Predictions' },
-  { to: '/admin/settings', label: 'Settings' },
 ];
+
+// Mirrors the server gameScope fallback: explicit selection, else the active
+// (open/locked) game, else the most recent.
+function resolveScopedGame(games, selectedId) {
+  if (selectedId) return games.find((g) => String(g.id) === String(selectedId)) ?? null;
+  return games.find((g) => g.status === 'open' || g.status === 'locked') ?? games[0] ?? null;
+}
 
 export default function AdminLayout({ children }) {
   const { logout } = useAuth();
@@ -22,6 +29,15 @@ export default function AdminLayout({ children }) {
   }, []);
 
   const selectedGame = sessionStorage.getItem('admin_game_id') ?? '';
+
+  const scopedGame = resolveScopedGame(games, selectedGame);
+  const navItems = [
+    { to: '/admin', label: 'Dashboard' },
+    { to: '/admin/games', label: 'Games' },
+    ...(isBracket(scopedGame?.type) ? BRACKET_TABS : GUESS_TABS),
+    { to: '/admin/users', label: 'Users' },
+    { to: '/admin/settings', label: 'Settings' },
+  ];
 
   const handleGameChange = (e) => {
     if (e.target.value) {

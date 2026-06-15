@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import AdminLayout from '../../components/admin/AdminLayout.jsx';
 import ConfirmDialog from '../../components/admin/ConfirmDialog.jsx';
 import api from '../../services/api.js';
+import { GAME_TYPES, gameTypeLabel } from '../../constants/gameTypes.js';
 
 const STATUS_STYLES = {
   draft: 'bg-blue-100 text-blue-700',
@@ -14,6 +15,7 @@ export default function GamesPage() {
   const [games, setGames] = useState([]);
   const [loading, setLoading] = useState(true);
   const [name, setName] = useState('');
+  const [type, setType] = useState('guess_winners');
   const [error, setError] = useState(null);
   const [confirm, setConfirm] = useState(null); // { game, status, message } — status change
   const [deleteTarget, setDeleteTarget] = useState(null); // draft to delete
@@ -33,11 +35,23 @@ export default function GamesPage() {
     e.preventDefault();
     setError(null);
     try {
-      await api.post('/admin/games', { name });
+      await api.post('/admin/games', { name, type });
       setName('');
+      setType('guess_winners');
       await load();
     } catch (err) {
       setError(err.response?.data?.message ?? 'Failed to create game');
+    }
+  };
+
+  // The type is fixed once a game leaves draft, so this only fires for drafts.
+  const changeType = async (game, nextType) => {
+    setError(null);
+    try {
+      await api.put(`/admin/games/${game.id}/type`, { type: nextType });
+      await load();
+    } catch (err) {
+      setError(err.response?.data?.message ?? 'Failed to change game type');
     }
   };
 
@@ -74,15 +88,28 @@ export default function GamesPage() {
         </p>
       </div>
 
-      <form onSubmit={handleCreate} className="flex gap-3 mb-6 max-w-md">
+      <form onSubmit={handleCreate} className="flex flex-wrap gap-3 mb-6 max-w-2xl">
         <input
           name="game_name"
           value={name}
           onChange={(e) => setName(e.target.value)}
           placeholder="New game name, e.g. World Cup 2026"
           required
-          className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+          className="flex-1 min-w-[12rem] border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
         />
+        <select
+          name="game_type"
+          aria-label="Game type"
+          value={type}
+          onChange={(e) => setType(e.target.value)}
+          className="border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-green-500"
+        >
+          {Object.entries(GAME_TYPES).map(([value, label]) => (
+            <option key={value} value={value}>
+              {label}
+            </option>
+          ))}
+        </select>
         <button
           type="submit"
           className="px-4 py-2 bg-green-700 hover:bg-green-800 text-white text-sm font-medium rounded-lg transition"
@@ -104,6 +131,7 @@ export default function GamesPage() {
             <thead className="bg-gray-50 text-left text-gray-500">
               <tr>
                 <th className="px-4 py-3 font-medium">Game</th>
+                <th className="px-4 py-3 font-medium">Type</th>
                 <th className="px-4 py-3 font-medium">Status</th>
                 <th className="px-4 py-3 font-medium">Created</th>
                 <th className="px-4 py-3 font-medium text-right">Actions</th>
@@ -113,6 +141,24 @@ export default function GamesPage() {
               {games.map((game) => (
                 <tr key={game.id}>
                   <td className="px-4 py-3 font-medium text-gray-800">{game.name}</td>
+                  <td className="px-4 py-3">
+                    {game.status === 'draft' ? (
+                      <select
+                        aria-label={`Type for ${game.name}`}
+                        value={game.type}
+                        onChange={(e) => changeType(game, e.target.value)}
+                        className="border border-gray-300 rounded-lg px-2 py-1 text-xs text-gray-700 focus:outline-none focus:ring-2 focus:ring-green-500"
+                      >
+                        {Object.entries(GAME_TYPES).map(([value, label]) => (
+                          <option key={value} value={value}>
+                            {label}
+                          </option>
+                        ))}
+                      </select>
+                    ) : (
+                      <span className="text-xs text-gray-600">{gameTypeLabel(game.type)}</span>
+                    )}
+                  </td>
                   <td className="px-4 py-3">
                     <span
                       className={`px-2 py-0.5 rounded-full text-xs font-medium ${STATUS_STYLES[game.status]}`}
@@ -190,7 +236,7 @@ export default function GamesPage() {
               ))}
               {games.length === 0 && (
                 <tr>
-                  <td colSpan={4} className="px-4 py-8 text-center text-gray-400">
+                  <td colSpan={5} className="px-4 py-8 text-center text-gray-400">
                     No games yet.
                   </td>
                 </tr>

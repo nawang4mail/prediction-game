@@ -49,7 +49,7 @@ That is a breaking change, so the target release is **v3.0.0**.
 
 ## Epic 11 — Game Types & Bracket Prediction
 
-### US-45 · Choose a Game Type when Creating a Game
+### US-45 · Choose a Game Type when Creating a Game ✅
 **As an** admin,
 **I want to** pick a game type — "Guess the Winners" or "Bracket Prediction" — when I create a game,
 **So that** I can run different styles of prediction game instead of only the match-winner format.
