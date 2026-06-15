@@ -36,9 +36,11 @@ export default function BracketPage() {
   const [form, setForm] = useState(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const [winners, setWinners] = useState({}); // { [stageId]: number[] of winning team ids }
 
   const status = game?.status ?? null;
   const canEdit = status === 'draft' || status === 'open';
+  const canSetResults = status === 'open' || status === 'locked';
 
   const load = useCallback(async () => {
     try {
@@ -48,10 +50,34 @@ export default function BracketPage() {
       ]);
       setGame(resolveScopedGame(games));
       setStages(data);
+      setWinners(
+        Object.fromEntries(
+          data.map((s) => [s.id, s.teams.filter((t) => t.is_winner).map((t) => t.id)])
+        )
+      );
     } finally {
       setLoading(false);
     }
   }, []);
+
+  const toggleWinner = (stageId, teamId) => {
+    setWinners((prev) => {
+      const current = prev[stageId] ?? [];
+      const next = current.includes(teamId)
+        ? current.filter((id) => id !== teamId)
+        : [...current, teamId];
+      return { ...prev, [stageId]: next };
+    });
+  };
+
+  const saveResults = async (stage) => {
+    try {
+      await api.put(`/admin/bracket/${stage.id}/results`, { team_ids: winners[stage.id] ?? [] });
+      await load();
+    } catch (err) {
+      setError(err.response?.data?.message ?? 'Failed to save results');
+    }
+  };
 
   useEffect(() => {
     load();
@@ -204,15 +230,42 @@ export default function BracketPage() {
                   )}
                 </div>
                 <div className="flex flex-wrap gap-1.5 mt-3">
-                  {stage.teams.map((t) => (
-                    <span
-                      key={t.id}
-                      className="px-2 py-0.5 rounded-full text-xs bg-gray-100 text-gray-700"
-                    >
-                      {t.name}
-                    </span>
-                  ))}
+                  {stage.teams.map((t) => {
+                    const isWinner = (winners[stage.id] ?? []).includes(t.id);
+                    const cls = isWinner
+                      ? 'bg-green-600 text-white'
+                      : 'bg-gray-100 text-gray-700';
+                    return canSetResults ? (
+                      <button
+                        key={t.id}
+                        type="button"
+                        onClick={() => toggleWinner(stage.id, t.id)}
+                        className={`px-2 py-0.5 rounded-full text-xs transition ${cls}`}
+                      >
+                        {isWinner ? '✓ ' : ''}
+                        {t.name}
+                      </button>
+                    ) : (
+                      <span key={t.id} className={`px-2 py-0.5 rounded-full text-xs ${cls}`}>
+                        {isWinner ? '✓ ' : ''}
+                        {t.name}
+                      </span>
+                    );
+                  })}
                 </div>
+                {canSetResults && (
+                  <div className="mt-3">
+                    <button
+                      onClick={() => saveResults(stage)}
+                      className="text-xs font-medium text-green-700 hover:text-green-900"
+                    >
+                      Save results
+                    </button>
+                    <span className="text-xs text-gray-400 ml-2">
+                      Tap teams that qualified/won, then save.
+                    </span>
+                  </div>
+                )}
               </div>
             ))}
           </div>
