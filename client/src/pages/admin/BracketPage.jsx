@@ -7,6 +7,7 @@ import { isBracket } from '../../constants/gameTypes.js';
 
 const EMPTY_FORM = {
   name: '',
+  description: '',
   pick_count: 1,
   points_per_correct: 1,
   all_correct_bonus: 0,
@@ -93,6 +94,7 @@ export default function BracketPage() {
   const openEdit = (stage) => {
     setForm({
       name: stage.name,
+      description: stage.description ?? '',
       pick_count: stage.pick_count,
       points_per_correct: stage.points_per_correct,
       all_correct_bonus: stage.all_correct_bonus,
@@ -109,6 +111,7 @@ export default function BracketPage() {
     setError('');
     const payload = {
       name: form.name,
+      description: form.description,
       pick_count: Number(form.pick_count),
       points_per_correct: Number(form.points_per_correct),
       all_correct_bonus: Number(form.all_correct_bonus),
@@ -221,6 +224,9 @@ export default function BracketPage() {
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <h3 className="font-semibold text-gray-800">{stage.name}</h3>
+                    {stage.description && (
+                      <p className="text-xs text-gray-600 mt-0.5 italic">{stage.description}</p>
+                    )}
                     <p className="text-xs text-gray-500 mt-0.5">
                       Pick {stage.pick_count} of {stage.teams.length} · {stage.points_per_correct} pt
                       {stage.points_per_correct === 1 ? '' : 's'} each
@@ -304,6 +310,18 @@ export default function BracketPage() {
                 onChange={(e) => setForm({ ...form, name: e.target.value })}
                 placeholder="e.g. Quarter-finalists"
                 required
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">
+                Description (optional)
+              </label>
+              <textarea
+                value={form.description}
+                onChange={(e) => setForm({ ...form, description: e.target.value })}
+                rows={2}
+                placeholder="Explain this stage to players, e.g. the 8 teams that reach the quarter-finals"
                 className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
               />
             </div>

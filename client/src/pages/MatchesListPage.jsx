@@ -120,6 +120,9 @@ export default function MatchesListPage() {
                       </button>
                       {expanded && (
                         <div className="px-4 pb-4 space-y-1.5">
+                          {s.description && (
+                            <p className="text-xs text-green-200/80 italic pb-1">{s.description}</p>
+                          )}
                           {s.teams.map((t) => (
                             <BreakdownRow
                               key={t.id}

@@ -77,6 +77,7 @@ const writeParents = async (conn, stageId, parentIds) => {
 export const create = async ({
   game_id,
   name,
+  description = null,
   pick_count,
   points_per_correct,
   all_correct_bonus,
@@ -92,9 +93,9 @@ export const create = async ({
     );
     const [res] = await conn.query(
       `INSERT INTO bracket_stages
-         (game_id, name, pick_count, points_per_correct, all_correct_bonus, sort_order)
-       VALUES (?, ?, ?, ?, ?, ?)`,
-      [game_id, name, pick_count, points_per_correct, all_correct_bonus, next_order]
+         (game_id, name, description, pick_count, points_per_correct, all_correct_bonus, sort_order)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [game_id, name, description, pick_count, points_per_correct, all_correct_bonus, next_order]
     );
     if (parent_ids.length) await writeParents(conn, res.insertId, parent_ids);
     else await writeTeams(conn, res.insertId, teams);
@@ -110,16 +111,16 @@ export const create = async ({
 
 export const update = async (
   id,
-  { name, pick_count, points_per_correct, all_correct_bonus, teams, parent_ids = [] }
+  { name, description = null, pick_count, points_per_correct, all_correct_bonus, teams, parent_ids = [] }
 ) => {
   const conn = await pool.getConnection();
   try {
     await conn.beginTransaction();
     await conn.query(
       `UPDATE bracket_stages
-         SET name = ?, pick_count = ?, points_per_correct = ?, all_correct_bonus = ?
+         SET name = ?, description = ?, pick_count = ?, points_per_correct = ?, all_correct_bonus = ?
        WHERE id = ?`,
-      [name, pick_count, points_per_correct, all_correct_bonus, id]
+      [name, description, pick_count, points_per_correct, all_correct_bonus, id]
     );
     await writeParents(conn, id, parent_ids);
     // Source stages keep their typed teams; combined-stage teams are rebuilt by
@@ -212,8 +213,8 @@ export const breakdown = async (gameId) => {
   const [rows] = await pool.query(
     `
     SELECT
-      bs.id AS stage_id, bs.name AS stage_name, bs.pick_count,
-      bs.points_per_correct, bs.all_correct_bonus, bs.sort_order AS stage_order,
+      bs.id AS stage_id, bs.name AS stage_name, bs.description AS stage_description,
+      bs.pick_count, bs.points_per_correct, bs.all_correct_bonus, bs.sort_order AS stage_order,
       st.id AS team_id, st.name AS team_name, st.is_winner, st.sort_order AS team_order,
       COUNT(ss.id) AS picks
     FROM bracket_stages bs
@@ -231,6 +232,7 @@ export const breakdown = async (gameId) => {
       byStage.set(r.stage_id, {
         id: r.stage_id,
         name: r.stage_name,
+        description: r.stage_description,
         pick_count: r.pick_count,
         points_per_correct: r.points_per_correct,
         all_correct_bonus: r.all_correct_bonus,

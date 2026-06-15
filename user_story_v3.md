@@ -338,7 +338,7 @@ breakdown UI already exists (`MatchesListPage` + `bracketStageModel.breakdown()`
 
 ---
 
-### US-55 · Stage Description (Admin)
+### US-55 · Stage Description (Admin) ✅
 **As an** admin,
 **I want to** add an optional description to each stage,
 **So that** I can explain the stage's rules or context to players (e.g. "Pick the 8 teams you think reach the quarter-finals").

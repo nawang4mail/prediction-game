@@ -69,6 +69,9 @@ export default function BracketPredictions({ stages, initialSelections, locked, 
                 {picks.length} / {stage.pick_count} picked
               </p>
             </div>
+            {stage.description && (
+              <p className="text-xs text-green-100/90 mb-2 italic">{stage.description}</p>
+            )}
             <p className="text-xs text-green-300/80 mb-3">
               Pick {stage.pick_count} · {stage.points_per_correct} pt
               {stage.points_per_correct === 1 ? '' : 's'} each
