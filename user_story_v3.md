@@ -287,7 +287,7 @@ the player's view and when validating a save.
 
 ---
 
-### US-53 · Point Breakdown in the Leaderboard Player Detail
+### US-53 · Point Breakdown in the Leaderboard Player Detail ✅
 **As a** player,
 **I want to** see how many points each of another player's picks earned when I open their detail on the leaderboard,
 **So that** I understand exactly how their score was built, not just which teams they picked.

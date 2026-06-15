@@ -48,7 +48,14 @@ function BracketDetail({ stages }) {
     <div className="space-y-2">
       {stages.map((s) => (
         <div key={s.id}>
-          <p className="text-[11px] font-semibold text-green-700 mb-1">{s.name}</p>
+          <p className="text-[11px] font-semibold text-green-700 mb-1">
+            {s.name}
+            {s.all_correct && s.all_correct_bonus > 0 && (
+              <span className="ml-1.5 text-green-600" data-testid={`bonus-${s.id}`}>
+                +{s.all_correct_bonus} bonus
+              </span>
+            )}
+          </p>
           {s.teams.length === 0 ? (
             <p className="text-xs text-gray-300 italic px-1">No picks</p>
           ) : (
@@ -62,6 +69,7 @@ function BracketDetail({ stages }) {
                 >
                   {t.is_winner ? '✓ ' : ''}
                   {t.name}
+                  {t.is_winner && s.points_per_correct ? ` +${s.points_per_correct}` : ''}
                 </span>
               ))}
             </div>

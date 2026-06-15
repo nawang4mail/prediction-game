@@ -29,14 +29,21 @@ export const getUserPredictions = async (req, res, next) => {
       const reveal = game.status === 'finished';
       const stages = await findStages(game.id);
       const picked = new Set((await findUserSelections(user.id)).map((s) => s.stage_team_id));
-      const detail = stages.map((s) => ({
-        id: s.id,
-        name: s.name,
-        pick_count: s.pick_count,
-        teams: s.teams
-          .filter((t) => picked.has(t.id))
-          .map((t) => ({ id: t.id, name: t.name, is_winner: reveal ? t.is_winner : 0 })),
-      }));
+      const detail = stages.map((s) => {
+        const myPicks = s.teams.filter((t) => picked.has(t.id));
+        const correct = myPicks.filter((t) => t.is_winner).length;
+        // The all-correct bonus applies when every one of the player's picks won.
+        const allCorrect = reveal && myPicks.length === s.pick_count && correct === s.pick_count;
+        return {
+          id: s.id,
+          name: s.name,
+          pick_count: s.pick_count,
+          points_per_correct: s.points_per_correct,
+          all_correct_bonus: s.all_correct_bonus,
+          all_correct: allCorrect,
+          teams: myPicks.map((t) => ({ id: t.id, name: t.name, is_winner: reveal ? t.is_winner : 0 })),
+        };
+      });
       return res.json({ bracket: true, stages: detail });
     }
 
