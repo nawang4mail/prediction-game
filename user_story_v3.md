@@ -287,6 +287,77 @@ the player's view and when validating a save.
 
 ---
 
+### US-53 · Point Breakdown in the Leaderboard Player Detail
+**As a** player,
+**I want to** see how many points each of another player's picks earned when I open their detail on the leaderboard,
+**So that** I understand exactly how their score was built, not just which teams they picked.
+
+**Acceptance Criteria:**
+- In the bracket leaderboard detail panel (US-50), every pick shows the points it earned:
+  a **correct** pick (its team is a winner) is highlighted green with `+<points_per_correct>`
+  shown beside it; an **incorrect** pick shows no points
+- When **all** of a player's picks in a stage are correct, that stage's `all_correct_bonus`
+  is shown beside the stage name (e.g. "Group Stage · +5 bonus")
+- Points and bonus are shown only once the game's results are revealed (game `finished`),
+  consistent with how winners stay hidden during play (US-48, US-50)
+- The Guess the Winners detail panel (US-03) is unchanged
+- Works without login and on mobile within the existing responsive layout (US-04)
+
+**Notes:** Extend the bracket branch of `GET /api/leaderboard/:userId/predictions` to
+include each stage's `points_per_correct` and `all_correct_bonus` (and whether the player
+got every pick in the stage correct); render the per-pick points and per-stage bonus in
+`PredictionDetail`.
+
+---
+
+### US-54 · Fix and Improve the Matches Tab for Bracket Games
+**As a** visitor,
+**I want** the Matches tab to actually show a Bracket Prediction game's stages and how many players picked each country,
+**So that** I can browse the crowd's picks for a bracket game the same way I can for a match game.
+
+**Root cause:** the public `GET /api/games` returns only `{id, name, status, created_at}` —
+it omits the game `type`. The Matches page (`MatchesListPage`) chooses bracket vs. match
+mode with `isBracket(game?.type)`, so with `type` missing it always falls into match mode
+and renders the empty match list (a bracket game has no matches). Result: the Matches tab
+shows nothing for a bracket game.
+
+**Acceptance Criteria:**
+- The public games list includes each game's `type`, so the Matches tab can tell a bracket
+  game from a Guess the Winners game
+- For a `bracket_prediction` game the Matches tab lists the **stages**; tapping a stage name
+  expands it to show its countries/teams, each with a **"Players" count = number of players
+  who picked that team**
+- Teams within a stage are ranked most-picked first (US-51); qualifying/winning teams are
+  highlighted once results are set (US-49)
+- The tab reflects the game the visitor is viewing via the `?game=` selector (US-32 /
+  `PublicGameNav`), not just the default game
+- The Guess the Winners Matches tab (US-33) is unchanged
+
+**Notes:** One-line fix in `server/src/routes/games.js` to pass `type` through; the stage
+breakdown UI already exists (`MatchesListPage` + `bracketStageModel.breakdown()`, US-49/US-51).
+
+---
+
+### US-55 · Stage Description (Admin)
+**As an** admin,
+**I want to** add an optional description to each stage,
+**So that** I can explain the stage's rules or context to players (e.g. "Pick the 8 teams you think reach the quarter-finals").
+
+**Acceptance Criteria:**
+- When adding or editing a stage (US-46), the admin can enter an optional **description**
+- The description is shown on the admin stage card, in the participant's bracket view
+  (US-48), and in the public stage breakdown (US-54)
+- The description is optional; a stage with none simply shows no description
+- Editable under the same rules as other stage fields — only while the game is `draft`/`open`
+  (US-46) — and unaffected for Guess the Winners games
+
+**Amends:** US-46 (stage definition gains a description). **Notes:** migration adds
+`description TEXT NULL` to `bracket_stages`; thread it through `bracketStageModel`
+create/update, `bracketController.parseStage`, the admin `BracketPage` form, and the read
+paths that already return stages.
+
+---
+
 ## Navigation & Tabs (v3 additions)
 
 | Tab | Route | Access |
@@ -306,6 +377,7 @@ games + type ENUM('guess_winners','bracket_prediction') NOT NULL DEFAULT 'guess_
 bracket_stages (
   id, game_id FK,
   name VARCHAR(150),
+  description TEXT NULL,                 -- optional admin note per stage (US-55)
   pick_count INT,                       -- how many teams a player must pick
   points_per_correct INT,               -- points per correct pick
   all_correct_bonus INT NOT NULL DEFAULT 0, -- extra points if all picks correct
