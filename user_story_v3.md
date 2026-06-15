@@ -298,8 +298,9 @@ the player's view and when validating a save.
   shown beside it; an **incorrect** pick shows no points
 - When **all** of a player's picks in a stage are correct, that stage's `all_correct_bonus`
   is shown beside the stage name (e.g. "Group Stage · +5 bonus")
-- Points and bonus are shown only once the game's results are revealed (game `finished`),
-  consistent with how winners stay hidden during play (US-48, US-50)
+- Points and bonus are shown once the stage's results are set by the admin (US-47) — the
+  same moment the leaderboard total and the public breakdown reflect them; before any
+  result is set nothing is revealed
 - The Guess the Winners detail panel (US-03) is unchanged
 - Works without login and on mobile within the existing responsive layout (US-04)
 
