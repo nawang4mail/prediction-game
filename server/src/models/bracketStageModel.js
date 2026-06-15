@@ -162,7 +162,7 @@ export const breakdown = async (gameId) => {
     LEFT JOIN stage_selections ss ON ss.stage_team_id = st.id
     WHERE bs.game_id = ?
     GROUP BY st.id
-    ORDER BY bs.sort_order ASC, bs.id ASC, st.sort_order ASC, st.id ASC
+    ORDER BY bs.sort_order ASC, bs.id ASC, picks DESC, st.sort_order ASC, st.id ASC
   `,
     [gameId]
   );
