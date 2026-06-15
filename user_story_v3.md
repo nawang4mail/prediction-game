@@ -13,18 +13,26 @@ v3 introduces **game types**. Every game now has a type:
 
 1. **Guess the Winners** — the existing game, unchanged. The default type; all
    current and historical games are this type.
-2. **Survival Bracket** — a new type. The admin builds several *brackets* per
-   game. Each bracket is a named list of country/teams with a required number of
-   teams the player must pick and an admin-set number of points per correct pick.
-   Players choose exactly that many teams in each bracket; after the event the
-   admin marks the real winners, and each correct pick earns that bracket's
-   points. Scoring is **cumulative** (sum across all brackets) — there is no
-   elimination; "Survival" is branding only.
+2. **Bracket Prediction** — a new type: a FIFA-style bracket challenge. The admin
+   **dynamically defines one or more stages** for the game (e.g. "Quarter-finalists",
+   "Round of 16", "Champion"). Each stage is a named list of country/teams with a
+   required number of teams the player picks, points per correct pick, and an
+   all-correct bonus. **Players fill the whole bracket upfront** — they predict every
+   stage in one sitting before the game locks. After the event the admin marks which
+   teams actually qualified/won in each stage, and each correct pick earns that
+   stage's points (plus a bonus if all of the player's picks in that stage are
+   correct). Scoring is **cumulative** across stages — there is no elimination.
+
+Stages are **independent and admin-defined**: the admin can include any combination
+of stages (e.g. "QF qualifiers + Champion", or "Round of 16 + Final") in any order,
+and types each stage's candidate team list directly. A later stage is **not**
+auto-built from an earlier one — that keeps the game fully dynamic (you can skip
+stages), and auto-linking is left as a future idea (see Out of Scope).
 
 Numbering continues from v2: new stories start at **US-45**.
 
 **SemVer note:** these stories require a schema migration — a `type` column on
-`games` plus new `brackets`, `bracket_teams`, and `bracket_selections` tables.
+`games` plus new `bracket_stages`, `stage_teams`, and `stage_selections` tables.
 That is a breaking change, so the target release is **v3.0.0**.
 
 ---
@@ -39,16 +47,16 @@ That is a breaking change, so the target release is **v3.0.0**.
 
 ---
 
-## Epic 11 — Game Types & the Survival Bracket
+## Epic 11 — Game Types & Bracket Prediction
 
 ### US-45 · Choose a Game Type when Creating a Game
 **As an** admin,
-**I want to** pick a game type — "Guess the Winners" or "Survival Bracket" — when I create a game,
+**I want to** pick a game type — "Guess the Winners" or "Bracket Prediction" — when I create a game,
 **So that** I can run different styles of prediction game instead of only the match-winner format.
 
 **Acceptance Criteria:**
 - The new-game form has a **type** selector with two options: **Guess the Winners**
-  (default) and **Survival Bracket**
+  (default) and **Bracket Prediction**
 - The chosen type is stored on the game and shown in the admin game list
 - The type can be changed only while the game is `draft`; once the game is `open`,
   `locked`, or `finished` the type is fixed
@@ -56,7 +64,8 @@ That is a breaking change, so the target release is **v3.0.0**.
   `guess_winners`** and behaves exactly as before (no visible change to current games)
 - Admin pages adapt to the game's type:
   - `guess_winners` → the existing **Matches** and **Predictions** tabs (US-08 to US-18)
-  - `survival_bracket` → a new **Brackets** tab (US-46) instead of Matches/Predictions
+  - `bracket_prediction` → a new **Bracket** tab for managing stages (US-46) instead of
+    Matches/Predictions
 - The public side (join, leaderboard, breakdown) renders according to the selected
   game's type
 - Lifecycle (`draft → open → locked → finished`), per-game scoping, prize pool, and
@@ -67,106 +76,112 @@ shown for a game depend on its type). **BREAKING** — schema change.
 
 ---
 
-### US-46 · Create and Manage Brackets
-**As an** admin running a Survival Bracket game,
-**I want to** create one or more brackets, each with a name, a list of teams, how many a player must pick, and the points per correct pick,
-**So that** I can define exactly what players choose and how those choices score.
+### US-46 · Define Bracket Stages
+**As an** admin running a Bracket Prediction game,
+**I want to** dynamically define one or more stages, each with a name, a list of teams, how many a player must pick, points per correct pick, and an all-correct bonus,
+**So that** I can shape exactly what players predict and how each stage scores.
 
 **Acceptance Criteria:**
-- Available only for games whose type is `survival_bracket`
-- Admin can add, edit, reorder, and delete **brackets** for the game
-- Each bracket has:
-  - a **name** (e.g. "Quarterfinalists", "Golden Boot")
+- Available only for games whose type is `bracket_prediction`
+- Admin can add, edit, reorder, and delete **stages** for the game
+- Each stage has:
+  - a **name** (e.g. "Quarter-finalists", "Round of 16", "Champion")
   - an ordered **list of teams** (country/player names) — at least 2 teams
-  - a **select count** = how many teams a player must pick from this bracket
+  - a **pick count** = how many teams a player must select for this stage
   - **points per correct** = points awarded for each correctly picked team
-- Validation: `1 ≤ select_count ≤ number of teams`; `points_per_correct ≥ 1`;
-  team names are unique within a bracket
-- A game can have any number of brackets (no cap, consistent with US-43)
-- Brackets and their teams are fully editable while the game is `draft` or `open`;
-  they become read-only once the game is `locked` or `finished` (mirrors the match
-  lock in US-39)
-- Deleting a bracket or removing a team also clears any player selections tied to it
+  - an **all-correct bonus** = extra points the player earns only if every one of
+    their picks in this stage is correct (set to 0 to disable)
+- Validation: `1 ≤ pick_count ≤ number of teams`; `points_per_correct ≥ 1`;
+  `all_correct_bonus ≥ 0`; team names are unique within a stage
+- A game can have any number of stages, in any combination/order — stages are
+  independent and the admin can skip whatever they like (no cap, US-43 parity)
+- Stages and their teams are fully editable while the game is `draft` or `open`; they
+  become read-only once the game is `locked` or `finished` (mirrors the match lock,
+  US-39)
+- Deleting a stage or removing a team also clears any player selections tied to it
 
-**Notes:** New `brackets` + `bracket_teams` tables and `/api/admin/brackets`
+**Notes:** New `bracket_stages` + `stage_teams` tables and `/api/admin/bracket`
 endpoints. The CRUD/replace pattern can mirror `prizeTierModel.replaceAll()` and the
 admin Matches page (`client/src/pages/admin/MatchesPage.jsx`); status gating reuses
 `requireGameStatus` middleware.
 
 ---
 
-### US-47 · Set Bracket Results (Winning Teams)
+### US-47 · Set Stage Results (Qualifying / Winning Teams)
 **As an** admin,
-**I want to** mark which teams in each bracket actually won after the event,
+**I want to** mark which teams in each stage actually qualified or won after the event,
 **So that** the system can score players' picks and update the leaderboard.
 
 **Acceptance Criteria:**
-- For each bracket, the admin can flag any number of its teams as **winners**
+- For each stage, the admin can flag any number of its teams as **winners/qualifiers**
   (an `is_winner` flag on the team), and clear them again
-- Marking/clearing winners is allowed while the game is `open` or `locked` — the
-  same workflow position as recording a match result (`PUT /matches/:id/result`,
-  US-10) — and remains possible until the game is `finished`
-- Once the game is `finished`, winners are read-only (US-37/US-40 parity)
-- Setting or clearing winners immediately recomputes the leaderboard (US-49)
-- Marking winners does not require the bracket's select count to match the number of
-  winners — e.g. a "pick 4 of 10" bracket may have any number of teams that actually
-  advanced; players only score for their own correct picks
+- Marking/clearing results is allowed while the game is `open` or `locked` — the same
+  workflow position as recording a match result (`PUT /matches/:id/result`, US-10) —
+  and remains possible until the game is `finished`
+- Once the game is `finished`, results are read-only (US-37/US-40 parity)
+- Setting or clearing results immediately recomputes the leaderboard (US-49)
+- The number of teams marked as winners need not equal the stage's pick count — e.g. a
+  "pick 8 of 32" stage may have any number that actually advanced; players only score
+  for their own correct picks
 
 **Notes:** Mirrors the matches result → leaderboard recompute flow in
 `matchesController` + `predictionModel.leaderboard()`.
 
 ---
 
-### US-48 · Select Teams in a Bracket
-**As a** participant in a Survival Bracket game,
-**I want to** pick exactly the required number of teams in each bracket and change them while the game is open,
-**So that** I can enter my predictions for this game type.
+### US-48 · Make Bracket Predictions Upfront
+**As a** participant in a Bracket Prediction game,
+**I want to** fill in all of the stages at once — picking the required number of teams in each — and change them while the game is open,
+**So that** I can enter my whole bracket before the tournament starts.
 
 **Acceptance Criteria:**
-- In a `survival_bracket` game, the My Predictions page shows each bracket with its
-  name, points-per-correct, and the full list of teams as selectable options
-- The player must select **exactly `select_count`** teams per bracket; the UI prevents
-  selecting more and indicates how many remain
-- Saving is rejected server-side unless the selection count for a bracket equals its
-  `select_count` (partial selections are allowed to be saved as drafts but flagged as
-  incomplete — final pick must be complete)
+- In a `bracket_prediction` game, the My Predictions page shows **all stages at once**,
+  each with its name, points-per-correct, all-correct bonus, and the full list of teams
+  as selectable options
+- The player must select **exactly `pick_count`** teams per stage; the UI prevents
+  selecting more and shows how many picks remain in each stage
+- Saving a stage is rejected server-side unless its selection count equals its
+  `pick_count`; a complete entry requires every stage filled, and Finish (US-35)
+  confirms the entry is complete
 - The device remembers the participant via the existing per-game entry token
   (US-30/US-34/US-41); multiple entries per player work as in US-41
 - Selections are editable while the game is `open` and become read-only when the game
   is `locked` (parallel to US-31)
-- Each bracket's selections are independent; switching entries (US-41) shows that
+- Each stage's selections are independent; switching entries (US-41) shows that
   entry's selections
 
-**Notes:** New `bracket_selections` table keyed by `(user_id, bracket_team_id)`.
+**Notes:** New `stage_selections` table keyed by `(user_id, stage_team_id)`.
 Participant access reuses `participantAuth` middleware and `entries.js`; the My
-Predictions page branches on game type to render brackets instead of match rows.
+Predictions page branches on game type to render stages instead of match rows.
 
 ---
 
-### US-49 · Survival Bracket Scoring and Leaderboard
+### US-49 · Bracket Prediction Scoring and Leaderboard
 **As a** visitor,
-**I want** the leaderboard and breakdowns to reflect Survival Bracket scoring,
+**I want** the leaderboard and breakdowns to reflect Bracket Prediction scoring,
 **So that** I can see standings for this game type just like for a Guess the Winners game.
 
 **Acceptance Criteria:**
-- A player's score in a `survival_bracket` game = the sum, over every bracket, of
-  (number of their picks that are winners × that bracket's `points_per_correct`)
+- A player's score in a `bracket_prediction` game = the sum, over every stage, of:
+  - (number of their picks that are winners × that stage's `points_per_correct`), plus
+  - that stage's `all_correct_bonus` **only if every one of their picks in the stage is
+    correct**
 - Scoring is **cumulative** — a wrong pick simply earns 0 for that pick; there is no
   elimination
-- The leaderboard is **type-aware**: `survival_bracket` games use bracket scoring;
+- The leaderboard is **type-aware**: `bracket_prediction` games use stage scoring;
   `guess_winners` games keep the existing per-prediction scoring
   (`predictionModel.leaderboard()`) completely unchanged
 - Ranking, tie-breaking, smart refresh, and the responsive layout behave as on the
   existing leaderboard (US-01 to US-04)
-- A public per-bracket breakdown shows, for each team, how many players picked it, and
-  highlights the winning teams once results are set (parallel to the match breakdown in
-  US-33)
-- Scores update automatically when the admin sets or clears bracket winners (US-47)
+- A public per-stage breakdown shows, for each team, how many players picked it, and
+  highlights the qualifying/winning teams once results are set; the bonus is indicated
+  (parallel to the match breakdown in US-33)
+- Scores update automatically when the admin sets or clears stage results (US-47)
 - Prize pool, cost, and commission (US-36) apply per game regardless of type
 
 **Notes:** The leaderboard query becomes type-aware (branch on `games.type`); the
-bracket score aggregates `bracket_selections` joined to `bracket_teams.is_winner` and
-`brackets.points_per_correct`.
+stage score aggregates `stage_selections` joined to `stage_teams.is_winner` and
+`bracket_stages.points_per_correct` / `all_correct_bonus`.
 
 ---
 
@@ -174,7 +189,7 @@ bracket score aggregates `bracket_selections` joined to `bracket_teams.is_winner
 
 | Tab | Route | Access |
 |-----|-------|--------|
-| Brackets | `/admin/brackets` | Admin only (shown for `survival_bracket` games instead of Matches/Predictions) |
+| Bracket (Stages) | `/admin/bracket` | Admin only (shown for `bracket_prediction` games instead of Matches/Predictions) |
 | Game type selector | on `/admin/games` (create form) | Admin only |
 
 ---
@@ -183,32 +198,33 @@ bracket score aggregates `bracket_selections` joined to `bracket_teams.is_winner
 
 ```sql
 -- games gains a type; existing rows migrate to 'guess_winners'
-games + type ENUM('guess_winners','survival_bracket') NOT NULL DEFAULT 'guess_winners'
+games + type ENUM('guess_winners','bracket_prediction') NOT NULL DEFAULT 'guess_winners'
 
--- New: one row per bracket in a survival_bracket game
-brackets (
+-- New: one row per admin-defined stage in a bracket_prediction game
+bracket_stages (
   id, game_id FK,
   name VARCHAR(150),
-  select_count INT,          -- how many teams a player must pick
-  points_per_correct INT,    -- points awarded per correct pick
+  pick_count INT,                       -- how many teams a player must pick
+  points_per_correct INT,               -- points per correct pick
+  all_correct_bonus INT NOT NULL DEFAULT 0, -- extra points if all picks correct
   sort_order INT,
   created_at, updated_at
 )
 
--- New: the team/country options within a bracket; admin flags the real winners (US-47)
-bracket_teams (
-  id, bracket_id FK,
+-- New: candidate teams within a stage; admin flags the real qualifiers/winners (US-47)
+stage_teams (
+  id, stage_id FK,
   name VARCHAR(100),
   is_winner BOOLEAN NOT NULL DEFAULT 0,
   sort_order INT,
-  UNIQUE(bracket_id, name)
+  UNIQUE(stage_id, name)
 )
 
--- New: a participant's picks (exactly select_count rows per user per bracket)
-bracket_selections (
-  id, user_id FK, bracket_team_id FK,
+-- New: a participant's picks (exactly pick_count rows per user per stage)
+stage_selections (
+  id, user_id FK, stage_team_id FK,
   created_at,
-  UNIQUE(user_id, bracket_team_id)
+  UNIQUE(user_id, stage_team_id)
 )
 
 -- matches / predictions are untouched: they continue to serve guess_winners games.
@@ -219,8 +235,9 @@ bracket_selections (
 ## Out of Scope (for v3)
 
 - True elimination / survival mode (a wrong pick knocks the player out)
-- Multiple sub-lists or groups within a single bracket (each bracket has one flat
-  team list)
-- Per-bracket prize tiers (prize pool stays per game, US-36)
-- Additional game types beyond Guess the Winners and Survival Bracket
+- Auto-linked stages — a later stage's team list automatically built from the teams
+  that advanced in an earlier stage (admin types each stage's team list instead)
+- Multiple sub-lists or groups within a single stage (each stage has one flat team list)
+- Per-stage prize tiers (prize pool stays per game, US-36)
+- Additional game types beyond Guess the Winners and Bracket Prediction
 - Converting an existing game from one type to another after it leaves `draft`
