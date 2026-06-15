@@ -239,6 +239,54 @@ with `sort_order` as the tie-breaker.
 
 ---
 
+### US-52 · Connect Stages into Combined Stages
+**As an** admin,
+**I want to** connect stages so a later stage automatically inherits the teams a player selected in its parent stages,
+**So that** I can build a real multi-round bracket (e.g. A + B → C, then C + D → E) where each round narrows down the player's own picks.
+
+**Acceptance Criteria:**
+
+_Admin design (dynamic & interactive):_
+- When creating/editing a stage, the admin can make it a **combined stage** by choosing
+  one or more **parent stages** instead of typing a team list
+- A combined stage has the same rule fields as any stage: `pick_count`,
+  `points_per_correct`, `all_correct_bonus`
+- Chaining is supported to any depth — a combined stage may have other combined stages
+  as parents (A + B → C, C + D → E)
+- Validation: parents must be earlier stages; a stage cannot be (directly or
+  indirectly) its own parent — no cycles; a combined stage's `pick_count` cannot exceed
+  the total it can inherit (sum of its parents' `pick_count`s)
+- Combined stages are editable only while the game is `draft`/`open` (US-46); changing a
+  parent re-validates descendants
+
+_Player experience:_
+- The player sees every stage (A, B, C, …). A combined stage's candidate teams are the
+  **union of the teams that player selected in its parent stages**
+- As the player changes their picks in a parent stage, the combined stage's available
+  teams update live; picks in the combined stage that are no longer valid are cleared
+- The player still picks exactly `pick_count` teams in the combined stage (US-48 rules
+  apply per stage)
+
+_Scoring & results:_
+- The admin sets results for every stage including combined ones (US-47), marking the
+  actual qualifiers/winners among that stage's team pool
+- Score **accumulates across all stages** (US-49), combined stages included — each is
+  scored independently by the player's picks in it
+
+**Amends:** US-46 (a stage's teams can be inherited from parents rather than typed),
+US-47 (results apply to combined stages too), and US-48 (the player view shows inherited
+teams). Brings the previously out-of-scope "auto-linked stages" into v3.
+
+**Notes:** Suggested model — a `stage_parents (stage_id, parent_stage_id)` link table
+(or a parent list) plus a flag marking a stage's teams as derived. A combined stage's
+canonical `stage_teams` is the de-duplicated **union of its parents' teams**, kept in
+sync when parents change, so `is_winner` (US-47) and `stage_selections` (US-48) work
+unchanged; each player only sees/picks the subset they actually advanced from the
+parents. The parent-team union and per-player available set are computed when building
+the player's view and when validating a save.
+
+---
+
 ## Navigation & Tabs (v3 additions)
 
 | Tab | Route | Access |
@@ -289,8 +337,6 @@ stage_selections (
 ## Out of Scope (for v3)
 
 - True elimination / survival mode (a wrong pick knocks the player out)
-- Auto-linked stages — a later stage's team list automatically built from the teams
-  that advanced in an earlier stage (admin types each stage's team list instead)
 - Multiple sub-lists or groups within a single stage (each stage has one flat team list)
 - Per-stage prize tiers (prize pool stays per game, US-36)
 - Additional game types beyond Guess the Winners and Bracket Prediction
