@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import api from '../services/api.js';
+import BracketPredictions from '../components/BracketPredictions.jsx';
 import {
   entriesForGame,
   getCurrentToken,
@@ -65,7 +66,12 @@ export default function MyPredictionsPage() {
   }, [navigate, loadMe]);
 
   const locked = data && data.game.status !== 'open';
-  const hasPicks = !!data && data.predictions.some((p) => p.prediction);
+  const isBracketGame = !!data && data.game.type === 'bracket_prediction';
+  const hasPicks =
+    !!data &&
+    (isBracketGame
+      ? (data.selections?.length ?? 0) > 0
+      : data.predictions.some((p) => p.prediction));
 
   const switchEntry = async (token) => {
     if (token === getCurrentToken()) return;
@@ -254,6 +260,15 @@ export default function MyPredictionsPage() {
               <div key={i} className="h-20 bg-white/10 rounded-xl animate-pulse" />
             ))}
           </div>
+        ) : isBracketGame ? (
+          <BracketPredictions
+            key={data.participant.id}
+            stages={data.stages ?? []}
+            initialSelections={data.selections ?? []}
+            locked={locked}
+            onError={setError}
+            onSaved={loadMe}
+          />
         ) : data.predictions.length === 0 ? (
           <p className="text-center text-green-200 text-sm bg-white/10 rounded-xl px-4 py-6">
             No matches yet — check back once the admin adds fixtures.

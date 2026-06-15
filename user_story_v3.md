@@ -129,7 +129,7 @@ admin Matches page (`client/src/pages/admin/MatchesPage.jsx`); status gating reu
 
 ---
 
-### US-48 · Make Bracket Predictions Upfront
+### US-48 · Make Bracket Predictions Upfront ✅
 **As a** participant in a Bracket Prediction game,
 **I want to** fill in all of the stages at once — picking the required number of teams in each — and change them while the game is open,
 **So that** I can enter my whole bracket before the tournament starts.
