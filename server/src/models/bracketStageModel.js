@@ -112,6 +112,82 @@ export const remove = async (id) => {
   return res.affectedRows;
 };
 
+// Type-aware leaderboard for a Bracket Prediction game (US-49). A player's score
+// is, per stage, (correct picks × points_per_correct) plus the stage's
+// all_correct_bonus when every one of their picks is correct (correct = pick_count).
+// Returns the same shape as predictionModel.leaderboard so the UI is unchanged.
+export const leaderboard = async (gameId) => {
+  const [rows] = await pool.query(
+    `
+    SELECT
+      u.id,
+      u.display_name,
+      COALESCE(SUM(s.score), 0) AS total_points,
+      RANK() OVER (ORDER BY COALESCE(SUM(s.score), 0) DESC) AS \`rank\`
+    FROM users u
+    LEFT JOIN (
+      SELECT
+        ss.user_id,
+        bs.id AS stage_id,
+        SUM(st.is_winner) * bs.points_per_correct
+          + CASE WHEN SUM(st.is_winner) = bs.pick_count THEN bs.all_correct_bonus ELSE 0 END
+          AS score
+      FROM stage_selections ss
+      JOIN stage_teams st    ON st.id = ss.stage_team_id
+      JOIN bracket_stages bs ON bs.id = st.stage_id
+      WHERE bs.game_id = ?
+      GROUP BY ss.user_id, bs.id
+    ) s ON s.user_id = u.id
+    WHERE u.game_id = ?
+    GROUP BY u.id, u.display_name
+    ORDER BY total_points DESC
+  `,
+    [gameId, gameId]
+  );
+  return rows;
+};
+
+// Public per-stage breakdown (US-49, parallel to US-33): each stage with its
+// teams, how many players picked each, and which actually won.
+export const breakdown = async (gameId) => {
+  const [rows] = await pool.query(
+    `
+    SELECT
+      bs.id AS stage_id, bs.name AS stage_name, bs.pick_count,
+      bs.points_per_correct, bs.all_correct_bonus, bs.sort_order AS stage_order,
+      st.id AS team_id, st.name AS team_name, st.is_winner, st.sort_order AS team_order,
+      COUNT(ss.id) AS picks
+    FROM bracket_stages bs
+    JOIN stage_teams st ON st.stage_id = bs.id
+    LEFT JOIN stage_selections ss ON ss.stage_team_id = st.id
+    WHERE bs.game_id = ?
+    GROUP BY st.id
+    ORDER BY bs.sort_order ASC, bs.id ASC, st.sort_order ASC, st.id ASC
+  `,
+    [gameId]
+  );
+  const byStage = new Map();
+  for (const r of rows) {
+    if (!byStage.has(r.stage_id)) {
+      byStage.set(r.stage_id, {
+        id: r.stage_id,
+        name: r.stage_name,
+        pick_count: r.pick_count,
+        points_per_correct: r.points_per_correct,
+        all_correct_bonus: r.all_correct_bonus,
+        teams: [],
+      });
+    }
+    byStage.get(r.stage_id).teams.push({
+      id: r.team_id,
+      name: r.team_name,
+      is_winner: r.is_winner,
+      picks: Number(r.picks),
+    });
+  }
+  return [...byStage.values()];
+};
+
 // Records which teams actually qualified/won in a stage (US-47). Clears the flag
 // on the rest. Scoped by stage_id so stray ids can never touch another stage.
 export const setWinners = async (stageId, teamIds) => {
