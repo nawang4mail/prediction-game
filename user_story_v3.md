@@ -239,7 +239,7 @@ with `sort_order` as the tie-breaker.
 
 ---
 
-### US-52 · Connect Stages into Combined Stages
+### US-52 · Connect Stages into Combined Stages ✅
 **As an** admin,
 **I want to** connect stages so a later stage automatically inherits the teams a player selected in its parent stages,
 **So that** I can build a real multi-round bracket (e.g. A + B → C, then C + D → E) where each round narrows down the player's own picks.

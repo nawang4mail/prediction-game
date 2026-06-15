@@ -74,6 +74,11 @@ export default function BracketPredictions({ stages, initialSelections, locked, 
               {stage.points_per_correct === 1 ? '' : 's'} each
               {stage.all_correct_bonus > 0 ? ` · +${stage.all_correct_bonus} all-correct bonus` : ''}
             </p>
+            {stage.parent_ids?.length > 0 && stage.teams.length === 0 && (
+              <p className="text-xs text-green-300/80 italic mb-2" data-testid={`needs-parents-${stage.id}`}>
+                Make your picks in the earlier stages first — your advancing teams appear here.
+              </p>
+            )}
             <div className="grid grid-cols-2 gap-2">
               {stage.teams.map((t) => {
                 const isPicked = picks.includes(t.id);
