@@ -156,7 +156,7 @@ Predictions page branches on game type to render stages instead of match rows.
 
 ---
 
-### US-49 · Bracket Prediction Scoring and Leaderboard
+### US-49 · Bracket Prediction Scoring and Leaderboard ✅
 **As a** visitor,
 **I want** the leaderboard and breakdowns to reflect Bracket Prediction scoring,
 **So that** I can see standings for this game type just like for a Guess the Winners game.
