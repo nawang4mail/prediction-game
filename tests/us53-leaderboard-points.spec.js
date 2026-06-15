@@ -112,6 +112,8 @@ test.describe('US-53: leaderboard point breakdown (UI)', () => {
 
     await page.getByText('Bob').click();
     await expect(page.getByTestId('bonus-1')).toHaveText('+5 bonus');
-    await expect(page.getByText('✓ Brazil +3')).toBeVisible();
+    // The team chip and its points are separate elements (points have no background).
+    await expect(page.getByText('✓ Brazil', { exact: true })).toBeVisible();
+    await expect(page.getByText('+3').first()).toBeVisible();
   });
 });
