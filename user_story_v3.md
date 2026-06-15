@@ -216,7 +216,7 @@ existing match list otherwise.
 
 ---
 
-### US-51 · Rank the Bracket Breakdown by Number of Selections
+### US-51 · Rank the Bracket Breakdown by Number of Selections ✅
 **As a** visitor,
 **I want** the Matches/Bracket tab to list each stage's teams ordered by how many players picked them, with the pick count shown,
 **So that** I can see the most-backed teams in each stage at a glance.
