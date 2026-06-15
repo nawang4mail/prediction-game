@@ -10,6 +10,27 @@ import { upsert, remove, findByUser } from '../models/predictionModel.js';
 const PREDICTIONS = ['team_a', 'team_b', 'draw'];
 const DEFAULT_FINISH_MESSAGE = 'Game set — your predictions are saved. Good luck!';
 
+// Maps each stage id to the set of team NAMES a participant picked in it.
+const pickedNamesByStage = (stages, selections) => {
+  const nameById = new Map();
+  for (const s of stages) for (const t of s.teams) nameById.set(t.id, t.name);
+  const byStage = new Map();
+  for (const sel of selections) {
+    const name = nameById.get(sel.stage_team_id);
+    if (!name) continue;
+    if (!byStage.has(sel.stage_id)) byStage.set(sel.stage_id, new Set());
+    byStage.get(sel.stage_id).add(name);
+  }
+  return byStage;
+};
+
+// Union of the team names a participant advanced across the given parent stages.
+const unionNames = (byStage, parentIds) => {
+  const out = new Set();
+  for (const pid of parentIds) for (const n of byStage.get(pid) ?? []) out.add(n);
+  return out;
+};
+
 export const join = async (req, res, next) => {
   try {
     const display_name = (req.body.display_name ?? '').trim();
@@ -48,16 +69,21 @@ export const me = async (req, res, next) => {
       // Hide which teams actually won until the game is finished, so picks aren't
       // influenced by results mid-tournament.
       const reveal = req.game.status === 'finished';
-      const stages = (await Stage.findByGame(req.game.id)).map((s) => ({
-        ...s,
-        teams: s.teams.map((t) => ({ ...t, is_winner: reveal ? t.is_winner : 0 })),
-      }));
-      return res.json({
-        ...base,
-        predictions: [],
-        stages,
-        selections: await Selection.findByUser(req.participant.id),
+      const rawStages = await Stage.findByGame(req.game.id);
+      const selections = await Selection.findByUser(req.participant.id);
+      const advancedNames = pickedNamesByStage(rawStages, selections);
+
+      const stages = rawStages.map((s) => {
+        let teams = s.teams.map((t) => ({ ...t, is_winner: reveal ? t.is_winner : 0 }));
+        if (s.parent_ids?.length) {
+          // A combined stage shows only the teams this player advanced from its
+          // parents (US-52).
+          const advanced = unionNames(advancedNames, s.parent_ids);
+          teams = teams.filter((t) => advanced.has(t.name));
+        }
+        return { ...s, teams };
       });
+      return res.json({ ...base, predictions: [], stages, selections });
     }
 
     res.json({ ...base, predictions: await findByUser(req.participant.id) });
@@ -106,7 +132,16 @@ export const saveBracketPick = async (req, res, next) => {
     const stage = stages.find((s) => s.id === Number(req.body.stage_id));
     if (!stage) return res.status(404).json({ message: 'Stage not found in your game' });
 
-    const validIds = new Set(stage.teams.map((t) => t.id));
+    // For a combined stage, a player may only pick teams they advanced from its
+    // parents (US-52); a source stage allows any of its teams.
+    let validIds;
+    if (stage.parent_ids?.length) {
+      const selections = await Selection.findByUser(req.participant.id);
+      const advanced = unionNames(pickedNamesByStage(stages, selections), stage.parent_ids);
+      validIds = new Set(stage.teams.filter((t) => advanced.has(t.name)).map((t) => t.id));
+    } else {
+      validIds = new Set(stage.teams.map((t) => t.id));
+    }
     const teamIds = [
       ...new Set(
         (Array.isArray(req.body.team_ids) ? req.body.team_ids : [])

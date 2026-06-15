@@ -1,17 +1,28 @@
 import pool from '../config/db.js';
 
-// Returns every stage of a game with its teams nested under `teams`.
+// Returns every stage of a game with its teams nested under `teams` and the ids
+// of its parent stages under `parent_ids` (empty for source stages). A combined
+// stage (parent_ids non-empty) has derived teams; see recomputeDerived.
 export const findByGame = async (gameId) => {
   const [stages] = await pool.query(
     'SELECT * FROM bracket_stages WHERE game_id = ? ORDER BY sort_order ASC, id ASC',
     [gameId]
   );
   if (!stages.length) return [];
+  const ids = stages.map((s) => s.id);
   const [teams] = await pool.query(
     'SELECT * FROM stage_teams WHERE stage_id IN (?) ORDER BY sort_order ASC, id ASC',
-    [stages.map((s) => s.id)]
+    [ids]
   );
-  return stages.map((s) => ({ ...s, teams: teams.filter((t) => t.stage_id === s.id) }));
+  const [parents] = await pool.query(
+    'SELECT stage_id, parent_stage_id FROM stage_parents WHERE stage_id IN (?)',
+    [ids]
+  );
+  return stages.map((s) => ({
+    ...s,
+    teams: teams.filter((t) => t.stage_id === s.id),
+    parent_ids: parents.filter((p) => p.stage_id === s.id).map((p) => p.parent_stage_id),
+  }));
 };
 
 export const findById = async (id) => {
@@ -52,6 +63,17 @@ const writeTeams = async (conn, stageId, teams) => {
   }
 };
 
+// Replaces a stage's parent links (US-52). An empty list makes it a source stage.
+const writeParents = async (conn, stageId, parentIds) => {
+  await conn.query('DELETE FROM stage_parents WHERE stage_id = ?', [stageId]);
+  for (const pid of parentIds) {
+    await conn.query('INSERT INTO stage_parents (stage_id, parent_stage_id) VALUES (?, ?)', [
+      stageId,
+      pid,
+    ]);
+  }
+};
+
 export const create = async ({
   game_id,
   name,
@@ -59,6 +81,7 @@ export const create = async ({
   points_per_correct,
   all_correct_bonus,
   teams,
+  parent_ids = [],
 }) => {
   const conn = await pool.getConnection();
   try {
@@ -73,7 +96,8 @@ export const create = async ({
        VALUES (?, ?, ?, ?, ?, ?)`,
       [game_id, name, pick_count, points_per_correct, all_correct_bonus, next_order]
     );
-    await writeTeams(conn, res.insertId, teams);
+    if (parent_ids.length) await writeParents(conn, res.insertId, parent_ids);
+    else await writeTeams(conn, res.insertId, teams);
     await conn.commit();
     return res.insertId;
   } catch (err) {
@@ -86,7 +110,7 @@ export const create = async ({
 
 export const update = async (
   id,
-  { name, pick_count, points_per_correct, all_correct_bonus, teams }
+  { name, pick_count, points_per_correct, all_correct_bonus, teams, parent_ids = [] }
 ) => {
   const conn = await pool.getConnection();
   try {
@@ -97,7 +121,42 @@ export const update = async (
        WHERE id = ?`,
       [name, pick_count, points_per_correct, all_correct_bonus, id]
     );
-    await writeTeams(conn, id, teams);
+    await writeParents(conn, id, parent_ids);
+    // Source stages keep their typed teams; combined-stage teams are rebuilt by
+    // recomputeDerived after the mutation.
+    if (!parent_ids.length) await writeTeams(conn, id, teams);
+    await conn.commit();
+  } catch (err) {
+    await conn.rollback();
+    throw err;
+  } finally {
+    conn.release();
+  }
+};
+
+// Rebuilds every combined stage's teams as the de-duplicated union of its
+// parents' teams (US-52). Processed in sort order so parents — which must be
+// earlier stages — are already up to date. Diffing by name preserves is_winner.
+export const recomputeDerived = async (gameId) => {
+  const conn = await pool.getConnection();
+  try {
+    await conn.beginTransaction();
+    const [stages] = await conn.query(
+      'SELECT id FROM bracket_stages WHERE game_id = ? ORDER BY sort_order ASC, id ASC',
+      [gameId]
+    );
+    for (const s of stages) {
+      const [parents] = await conn.query(
+        'SELECT parent_stage_id FROM stage_parents WHERE stage_id = ?',
+        [s.id]
+      );
+      if (!parents.length) continue;
+      const [names] = await conn.query(
+        'SELECT DISTINCT name FROM stage_teams WHERE stage_id IN (?) ORDER BY name ASC',
+        [parents.map((p) => p.parent_stage_id)]
+      );
+      await writeTeams(conn, s.id, names.map((n) => n.name));
+    }
     await conn.commit();
   } catch (err) {
     await conn.rollback();

@@ -11,6 +11,7 @@ const EMPTY_FORM = {
   points_per_correct: 1,
   all_correct_bonus: 0,
   teamsText: '',
+  parentIds: [],
 };
 
 // Mirrors the server gameScope fallback: explicit selection, else the active
@@ -96,6 +97,7 @@ export default function BracketPage() {
       points_per_correct: stage.points_per_correct,
       all_correct_bonus: stage.all_correct_bonus,
       teamsText: stage.teams.map((t) => t.name).join('\n'),
+      parentIds: stage.parent_ids ?? [],
     });
     setError('');
     setModal({ edit: stage });
@@ -111,6 +113,7 @@ export default function BracketPage() {
       points_per_correct: Number(form.points_per_correct),
       all_correct_bonus: Number(form.all_correct_bonus),
       teams: parseTeams(form.teamsText),
+      parent_ids: form.parentIds,
     };
     try {
       if (modal === 'add') {
@@ -135,6 +138,20 @@ export default function BracketPage() {
       setDeleteTarget(null);
     }
   };
+
+  const toggleParent = (id) => {
+    setForm((f) => ({
+      ...f,
+      parentIds: f.parentIds.includes(id)
+        ? f.parentIds.filter((x) => x !== id)
+        : [...f.parentIds, id],
+    }));
+  };
+
+  const stageName = (id) => stages.find((s) => s.id === id)?.name ?? `Stage ${id}`;
+  const editingId = modal && modal !== 'add' ? modal.edit.id : null;
+  const parentCandidates = stages.filter((s) => s.id !== editingId);
+  const combined = form.parentIds.length > 0;
 
   return (
     <AdminLayout>
@@ -211,6 +228,11 @@ export default function BracketPage() {
                         ? ` · +${stage.all_correct_bonus} all-correct bonus`
                         : ''}
                     </p>
+                    {stage.parent_ids?.length > 0 && (
+                      <p className="text-xs text-blue-600 mt-0.5" data-testid="combined-label">
+                        🔗 Combined from {stage.parent_ids.map(stageName).join(' + ')}
+                      </p>
+                    )}
                   </div>
                   {canEdit && (
                     <div className="space-x-3 shrink-0">
@@ -317,18 +339,51 @@ export default function BracketPage() {
                 />
               </div>
             </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">
-                Teams (one per line)
-              </label>
-              <textarea
-                value={form.teamsText}
-                onChange={(e) => setForm({ ...form, teamsText: e.target.value })}
-                rows={6}
-                placeholder={'Brazil\nArgentina\nFrance\n...'}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
-              />
-            </div>
+            {parentCandidates.length > 0 && (
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">
+                  Combine from earlier stages (optional)
+                </label>
+                <div className="flex flex-wrap gap-1.5">
+                  {parentCandidates.map((s) => {
+                    const on = form.parentIds.includes(s.id);
+                    return (
+                      <button
+                        key={s.id}
+                        type="button"
+                        onClick={() => toggleParent(s.id)}
+                        className={`px-2 py-1 rounded-lg text-xs transition ${
+                          on ? 'bg-green-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                        }`}
+                      >
+                        {on ? '✓ ' : ''}
+                        {s.name}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {combined ? (
+              <p className="text-xs text-gray-500 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2">
+                Teams are inherited from {form.parentIds.map(stageName).join(' + ')}. Each player
+                picks from the teams they advanced there.
+              </p>
+            ) : (
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">
+                  Teams (one per line)
+                </label>
+                <textarea
+                  value={form.teamsText}
+                  onChange={(e) => setForm({ ...form, teamsText: e.target.value })}
+                  rows={6}
+                  placeholder={'Brazil\nArgentina\nFrance\n...'}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+                />
+              </div>
+            )}
             {error && <p className="text-sm text-red-600">{error}</p>}
             <div className="flex justify-end gap-2">
               <button
