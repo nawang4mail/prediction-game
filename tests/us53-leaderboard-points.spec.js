@@ -55,8 +55,9 @@ test.describe('US-53: leaderboard point breakdown (server)', () => {
       headers: auth,
       data: { team_ids: [t[0].id, t[1].id] },
     });
+    // Results are set but the game is only LOCKED (not finished) — the breakdown must
+    // still reveal correctness here, matching the live leaderboard total.
     await setStatus(request, gid, 'locked');
-    await setStatus(request, gid, 'finished');
 
     const board = await (await request.get(`${API}/api/leaderboard?game_id=${gid}`)).json();
     const detailOf = async (name) => {
@@ -68,9 +69,14 @@ test.describe('US-53: leaderboard point breakdown (server)', () => {
     expect(aceStage.points_per_correct).toBe(3);
     expect(aceStage.all_correct_bonus).toBe(5);
     expect(aceStage.all_correct).toBe(true); // both picks won
+    // The winning picks are revealed (green/points) while still locked.
+    expect(aceStage.teams.filter((t) => t.is_winner)).toHaveLength(2);
 
     const midStage = (await detailOf(mid)).stages.find((s) => s.id === sid);
     expect(midStage.all_correct).toBe(false); // only one pick won
+    expect(midStage.teams.filter((t) => t.is_winner)).toHaveLength(1);
+
+    await setStatus(request, gid, 'finished'); // park it
   });
 });
 
