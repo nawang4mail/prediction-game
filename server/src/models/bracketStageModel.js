@@ -111,3 +111,25 @@ export const remove = async (id) => {
   const [res] = await pool.query('DELETE FROM bracket_stages WHERE id = ?', [id]);
   return res.affectedRows;
 };
+
+// Records which teams actually qualified/won in a stage (US-47). Clears the flag
+// on the rest. Scoped by stage_id so stray ids can never touch another stage.
+export const setWinners = async (stageId, teamIds) => {
+  const conn = await pool.getConnection();
+  try {
+    await conn.beginTransaction();
+    await conn.query('UPDATE stage_teams SET is_winner = 0 WHERE stage_id = ?', [stageId]);
+    if (teamIds.length) {
+      await conn.query('UPDATE stage_teams SET is_winner = 1 WHERE stage_id = ? AND id IN (?)', [
+        stageId,
+        teamIds,
+      ]);
+    }
+    await conn.commit();
+  } catch (err) {
+    await conn.rollback();
+    throw err;
+  } finally {
+    conn.release();
+  }
+};

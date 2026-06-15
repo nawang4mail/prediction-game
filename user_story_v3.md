@@ -107,7 +107,7 @@ admin Matches page (`client/src/pages/admin/MatchesPage.jsx`); status gating reu
 
 ---
 
-### US-47 · Set Stage Results (Qualifying / Winning Teams)
+### US-47 · Set Stage Results (Qualifying / Winning Teams) ✅
 **As an** admin,
 **I want to** mark which teams in each stage actually qualified or won after the event,
 **So that** the system can score players' picks and update the leaderboard.

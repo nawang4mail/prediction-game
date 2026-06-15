@@ -78,3 +78,20 @@ export const remove = async (req, res, next) => {
     next(err);
   }
 };
+
+// Marks the teams that actually qualified/won in a stage. (US-47)
+export const setResults = async (req, res, next) => {
+  try {
+    const stage = await Stage.findById(req.params.id);
+    if (!stage || stage.game_id !== req.gameId) {
+      return res.status(404).json({ message: 'Stage not found' });
+    }
+    const teamIds = Array.isArray(req.body.team_ids)
+      ? req.body.team_ids.map(Number).filter(Number.isInteger)
+      : [];
+    await Stage.setWinners(stage.id, teamIds);
+    res.json({ message: 'Updated' });
+  } catch (err) {
+    next(err);
+  }
+};
