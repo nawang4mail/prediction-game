@@ -76,7 +76,7 @@ shown for a game depend on its type). **BREAKING** — schema change.
 
 ---
 
-### US-46 · Define Bracket Stages
+### US-46 · Define Bracket Stages ✅
 **As an** admin running a Bracket Prediction game,
 **I want to** dynamically define one or more stages, each with a name, a list of teams, how many a player must pick, points per correct pick, and an all-correct bonus,
 **So that** I can shape exactly what players predict and how each stage scores.
