@@ -657,6 +657,36 @@ read endpoint; no schema change (uses `users.status`, US-65).
 
 ---
 
+### US-68 · Don't Keep Cancelled, Incomplete Entries
+**As a** player,
+**I want** an entry I cancel before completing it to leave no record,
+**So that** abandoned join/add-entry attempts don't clutter the game — but editing an existing entry and cancelling never deletes it.
+
+**Acceptance Criteria:**
+- When a player starts a **brand-new entry** (join, US-29, or "add another entry", US-41)
+  and **cancels before saving any picks**, that entry's record is removed from the database —
+  no empty/orphan entry remains
+- When a player **edits an existing entry** (US-56/US-57) and **cancels the edit**, the entry
+  and its saved picks are kept — cancelling an edit never deletes the user
+- A **completed** entry (one with any saved picks/predictions) is never removed by a cancel
+- After a cancelled new entry is removed, the device forgets its token and returns to a
+  remaining entry, or to the join screen if none remain
+- Applies to both game types
+
+**Out of scope (assumption):** this is delete-on-cancel of the just-created row, not a
+rework to defer row creation until completion (the entry token, `/me`, and the switcher all
+assume a row exists); the observable result is the same — a cancelled incomplete entry
+leaves no record.
+
+**Notes:** new guarded `DELETE /api/participants/me` (`participantAuth`) → `userModel.remove`,
+allowed only while the game is `open` and the entry has **no** saved selections/predictions
+(so a completed entry can never be self-deleted — backstops the "edit cancel must not
+delete" rule). The client tracks whether the session is a brand-new entry and only calls the
+delete on cancel of a new entry (dropping the token via a new `entries.js` `removeEntry`);
+cancelling an edit just exits (US-56 `onCancel`).
+
+---
+
 ## Navigation & Tabs (v3 additions)
 
 | Tab | Route | Access |
