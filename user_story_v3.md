@@ -450,6 +450,27 @@ add-entry step. **Notes:** hide the prediction content (and Finish) while `addin
 
 ---
 
+### US-60 · Delete Finished or Draft Games ✅
+**As an** admin,
+**I want to** delete a draft or a finished game,
+**So that** I can remove test/unwanted drafts and clear out old archived games.
+
+**Acceptance Criteria:**
+- The admin can delete a game whose status is **`draft`** or **`finished`**
+- A live game (`open` or `locked`) cannot be deleted; the API returns 409 and the admin
+  game list shows no Delete action for it (so an in-progress game's data is never lost)
+- Deleting a game removes it and all its data (matches/stages, users, predictions,
+  settings, prize tiers) via the existing cascade
+- The admin game list shows a **Delete** action on draft and finished rows; deleting a
+  **finished** game prompts a clear warning that its leaderboard and history are removed
+  permanently
+
+**Amends:** US-38 (previously only drafts were deletable). **Notes:** widen the
+`gamesController.remove` guard from `draft` only to `draft`/`finished`; add a Delete
+button to finished rows in `GamesPage` with a stronger confirmation message.
+
+---
+
 ## Navigation & Tabs (v3 additions)
 
 | Tab | Route | Access |
