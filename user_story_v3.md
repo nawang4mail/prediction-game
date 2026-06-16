@@ -431,6 +431,25 @@ add-entry step. **Notes:** hide the prediction content (and Finish) while `addin
 
 ---
 
+### US-59 · Wizard Save Doubles as Finish (Bracket) ✅
+**As a** player in a Bracket Prediction game,
+**I want** the wizard's Save to confirm my entry with the finish message,
+**So that** I'm not confused by a separate "Finish — Send My Predictions" button that does the same thing.
+
+**Acceptance Criteria:**
+- The separate **Finish — Send My Predictions** button is **removed for bracket games**
+  (the wizard's Save, US-56, is the single confirm action)
+- After the wizard saves the whole bracket, the app shows the admin-configured finish
+  message (US-35 `finish_message`, or its default) — the same confirmation the Finish
+  button used to show
+- The Guess the Winners flow keeps its Finish button (US-35) unchanged
+
+**Notes:** client-only in `MyPredictionsPage` — the wizard's `onSaved` calls the existing
+`POST /participants/me/finish` after saving, and the Finish button renders only for
+`guess_winners` games.
+
+---
+
 ## Navigation & Tabs (v3 additions)
 
 | Tab | Route | Access |
