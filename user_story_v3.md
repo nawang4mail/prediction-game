@@ -657,7 +657,7 @@ read endpoint; no schema change (uses `users.status`, US-65).
 
 ---
 
-### US-68 · Don't Keep Cancelled, Incomplete Entries
+### US-68 · Don't Keep Cancelled, Incomplete Entries ✅
 **As a** player,
 **I want** an entry I cancel before completing it to leave no record,
 **So that** abandoned join/add-entry attempts don't clutter the game — but editing an existing entry and cancelling never deletes it.

@@ -6,6 +6,7 @@ import {
   statuses,
   savePrediction,
   saveBracketPick,
+  deleteMe,
   finish,
 } from '../controllers/participantsController.js';
 
@@ -16,6 +17,7 @@ router.post('/statuses', statuses); // approval status for a device's entry toke
 router.get('/me', participantAuth, me);
 router.put('/me/predictions', participantAuth, savePrediction);
 router.put('/me/bracket', participantAuth, saveBracketPick);
+router.delete('/me', participantAuth, deleteMe); // remove a cancelled, incomplete entry (US-68)
 router.post('/me/finish', participantAuth, finish);
 
 export default router;

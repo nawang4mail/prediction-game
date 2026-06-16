@@ -177,6 +177,28 @@ export const saveBracketPick = async (req, res, next) => {
   }
 };
 
+// Removes the current entry, but only while the game is open and the entry has no
+// saved picks — so a cancelled, never-completed entry leaves no record while a
+// completed entry can never be self-deleted. (US-68)
+export const deleteMe = async (req, res, next) => {
+  try {
+    if (req.game.status !== 'open') {
+      return res.status(403).json({ message: 'The game has started — entries can no longer be removed' });
+    }
+    const hasPicks =
+      req.game.type === 'bracket_prediction'
+        ? (await Selection.findByUser(req.participant.id)).length > 0
+        : (await findByUser(req.participant.id)).some((p) => p.prediction);
+    if (hasPicks) {
+      return res.status(409).json({ message: 'This entry has saved picks and cannot be removed' });
+    }
+    await User.remove(req.participant.id);
+    res.json({ message: 'Deleted' });
+  } catch (err) {
+    next(err);
+  }
+};
+
 // Confirms a participant has finished entering predictions and returns the
 // admin-configured confirmation message (or a sensible default). Predictions
 // already save as they are picked, so this is a confirmation, not a lock. (US-35)
