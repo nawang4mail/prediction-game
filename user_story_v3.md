@@ -412,7 +412,7 @@ games and gate the wizard behind an Edit toggle.
 
 ---
 
-### US-58 · Clean Add-Entry View
+### US-58 · Clean Add-Entry View ✅
 **As a** player adding another entry,
 **I want** the Add-entry step to show only the "Whose entry is this?" question and its options,
 **So that** I'm not distracted by the previous entry's predictions while choosing.

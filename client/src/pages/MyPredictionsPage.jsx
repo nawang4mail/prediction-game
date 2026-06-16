@@ -243,7 +243,7 @@ export default function MyPredictionsPage() {
           </div>
         )}
 
-        {locked && (
+        {locked && !adding && (
           <p className="text-sm text-amber-200 bg-amber-500/20 border border-amber-400/40 rounded-xl px-4 py-3 mb-4 text-center">
             🔒 The game has started — predictions are locked.
           </p>
@@ -254,7 +254,9 @@ export default function MyPredictionsPage() {
           </p>
         )}
 
-        {!data ? (
+        {/* While adding an entry, hide the current entry's predictions so the
+            "Whose entry is this?" step stands alone. (US-58) */}
+        {adding ? null : !data ? (
           <div className="space-y-2">
             {[...Array(4)].map((_, i) => (
               <div key={i} className="h-20 bg-white/10 rounded-xl animate-pulse" />
@@ -306,7 +308,7 @@ export default function MyPredictionsPage() {
           </div>
         )}
 
-        {!locked && data && (
+        {!locked && data && !adding && (
           <div className="mt-6 text-center">
             {finishMsg ? (
               <p
