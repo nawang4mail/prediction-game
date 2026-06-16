@@ -632,6 +632,31 @@ returns everyone for the Users tab).
 
 ---
 
+### US-67 · Warn About Entries Pending Approval
+**As a** player with more than one entry,
+**I want** My Predictions to warn me how many of my entries are awaiting approval,
+**So that** I notice pending entries even while viewing an approved one.
+
+**Acceptance Criteria:**
+- On My Predictions, if one or more of the player's entries for the active game (on this
+  device, US-41) are **declined / pending approval** (US-65), a warning banner shows the
+  **total count** pending — e.g. "2 of your 3 entries are pending admin approval."
+- The warning summarises across **all** of the player's entries for that game, not just the
+  selected one; it complements the per-entry declined message (US-65) shown for the selected
+  entry
+- No warning is shown when none of the player's entries are pending
+- Updates after the admin approves/declines (on the next load or entry switch)
+- Works for both game types
+
+**Notes:** the device already holds the player's entry tokens (`entries.js` →
+`entriesForGame`), but `/participants/me` returns only the current entry's status. Add a
+batch lookup — e.g. `POST /api/participants/statuses` with `{ tokens }` returning
+`[{ token, status }]` (each validated via `findByEntryToken`) — and have `MyPredictionsPage`
+count `declined` among its entries for the game to render the warning. Client-only plus one
+read endpoint; no schema change (uses `users.status`, US-65).
+
+---
+
 ## Navigation & Tabs (v3 additions)
 
 | Tab | Route | Access |
