@@ -51,15 +51,18 @@ export default function PredictionsPage() {
       api.get('/admin/games'),
     ]);
 
+    // Declined users are hidden from the predictions grid. (US-66)
+    const approvedUsers = u.filter((usr) => usr.status !== 'declined');
+
     const map = {};
-    u.forEach((usr) => { map[usr.id] = {}; });
+    approvedUsers.forEach((usr) => { map[usr.id] = {}; });
     p.forEach((pred) => {
       if (!map[pred.user_id]) map[pred.user_id] = {};
       map[pred.user_id][pred.match_id] = pred.prediction;
     });
 
     const scopedStatus = resolveScopedGame(games)?.status ?? null;
-    setUsers(u);
+    setUsers(approvedUsers);
     setMatches(m);
     setCells(map);
     setStatus(scopedStatus);

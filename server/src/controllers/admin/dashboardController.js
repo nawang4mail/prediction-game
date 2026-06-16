@@ -34,11 +34,20 @@ export const getStats = async (req, res, next) => {
   try {
     const game = await findById(req.gameId);
     const [[userRow], settings, tiers] = await Promise.all([
-      pool.query('SELECT COUNT(*) AS total FROM users WHERE game_id = ?', [req.gameId]),
+      pool.query(
+        `SELECT
+           SUM(status = 'approved') AS approved,
+           SUM(status = 'declined') AS declined
+         FROM users WHERE game_id = ?`,
+        [req.gameId]
+      ),
       getSettings(req.gameId),
       getPrizeTiers(req.gameId),
     ]);
-    const users = userRow[0].total;
+    // Counts and finance are based on approved participants only; declined ones are
+    // reported separately as pending. (US-66)
+    const users = Number(userRow[0].approved) || 0;
+    const pendingUsers = Number(userRow[0].declined) || 0;
     const finance = computeFinance(users, settings, tiers);
 
     // Bracket Prediction games have no matches; show the maximum achievable score
@@ -51,7 +60,7 @@ export const getStats = async (req, res, next) => {
         0
       );
       const top5 = (await bracketLeaderboard(req.gameId)).slice(0, 5);
-      return res.json({ game, users, max_points: maxPoints, top5, finance });
+      return res.json({ game, users, pending_users: pendingUsers, max_points: maxPoints, top5, finance });
     }
 
     const [[matchRow], [predRow], top5] = await Promise.all([
@@ -84,6 +93,7 @@ export const getStats = async (req, res, next) => {
         pending: matchRow[0].pending,
       },
       users,
+      pending_users: pendingUsers,
       predictions: predRow[0].total,
       top5: top5.slice(0, 5),
       finance,

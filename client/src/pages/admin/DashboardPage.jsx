@@ -49,7 +49,13 @@ export default function DashboardPage() {
           <StatCard
             label="Users"
             value={stats.users}
-            sub="on the leaderboard"
+            sub="approved"
+          />
+          <StatCard
+            label="Pending Users"
+            value={stats.pending_users}
+            sub="awaiting approval"
+            color={stats.pending_users > 0 ? 'text-amber-600' : undefined}
           />
           {stats.matches && (
             <StatCard

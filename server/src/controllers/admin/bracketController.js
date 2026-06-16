@@ -79,11 +79,13 @@ export const list = async (req, res, next) => {
 // Read-only list of every participant entry with their picks per stage. (US-62)
 export const entries = async (req, res, next) => {
   try {
-    const [users, stages, sels] = await Promise.all([
+    const [allUsers, stages, sels] = await Promise.all([
       User.findAll(req.gameId),
       Stage.findByGame(req.gameId),
       Selection.findByGame(req.gameId),
     ]);
+    // Only approved entries are shown. (US-66)
+    const users = allUsers.filter((u) => u.status === 'approved');
     const pickedByUser = new Map();
     for (const s of sels) {
       if (!pickedByUser.has(s.user_id)) pickedByUser.set(s.user_id, new Set());
