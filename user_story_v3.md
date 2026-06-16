@@ -687,6 +687,43 @@ cancelling an edit just exits (US-56 `onCancel`).
 
 ---
 
+### US-69 · Fix: First Game Created as Bracket Prediction Shows the Wrong Admin Tabs ✅
+**As an** admin,
+**I want** a Bracket Prediction game to show the **Bracket** tab even when it is the very
+first game I create,
+**So that** I can manage stages immediately instead of being shown the Matches/Predictions
+tabs that don't apply to a bracket game.
+
+**Root cause:** `AdminLayout` (`client/src/components/admin/AdminLayout.jsx`) loads the
+games list once on mount (`useEffect(..., [])`) and never refreshes it after a game is
+created on `GamesPage`. It picks the tab set with `isBracket(scopedGame?.type)`, where
+`scopedGame` comes from `resolveScopedGame(games, selectedGame)`. When the first-ever game
+is created, AdminLayout's `games` state is still empty, so `scopedGame` is `null` and the
+layout falls back to `GUESS_TABS` (Matches + Predictions). Creating a bracket game *second*
+works only because a page reload has repopulated the list by then. (Secondary: the client's
+`resolveScopedGame` falls back to `games[0]`, including drafts, which does not mirror the
+server's `findLatestVisible()` that excludes drafts.)
+
+**Acceptance Criteria:**
+- Creating a Bracket Prediction game as the **first** game in the system shows the
+  **Bracket** (and **User's entries**, US-62) tabs — never Matches/Predictions
+- The correct tabs appear **without needing a manual page reload** after the game is created
+- The fix holds regardless of how many games already exist (first, second, or Nth game) and
+  regardless of game status (`draft`/`open`/`locked`/`finished`)
+- A Guess the Winners game still shows the **Matches** + **Predictions** tabs (US-45
+  unchanged)
+- The admin game-scope selector keeps choosing the right game's tabs when switched (US-27 /
+  per-game scope)
+
+**Notes:** Refresh AdminLayout's games list after a game is created (e.g. re-fetch on route
+change to `/admin/games`, lift the games state, or expose a refresh callback) so
+`scopedGame`/tab selection reflects the new game immediately. Consider aligning the client
+`resolveScopedGame` fallback with the server's `findLatestVisible()` (exclude drafts) and
+de-duplicating the copy in `client/src/pages/admin/BracketPage.jsx`. Client-only; no schema
+change. Amends US-45.
+
+---
+
 ## Navigation & Tabs (v3 additions)
 
 | Tab | Route | Access |
