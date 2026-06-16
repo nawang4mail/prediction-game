@@ -26,6 +26,8 @@ export default function UsersPage() {
   const [bulkResult, setBulkResult] = useState(null); // { added, skipped }
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const [statusTarget, setStatusTarget] = useState(null); // user being declined (US-65)
+  const [statusMsg, setStatusMsg] = useState('');
 
   const load = useCallback(async () => {
     try {
@@ -111,6 +113,22 @@ export default function UsersPage() {
     }
   };
 
+  // Approve/decline a user's entry (US-65). Declining carries a message.
+  const changeStatus = async (user, status, message) => {
+    setError('');
+    try {
+      await api.put(`/admin/users/${user.id}/status`, { status, message });
+      await load();
+    } catch (err) {
+      setError(err.response?.data?.message ?? 'Failed to update status.');
+    }
+  };
+
+  const confirmDecline = async () => {
+    await changeStatus(statusTarget, 'declined', statusMsg.trim() || null);
+    setStatusTarget(null);
+  };
+
   return (
     <AdminLayout>
       <div className="flex items-center justify-between mb-6">
@@ -170,6 +188,7 @@ export default function UsersPage() {
                 <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">#</th>
                 <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Display Name</th>
                 <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider hidden md:table-cell">Phone</th>
+                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Status</th>
                 <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider hidden sm:table-cell">Joined</th>
                 <th className="px-4 py-3" />
               </tr>
@@ -180,6 +199,25 @@ export default function UsersPage() {
                   <td className="px-4 py-3 text-gray-400">{i + 1}</td>
                   <td className="px-4 py-3 font-medium text-gray-800">{u.display_name}</td>
                   <td className="px-4 py-3 text-gray-500 text-xs hidden md:table-cell">{u.phone ?? '—'}</td>
+                  <td className="px-4 py-3" data-testid={`status-${u.id}`}>
+                    <span
+                      className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                        u.status === 'declined'
+                          ? 'bg-amber-100 text-amber-700'
+                          : 'bg-green-100 text-green-700'
+                      }`}
+                    >
+                      {u.status === 'declined' ? 'Declined' : 'Approved'}
+                    </span>
+                    {u.status === 'declined' && u.status_message && (
+                      <p
+                        className="text-[11px] text-gray-400 mt-0.5 max-w-[180px] truncate"
+                        title={u.status_message}
+                      >
+                        {u.status_message}
+                      </p>
+                    )}
+                  </td>
                   <td className="px-4 py-3 text-gray-400 text-xs hidden sm:table-cell">
                     {new Date(u.created_at).toLocaleDateString()}
                   </td>
@@ -188,6 +226,27 @@ export default function UsersPage() {
                       <span className="text-xs text-gray-300">locked</span>
                     ) : (
                       <div className="flex justify-end gap-2">
+                        {u.status === 'declined' ? (
+                          <button
+                            onClick={() => changeStatus(u, 'approved', null)}
+                            data-testid={`approve-${u.id}`}
+                            className="text-xs text-green-600 hover:text-green-800 font-medium"
+                          >
+                            Approve
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => {
+                              setStatusMsg(u.status_message ?? '');
+                              setError('');
+                              setStatusTarget(u);
+                            }}
+                            data-testid={`decline-${u.id}`}
+                            className="text-xs text-amber-600 hover:text-amber-800 font-medium"
+                          >
+                            Decline
+                          </button>
+                        )}
                         <button
                           onClick={() => openEdit(u)}
                           className="text-xs text-blue-600 hover:text-blue-800 font-medium"
@@ -318,6 +377,41 @@ export default function UsersPage() {
           onClose={() => { setShowBulkPred(false); load(); }}
           onDone={load}
         />
+      )}
+
+      {statusTarget && (
+        <Modal title={`Decline ${statusTarget.display_name}`} onClose={() => setStatusTarget(null)}>
+          <div className="space-y-4">
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">
+                Message to the player <span className="text-gray-400 font-normal">(shown on their predictions)</span>
+              </label>
+              <textarea
+                autoFocus
+                value={statusMsg}
+                onChange={(e) => setStatusMsg(e.target.value)}
+                rows={3}
+                placeholder="e.g. Please contact the admin to confirm your entry."
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
+              />
+            </div>
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setStatusTarget(null)}
+                className="px-4 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmDecline}
+                data-testid="confirm-decline"
+                className="px-4 py-2 text-sm bg-amber-600 hover:bg-amber-700 text-white rounded-lg"
+              >
+                Decline
+              </button>
+            </div>
+          </div>
+        </Modal>
       )}
     </AdminLayout>
   );

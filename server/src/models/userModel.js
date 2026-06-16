@@ -1,5 +1,9 @@
 import pool from '../config/db.js';
 
+// Self-joined entries start declined with this message until an admin approves. (US-65)
+export const DEFAULT_DECLINE_MESSAGE =
+  'Your entry is awaiting admin approval. Please contact the admin.';
+
 export const findAll = async (gameId) => {
   const [rows] = await pool.query(
     'SELECT * FROM users WHERE game_id = ? ORDER BY created_at ASC',
@@ -22,13 +26,18 @@ export const create = async ({ game_id, display_name, phone }) => {
 };
 
 export const createWithAutoSuffix = async ({ game_id, display_name, phone, entry_token }) => {
+  // A self-joined entry carries an entry_token and defaults to declined with the
+  // default message; admin-added users (no token) default to approved. (US-65)
+  const selfJoined = !!entry_token;
+  const status = selfJoined ? 'declined' : 'approved';
+  const statusMessage = selfJoined ? DEFAULT_DECLINE_MESSAGE : null;
   let name = display_name;
   let n = 1;
   while (n <= 99) {
     try {
       const [result] = await pool.query(
-        'INSERT INTO users (game_id, display_name, phone, entry_token) VALUES (?, ?, ?, ?)',
-        [game_id, name, phone ?? null, entry_token ?? null]
+        'INSERT INTO users (game_id, display_name, phone, entry_token, status, status_message) VALUES (?, ?, ?, ?, ?, ?)',
+        [game_id, name, phone ?? null, entry_token ?? null, status, statusMessage]
       );
       return { id: result.insertId, display_name: name };
     } catch (err) {
@@ -38,6 +47,14 @@ export const createWithAutoSuffix = async ({ game_id, display_name, phone, entry
     }
   }
   throw new Error('Too many users with the same name');
+};
+
+export const setStatus = async (id, status, message) => {
+  const [result] = await pool.query(
+    'UPDATE users SET status = ?, status_message = ? WHERE id = ?',
+    [status, message ?? null, id]
+  );
+  return result.affectedRows;
 };
 
 export const findByEntryToken = async (token) => {

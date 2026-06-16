@@ -61,7 +61,12 @@ export const join = async (req, res, next) => {
 export const me = async (req, res, next) => {
   try {
     const base = {
-      participant: { id: req.participant.id, display_name: req.participant.display_name },
+      participant: {
+        id: req.participant.id,
+        display_name: req.participant.display_name,
+        status: req.participant.status,
+        status_message: req.participant.status_message,
+      },
       game: { id: req.game.id, name: req.game.name, status: req.game.status, type: req.game.type },
     };
 

@@ -267,6 +267,14 @@ export default function MyPredictionsPage() {
             {error}
           </p>
         )}
+        {data && !adding && data.participant.status === 'declined' && (
+          <p
+            data-testid="declined-banner"
+            className="text-sm text-amber-100 bg-amber-500/25 border border-amber-400/50 rounded-xl px-4 py-3 mb-4 text-center"
+          >
+            ⚠️ {data.participant.status_message || 'Your entry is awaiting admin approval.'}
+          </p>
+        )}
 
         {/* While adding an entry, hide the current entry's predictions so the
             "Whose entry is this?" step stands alone. (US-58) */}

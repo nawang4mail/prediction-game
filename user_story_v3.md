@@ -568,7 +568,7 @@ Points card for bracket games.
 
 ---
 
-### US-65 · Approve or Decline a User's Entry (with message)
+### US-65 · Approve or Decline a User's Entry (with message) ✅
 **As an** admin,
 **I want to** approve or decline each user's entry and attach a message when declining,
 **So that** I can vet self-service joiners, and a declined player is told why.
