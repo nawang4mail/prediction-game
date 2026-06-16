@@ -71,18 +71,14 @@ export const me = async (req, res, next) => {
       const reveal = req.game.status === 'finished';
       const rawStages = await Stage.findByGame(req.game.id);
       const selections = await Selection.findByUser(req.participant.id);
-      const advancedNames = pickedNamesByStage(rawStages, selections);
 
-      const stages = rawStages.map((s) => {
-        let teams = s.teams.map((t) => ({ ...t, is_winner: reveal ? t.is_winner : 0 }));
-        if (s.parent_ids?.length) {
-          // A combined stage shows only the teams this player advanced from its
-          // parents (US-52).
-          const advanced = unionNames(advancedNames, s.parent_ids);
-          teams = teams.filter((t) => advanced.has(t.name));
-        }
-        return { ...s, teams };
-      });
+      // Return the full team pool (plus parent_ids) for every stage. The client
+      // computes a combined stage's available teams from the player's own picks so
+      // the prediction wizard can update live before anything is saved (US-52, US-56).
+      const stages = rawStages.map((s) => ({
+        ...s,
+        teams: s.teams.map((t) => ({ ...t, is_winner: reveal ? t.is_winner : 0 })),
+      }));
       return res.json({ ...base, predictions: [], stages, selections });
     }
 

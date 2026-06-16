@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import api from '../services/api.js';
-import BracketPredictions from '../components/BracketPredictions.jsx';
+import BracketWizard from '../components/BracketWizard.jsx';
 import BracketSummary from '../components/BracketSummary.jsx';
 import {
   entriesForGame,
@@ -278,23 +278,17 @@ export default function MyPredictionsPage() {
           </div>
         ) : isBracketGame ? (
           editing && !locked ? (
-            <>
-              <BracketPredictions
-                key={data.participant.id}
-                stages={data.stages ?? []}
-                initialSelections={data.selections ?? []}
-                locked={locked}
-                onError={setError}
-                onSaved={loadMe}
-              />
-              <button
-                onClick={() => setEditing(false)}
-                data-testid="done-editing"
-                className="mt-3 w-full py-2 bg-white/10 hover:bg-white/20 text-green-100 text-sm font-medium rounded-lg transition"
-              >
-                Done
-              </button>
-            </>
+            <BracketWizard
+              key={data.participant.id}
+              stages={data.stages ?? []}
+              initialSelections={data.selections ?? []}
+              onSaved={() => {
+                setEditing(false);
+                loadMe();
+              }}
+              onCancel={() => setEditing(false)}
+              onError={setError}
+            />
           ) : (
             <>
               <BracketSummary stages={data.stages ?? []} selections={data.selections ?? []} />

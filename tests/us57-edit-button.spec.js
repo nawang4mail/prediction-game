@@ -30,17 +30,16 @@ test('an entry with picks is read-only until Edit is tapped', async ({ page }) =
   await page.route('**/api/participants/me', (r) => r.fulfill({ json: bracketMe() }));
   await page.goto('/my-predictions');
 
-  // Read-only summary by default: picks shown, editor (save button) hidden.
+  // Read-only summary by default: picks shown, the editing wizard hidden.
   await expect(page.getByTestId('summary-stage-1')).toBeVisible();
-  await expect(page.getByTestId('save-1')).toHaveCount(0);
+  await expect(page.getByTestId('bracket-wizard')).toHaveCount(0);
   await expect(page.getByTestId('edit-predictions')).toBeVisible();
 
   await page.getByTestId('edit-predictions').click();
 
-  // Editor revealed; read-only summary gone.
-  await expect(page.getByTestId('save-1')).toBeVisible();
+  // Wizard revealed; read-only summary gone.
+  await expect(page.getByTestId('bracket-wizard')).toBeVisible();
   await expect(page.getByTestId('summary-stage-1')).toHaveCount(0);
-  await expect(page.getByTestId('done-editing')).toBeVisible();
 });
 
 test('a brand-new entry with no picks opens straight into edit mode', async ({ page }) => {
@@ -48,7 +47,7 @@ test('a brand-new entry with no picks opens straight into edit mode', async ({ p
   await page.route('**/api/participants/me', (r) => r.fulfill({ json: bracketMe({ selections: [] }) }));
   await page.goto('/my-predictions');
 
-  await expect(page.getByTestId('save-1')).toBeVisible(); // editor shown directly
+  await expect(page.getByTestId('bracket-wizard')).toBeVisible(); // wizard shown directly
   await expect(page.getByTestId('summary-stage-1')).toHaveCount(0);
 });
 
@@ -61,5 +60,5 @@ test('a locked game shows the read-only summary with no Edit', async ({ page }) 
 
   await expect(page.getByTestId('summary-stage-1')).toBeVisible();
   await expect(page.getByTestId('edit-predictions')).toHaveCount(0);
-  await expect(page.getByTestId('save-1')).toHaveCount(0);
+  await expect(page.getByTestId('bracket-wizard')).toHaveCount(0);
 });

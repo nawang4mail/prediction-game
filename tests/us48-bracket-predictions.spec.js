@@ -95,7 +95,7 @@ test.describe('US-48: bracket predictions UI', () => {
     selections: [],
   };
 
-  test('player picks exactly pick_count and saves', async ({ page }) => {
+  test('player picks exactly pick_count and saves (wizard)', async ({ page }) => {
     await page.addInitScript(() => localStorage.setItem('entry_token', 'tok'));
     await page.route('**/api/participants/me', (r) => r.fulfill({ json: meBody }));
     await page.route('**/api/participants/me/bracket', (r) =>
@@ -103,20 +103,24 @@ test.describe('US-48: bracket predictions UI', () => {
     );
     await page.goto('/my-predictions');
 
+    // A new entry (no picks) opens straight into the wizard (US-56/US-57).
     await expect(page.getByText('QF')).toBeVisible();
-    await expect(page.getByTestId('count-1')).toHaveText('0 / 2 picked');
-    await expect(page.getByTestId('save-1')).toBeDisabled();
+    await expect(page.getByTestId('wizard-count')).toHaveText('0 / 2 picked');
+    await expect(page.getByTestId('wizard-save')).toBeDisabled();
 
     await page.getByRole('button', { name: 'Brazil' }).click();
     await page.getByRole('button', { name: 'Argentina' }).click();
-    await expect(page.getByTestId('count-1')).toHaveText('2 / 2 picked');
+    await expect(page.getByTestId('wizard-count')).toHaveText('2 / 2 picked');
 
     // A third pick is ignored once the limit is reached.
     await page.getByRole('button', { name: 'France' }).click();
-    await expect(page.getByTestId('count-1')).toHaveText('2 / 2 picked');
+    await expect(page.getByTestId('wizard-count')).toHaveText('2 / 2 picked');
 
-    await expect(page.getByTestId('save-1')).toBeEnabled();
-    await page.getByTestId('save-1').click();
-    await expect(page.getByTestId('saved-1')).toBeVisible();
+    await expect(page.getByTestId('wizard-save')).toBeEnabled();
+    const saved = page.waitForRequest(
+      (req) => req.url().includes('/participants/me/bracket') && req.method() === 'PUT'
+    );
+    await page.getByTestId('wizard-save').click();
+    await saved;
   });
 });
