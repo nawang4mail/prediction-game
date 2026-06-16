@@ -6,7 +6,10 @@ import { isBracket } from '../../constants/gameTypes.js';
 
 // Tabs that differ by the scoped game's type: a Bracket Prediction game manages
 // stages on one Bracket tab; a Guess the Winners game has Matches + Predictions.
-const BRACKET_TABS = [{ to: '/admin/bracket', label: 'Bracket' }];
+const BRACKET_TABS = [
+  { to: '/admin/bracket', label: 'Bracket' },
+  { to: '/admin/entries', label: "User's entries" },
+];
 const GUESS_TABS = [
   { to: '/admin/matches', label: 'Matches' },
   { to: '/admin/predictions', label: 'Predictions' },

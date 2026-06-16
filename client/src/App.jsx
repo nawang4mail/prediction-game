@@ -11,6 +11,7 @@ import DashboardPage from './pages/admin/DashboardPage.jsx';
 import GamesPage from './pages/admin/GamesPage.jsx';
 import MatchesPage from './pages/admin/MatchesPage.jsx';
 import BracketPage from './pages/admin/BracketPage.jsx';
+import EntriesPage from './pages/admin/EntriesPage.jsx';
 import UsersPage from './pages/admin/UsersPage.jsx';
 import PredictionsPage from './pages/admin/PredictionsPage.jsx';
 import SettingsPage from './pages/admin/SettingsPage.jsx';
@@ -30,6 +31,7 @@ export default function App() {
             <Route path="/admin/games" element={<GamesPage />} />
             <Route path="/admin/matches" element={<MatchesPage />} />
             <Route path="/admin/bracket" element={<BracketPage />} />
+            <Route path="/admin/entries" element={<EntriesPage />} />
             <Route path="/admin/users" element={<UsersPage />} />
             <Route path="/admin/predictions" element={<PredictionsPage />} />
             <Route path="/admin/settings" element={<SettingsPage />} />

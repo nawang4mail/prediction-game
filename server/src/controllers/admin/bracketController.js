@@ -1,4 +1,6 @@
 import * as Stage from '../../models/bracketStageModel.js';
+import * as User from '../../models/userModel.js';
+import * as Selection from '../../models/stageSelectionModel.js';
 
 // Validates and normalises a stage payload. A stage with parent_ids is a
 // combined stage (US-52): its teams are derived from its parents, so the team
@@ -69,6 +71,41 @@ const validateParents = async (gameId, parentIds, selfId, pickCount) => {
 export const list = async (req, res, next) => {
   try {
     res.json(await Stage.findByGame(req.gameId));
+  } catch (err) {
+    next(err);
+  }
+};
+
+// Read-only list of every participant entry with their picks per stage. (US-62)
+export const entries = async (req, res, next) => {
+  try {
+    const [users, stages, sels] = await Promise.all([
+      User.findAll(req.gameId),
+      Stage.findByGame(req.gameId),
+      Selection.findByGame(req.gameId),
+    ]);
+    const pickedByUser = new Map();
+    for (const s of sels) {
+      if (!pickedByUser.has(s.user_id)) pickedByUser.set(s.user_id, new Set());
+      pickedByUser.get(s.user_id).add(s.stage_team_id);
+    }
+    res.json(
+      users.map((u) => {
+        const picked = pickedByUser.get(u.id) ?? new Set();
+        return {
+          user_id: u.id,
+          display_name: u.display_name,
+          stages: stages.map((st) => ({
+            id: st.id,
+            name: st.name,
+            pick_count: st.pick_count,
+            teams: st.teams
+              .filter((t) => picked.has(t.id))
+              .map((t) => ({ id: t.id, name: t.name, is_winner: t.is_winner })),
+          })),
+        };
+      })
+    );
   } catch (err) {
     next(err);
   }

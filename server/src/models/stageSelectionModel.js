@@ -13,6 +13,20 @@ export const findByUser = async (userId) => {
   return rows;
 };
 
+// Every selection in a game (across all participants), for the admin entries view
+// (US-62): each row is { user_id, stage_id, stage_team_id }.
+export const findByGame = async (gameId) => {
+  const [rows] = await pool.query(
+    `SELECT ss.user_id, st.stage_id, ss.stage_team_id
+     FROM stage_selections ss
+     JOIN stage_teams st     ON st.id = ss.stage_team_id
+     JOIN bracket_stages bs  ON bs.id = st.stage_id
+     WHERE bs.game_id = ?`,
+    [gameId]
+  );
+  return rows;
+};
+
 // Replaces a participant's picks for one stage. Deletes their current picks for
 // teams in that stage, then inserts the new ones, in a transaction.
 export const replaceForStage = async (userId, stageId, teamIds) => {
