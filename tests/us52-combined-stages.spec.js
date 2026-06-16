@@ -57,9 +57,13 @@ test.describe('US-52: combined stages (server)', () => {
     ).json();
     const pAuth = { 'x-entry-token': joined.entry_token };
 
-    // Before picking parents, the combined stage shows no teams for this player.
+    // /me returns the combined stage's full team pool + parent_ids; the client
+    // derives each player's available subset (US-56). The server still enforces it
+    // on save (checked below).
     let me = await (await request.get(`${API}/api/participants/me`, { headers: pAuth })).json();
-    expect(me.stages.find((s) => s.id === c.id).teams).toHaveLength(0);
+    const meCInit = me.stages.find((s) => s.id === c.id);
+    expect(meCInit.parent_ids.sort()).toEqual([a.id, b.id].sort());
+    expect(meCInit.teams).toHaveLength(6); // full union of A + B
 
     const teamId = (stage, name) => stage.teams.find((t) => t.name === name).id;
     const A = stages.find((s) => s.id === a.id);
@@ -72,11 +76,6 @@ test.describe('US-52: combined stages (server)', () => {
       headers: pAuth,
       data: { stage_id: b.id, team_ids: [teamId(B, 'Spain')] },
     });
-
-    // Now C offers exactly the teams this player advanced.
-    me = await (await request.get(`${API}/api/participants/me`, { headers: pAuth })).json();
-    const meC = me.stages.find((s) => s.id === c.id);
-    expect(meC.teams.map((t) => t.name).sort()).toEqual(['Brazil', 'France', 'Spain']);
 
     // Picking a team the player did NOT advance (Germany) is rejected.
     const cGermany = teamId(C, 'Germany');

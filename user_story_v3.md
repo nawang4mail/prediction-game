@@ -361,7 +361,7 @@ paths that already return stages.
 
 ---
 
-### US-56 · Step-by-Step Bracket Prediction Wizard
+### US-56 · Step-by-Step Bracket Prediction Wizard ✅
 **As a** player in a Bracket Prediction game,
 **I want to** fill in my bracket one stage at a time with clear navigation,
 **So that** entering my predictions feels simple instead of an overwhelming wall of stages.
