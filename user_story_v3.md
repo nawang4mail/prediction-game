@@ -546,7 +546,7 @@ already handles for `finished`.
 
 ---
 
-### US-64 · Bracket Dashboard: Max Points, No Matches
+### US-64 · Bracket Dashboard: Max Points, No Matches ✅
 **As an** admin running a Bracket Prediction game,
 **I want** the dashboard to show the maximum achievable points and drop the Matches stat,
 **So that** the dashboard reflects the bracket format instead of match-based numbers.
