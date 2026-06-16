@@ -1,5 +1,9 @@
 import pool from '../../config/db.js';
 import { leaderboard } from '../../models/predictionModel.js';
+import {
+  leaderboard as bracketLeaderboard,
+  findByGame as findStages,
+} from '../../models/bracketStageModel.js';
 import { findById } from '../../models/gameModel.js';
 import { getAll as getSettings } from '../../models/settingsModel.js';
 import { findByGame as getPrizeTiers } from '../../models/prizeTierModel.js';
@@ -28,7 +32,29 @@ function computeFinance(participants, settings, tiers) {
 
 export const getStats = async (req, res, next) => {
   try {
-    const [[matchRow], [userRow], [predRow], top5, game] = await Promise.all([
+    const game = await findById(req.gameId);
+    const [[userRow], settings, tiers] = await Promise.all([
+      pool.query('SELECT COUNT(*) AS total FROM users WHERE game_id = ?', [req.gameId]),
+      getSettings(req.gameId),
+      getPrizeTiers(req.gameId),
+    ]);
+    const users = userRow[0].total;
+    const finance = computeFinance(users, settings, tiers);
+
+    // Bracket Prediction games have no matches; show the maximum achievable score
+    // (sum over stages of pick_count × points_per_correct + all_correct_bonus) and a
+    // bracket-scored Top 5 instead. (US-64)
+    if (game?.type === 'bracket_prediction') {
+      const stages = await findStages(req.gameId);
+      const maxPoints = stages.reduce(
+        (sum, s) => sum + s.pick_count * s.points_per_correct + s.all_correct_bonus,
+        0
+      );
+      const top5 = (await bracketLeaderboard(req.gameId)).slice(0, 5);
+      return res.json({ game, users, max_points: maxPoints, top5, finance });
+    }
+
+    const [[matchRow], [predRow], top5] = await Promise.all([
       pool.query(
         `
         SELECT
@@ -40,7 +66,6 @@ export const getStats = async (req, res, next) => {
       `,
         [req.gameId]
       ),
-      pool.query('SELECT COUNT(*) AS total FROM users WHERE game_id = ?', [req.gameId]),
       pool.query(
         `SELECT COUNT(*) AS total
          FROM predictions p
@@ -49,12 +74,6 @@ export const getStats = async (req, res, next) => {
         [req.gameId]
       ),
       leaderboard(req.gameId),
-      findById(req.gameId),
-    ]);
-
-    const [settings, tiers] = await Promise.all([
-      getSettings(req.gameId),
-      getPrizeTiers(req.gameId),
     ]);
 
     res.json({
@@ -64,10 +83,10 @@ export const getStats = async (req, res, next) => {
         with_result: matchRow[0].with_result,
         pending: matchRow[0].pending,
       },
-      users: userRow[0].total,
+      users,
       predictions: predRow[0].total,
       top5: top5.slice(0, 5),
-      finance: computeFinance(userRow[0].total, settings, tiers),
+      finance,
     });
   } catch (err) {
     next(err);

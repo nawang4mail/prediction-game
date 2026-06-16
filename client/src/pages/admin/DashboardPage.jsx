@@ -37,25 +37,30 @@ export default function DashboardPage() {
         </div>
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
-          <StatCard
-            label="Matches"
-            value={`${stats.matches.total} / 10`}
-            sub={`${stats.matches.with_result} result${stats.matches.with_result !== 1 ? 's' : ''} set · ${stats.matches.pending} pending`}
-            color="text-green-700"
-          />
+          {/* Bracket Prediction games have no matches (US-64). */}
+          {stats.matches && (
+            <StatCard
+              label="Matches"
+              value={stats.matches.total}
+              sub={`${stats.matches.with_result} result${stats.matches.with_result !== 1 ? 's' : ''} set · ${stats.matches.pending} pending`}
+              color="text-green-700"
+            />
+          )}
           <StatCard
             label="Users"
             value={stats.users}
             sub="on the leaderboard"
           />
-          <StatCard
-            label="Predictions"
-            value={stats.predictions}
-            sub="total picks recorded"
-          />
+          {stats.matches && (
+            <StatCard
+              label="Predictions"
+              value={stats.predictions}
+              sub="total picks recorded"
+            />
+          )}
           <StatCard
             label="Max Points"
-            value={stats.matches.with_result}
+            value={stats.matches ? stats.matches.with_result : stats.max_points}
             sub="available to score"
             color="text-blue-600"
           />
