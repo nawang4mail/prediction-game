@@ -724,6 +724,37 @@ change. Amends US-45.
 
 ---
 
+### US-70 · Fix: Admin Panel Blank When the Only Game Is a Draft ✅
+**As an** admin,
+**I want** the admin panel to load and show my game's data when the only game in the system
+is a draft (e.g. the first game I just created, US-69),
+**So that** I can prepare a brand-new game instead of staring at a blank screen.
+
+**Root cause:** the `gameScope` middleware resolves a request with no explicit `?game_id` to
+`findActive() ?? findLatestVisible()`, and `findLatestVisible()` deliberately excludes
+drafts (US-38). The admin game selector only appears when more than one game exists
+(`games.length > 1`), so with a single draft game the admin sends no `game_id` and every
+scoped admin endpoint returns 404 "No games exist yet". `DashboardPage` then had no error
+handling — a 404 left `stats` null and `stats.matches` threw, blanking the **whole** admin
+panel (nav included), since each admin page renders inside `AdminLayout`.
+
+**Acceptance Criteria:**
+- With only a draft game present, the admin dashboard and every scoped admin page
+  (`matches`, `bracket`, `users`, `predictions`, `settings`) load **that draft game's**
+  data instead of returning 404
+- An authenticated admin request with no explicit `game_id` falls back to the **latest game
+  including drafts**; the **public** side still never falls back to a draft (US-38 preserved)
+- When there are **no games at all**, the admin pages render a friendly empty state
+  ("No games yet…") rather than a blank screen — the nav stays usable
+- The Dashboard never crashes the whole panel on a failed or empty stats response
+
+**Notes:** `gameScope` uses `findLatest` (includes drafts) when `req.admin` is set
+(admin routes run `requireAuth` before `gameScope`), else `findLatestVisible` for the public
+side. `DashboardPage` adds a `.catch` and guards a null `stats`. Surfaced by US-69 (first
+game is a bracket draft). Server + client; no schema change.
+
+---
+
 ## Navigation & Tabs (v3 additions)
 
 | Tab | Route | Access |
