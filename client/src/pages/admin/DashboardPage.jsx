@@ -22,8 +22,23 @@ export default function DashboardPage() {
   useEffect(() => {
     api.get('/admin/dashboard')
       .then(({ data }) => setStats(data))
+      .catch(() => setStats(null))
       .finally(() => setLoading(false));
   }, []);
+
+  // No game to report on yet (e.g. an empty system): keep the panel/nav usable
+  // instead of blanking on a null stats response.
+  if (!loading && !stats) {
+    return (
+      <AdminLayout>
+        <h2 className="text-lg font-semibold text-gray-800 mb-6">Dashboard</h2>
+        <div className="text-center py-16 text-gray-400">
+          <p className="text-4xl mb-3">📊</p>
+          <p className="text-sm">No games yet. Create one on the Games tab to see stats here.</p>
+        </div>
+      </AdminLayout>
+    );
+  }
 
   return (
     <AdminLayout>
