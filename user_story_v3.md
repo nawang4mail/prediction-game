@@ -361,6 +361,76 @@ paths that already return stages.
 
 ---
 
+### US-56 · Step-by-Step Bracket Prediction Wizard
+**As a** player in a Bracket Prediction game,
+**I want to** fill in my bracket one stage at a time with clear navigation,
+**So that** entering my predictions feels simple instead of an overwhelming wall of stages.
+
+**Acceptance Criteria:**
+- Making or editing bracket predictions runs as a **wizard that shows one stage at a time**,
+  with a **progress bar** at the top showing "Stage X of N"
+- Each step shows that stage's teams; the player selects exactly `pick_count`, then uses
+  **Back**, **Next**, **Save**, and **Cancel**:
+  - **Next / Back** move between stages; **Next** is enabled only once the current stage's
+    `pick_count` is met; **Back** is always available (and not shown on the first stage)
+  - **Save** commits the whole bracket at once and is **enabled only when every stage is
+    complete**; on success it returns to the read-only My Predictions view (US-57)
+  - **Cancel** discards all in-progress changes **after a confirmation warning** and
+    returns without saving
+- In-progress picks are held in memory until Save, so Cancel can discard them
+- For combined stages (US-52), the wizard shows the teams the player advanced from their
+  **in-wizard** parent picks, updating live as they move forward
+- The wizard is used for both the first-time entry and later edits, and is unavailable once
+  the game is `locked`/`finished` (read-only, US-31)
+
+**Amends:** US-48 (replaces the all-stages-at-once, per-stage-save layout with this wizard).
+**Notes:** client-only — on Save, loop `PUT /participants/me/bracket` per stage in stage
+order so a combined stage validates against its now-saved parents; compute combined
+availability client-side from the in-memory picks (the client already has stages,
+`parent_ids` and teams from `/me`). No new endpoint or schema change.
+
+---
+
+### US-57 · Edit Button on My Predictions (Bracket)
+**As a** player,
+**I want** my bracket predictions to be read-only until I tap an Edit button,
+**So that** I can review my picks without changing them by accident.
+
+**Acceptance Criteria:**
+- Opening My Predictions for a `bracket_prediction` game shows the player's picks
+  **read-only** by default — a per-stage summary of the teams they picked
+- An **Edit** button launches the prediction wizard (US-56); picks can only change through
+  Edit
+- After saving in the wizard, the view returns to the read-only summary; the Finish action
+  (US-35) remains available
+- Edit is offered only while the game is `open`; a `locked`/`finished` game shows the
+  read-only summary with no Edit button
+- The Guess the Winners My Predictions grid (click-to-pick, US-30) is unchanged
+
+**Notes:** client-only in `MyPredictionsPage` — render a read-only stage summary for bracket
+games and gate the wizard behind an Edit toggle.
+
+---
+
+### US-58 · Clean Add-Entry View
+**As a** player adding another entry,
+**I want** the Add-entry step to show only the "Whose entry is this?" question and its options,
+**So that** I'm not distracted by the previous entry's predictions while choosing.
+
+**Acceptance Criteria:**
+- When the player taps **Add entry** (US-41), the page shows **only** the "Whose entry is
+  this?" prompt and its options (Myself / Someone else)
+- The current entry's predictions/stages (and the Finish action) are **hidden** while the
+  add-entry panel is open
+- Cancelling or completing add-entry returns to the normal My Predictions view
+- Applies to both game types (the add-entry panel is shared)
+
+**Root cause:** in `MyPredictionsPage` the add-entry panel (`adding` state) renders above
+the prediction content, which still renders unconditionally below it, cluttering the
+add-entry step. **Notes:** hide the prediction content (and Finish) while `adding` is true.
+
+---
+
 ## Navigation & Tabs (v3 additions)
 
 | Tab | Route | Access |
