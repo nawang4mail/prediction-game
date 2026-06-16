@@ -602,6 +602,36 @@ message banner when declined.
 
 ---
 
+### US-66 · Approval Drives Counts, Finance and Admin Views
+**As an** admin,
+**I want** approved and declined users reflected across the dashboard, finance, and the entries/predictions views,
+**So that** the app only counts and shows approved participants where it matters.
+
+**Acceptance Criteria:**
+- The dashboard shows two participant counts: **Users** = approved participants, and a new
+  **Pending Users** = declined participants (US-65)
+- **Total Collected** — and therefore commission and prize pool (US-36) — is computed from
+  the **approved** participant count only
+- The bracket **User's entries** tab (US-62) lists only **approved** users' entries
+- The Guess the Winners **Predictions** grid (US-15/US-16) shows only **approved** users'
+  predictions
+- Applies to both game types (dashboard counts + finance for both; entries for bracket,
+  predictions grid for guess-winners); the Users tab itself still lists everyone so the
+  admin can approve/decline (US-65)
+
+**Out of scope (assumption):** the public leaderboard still lists all entries (declined
+included) — excluding declined entries from the public leaderboard/scoring remains a
+possible follow-up.
+
+**Amends:** US-19/US-36 (dashboard counts + finance), US-62 (entries), US-15/US-16
+(predictions grid). **Notes:** `dashboardController.getStats` returns `users` (approved) and
+`pending_users` (declined) via `SUM(status=…)` and computes finance from the approved count;
+`DashboardPage` adds a Pending Users card; `bracketController.entries` filters to approved
+users; `PredictionsPage` renders only approved users (the shared `/api/admin/users` still
+returns everyone for the Users tab).
+
+---
+
 ## Navigation & Tabs (v3 additions)
 
 | Tab | Route | Access |
