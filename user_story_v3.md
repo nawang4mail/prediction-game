@@ -568,6 +568,40 @@ Points card for bracket games.
 
 ---
 
+### US-65 · Approve or Decline a User's Entry (with message)
+**As an** admin,
+**I want to** approve or decline each user's entry and attach a message when declining,
+**So that** I can vet self-service joiners, and a declined player is told why.
+
+**Acceptance Criteria:**
+- Each user/entry has an **approval status** — `approved` or `declined` — and an optional
+  **status message**
+- The admin **Users** tab shows a **Status** column with Approve / Decline controls per
+  user; declining lets the admin enter/edit a message, approving marks the entry approved
+- **Defaults:** users the admin adds (single, bulk, and bulk-with-predictions, US-12 to
+  US-14, US-22/US-23) are **approved**; participants who self-join (US-29) — including extra
+  entries (US-41) — are **declined** with a default message (e.g. "Your entry is awaiting
+  admin approval — please contact the admin.")
+- When a participant's entry is **declined**, its status message is shown to them on the
+  My Predictions page (a clear banner); status is per entry (US-41), so the switcher
+  reflects the status of the selected entry
+- Applies to both game types and to each entry independently; status changes follow the
+  finished-game lock rules already on the Users tab (US-40)
+
+**Out of scope (assumption):** a declined entry still appears on the public leaderboard —
+decline is informational plus a message in this story; excluding declined entries from the
+leaderboard/scoring can be a follow-up if wanted.
+
+**Notes:** migration adds `status ENUM('approved','declined') NOT NULL DEFAULT 'approved'`
+and `status_message TEXT NULL` to `users`. `userModel.createWithAutoSuffix` inserts
+`declined` + the default message when an `entry_token` is supplied (self-join) and relies on
+the `approved` default otherwise. New `userModel.setStatus` + `PUT /api/admin/users/:id/status`
+(`{ status, message }`); `participantsController.me` returns `status` + `status_message`;
+`UsersPage` adds the Status column + Approve/Decline controls; `MyPredictionsPage` shows the
+message banner when declined.
+
+---
+
 ## Navigation & Tabs (v3 additions)
 
 | Tab | Route | Access |
@@ -611,6 +645,10 @@ stage_selections (
   created_at,
   UNIQUE(user_id, stage_team_id)
 )
+
+-- users gain an approval status shown to the participant (US-65)
+users + status ENUM('approved','declined') NOT NULL DEFAULT 'approved'
+users + status_message TEXT NULL   -- e.g. why an entry was declined
 
 -- matches / predictions are untouched: they continue to serve guess_winners games.
 ```
