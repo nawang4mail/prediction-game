@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import AdminLayout from '../../components/admin/AdminLayout.jsx';
 import ConfirmDialog from '../../components/admin/ConfirmDialog.jsx';
 import api from '../../services/api.js';
+import { useGames } from '../../context/GamesContext.jsx';
 import { GAME_TYPES, gameTypeLabel } from '../../constants/gameTypes.js';
 
 const STATUS_STYLES = {
@@ -12,8 +13,8 @@ const STATUS_STYLES = {
 };
 
 export default function GamesPage() {
-  const [games, setGames] = useState([]);
-  const [loading, setLoading] = useState(true);
+  // Shared games list so the layout tabs stay in sync after a create/delete (US-69).
+  const { games, loading, refresh } = useGames();
   const [name, setName] = useState('');
   const [type, setType] = useState('guess_winners');
   const [error, setError] = useState(null);
@@ -25,18 +26,9 @@ export default function GamesPage() {
   // Only draft and finished games can be deleted (US-60/US-61).
   const isDeletable = (g) => g.status === 'draft' || g.status === 'finished';
 
-  const load = async () => {
-    const { data } = await api.get('/admin/games');
-    setGames(data);
-    // Drop any selections that no longer exist or are no longer deletable.
-    setSelectedIds((ids) => ids.filter((id) => data.some((g) => g.id === id && isDeletable(g))));
-  };
-
-  useEffect(() => {
-    api.get('/admin/games')
-      .then(({ data }) => setGames(data))
-      .finally(() => setLoading(false));
-  }, []);
+  // Ignore any selected ids that no longer exist or are no longer deletable
+  // (e.g. after a refresh), so the bulk bar never acts on stale selections.
+  const selected = selectedIds.filter((id) => games.some((g) => g.id === id && isDeletable(g)));
 
   const handleCreate = async (e) => {
     e.preventDefault();
@@ -45,7 +37,7 @@ export default function GamesPage() {
       await api.post('/admin/games', { name, type });
       setName('');
       setType('guess_winners');
-      await load();
+      await refresh();
     } catch (err) {
       setError(err.response?.data?.message ?? 'Failed to create game');
     }
@@ -56,7 +48,7 @@ export default function GamesPage() {
     setError(null);
     try {
       await api.put(`/admin/games/${game.id}/type`, { type: nextType });
-      await load();
+      await refresh();
     } catch (err) {
       setError(err.response?.data?.message ?? 'Failed to change game type');
     }
@@ -66,7 +58,7 @@ export default function GamesPage() {
     setError(null);
     try {
       await api.put(`/admin/games/${game.id}/status`, { status });
-      await load();
+      await refresh();
     } catch (err) {
       setError(err.response?.data?.message ?? 'Failed to update game');
     }
@@ -76,7 +68,7 @@ export default function GamesPage() {
     setError(null);
     try {
       await api.delete(`/admin/games/${deleteTarget.id}`);
-      await load();
+      await refresh();
     } catch (err) {
       setError(err.response?.data?.message ?? 'Failed to delete game');
     } finally {
@@ -90,9 +82,9 @@ export default function GamesPage() {
   const bulkDelete = async () => {
     setError(null);
     try {
-      await api.post('/admin/games/bulk-delete', { ids: selectedIds });
+      await api.post('/admin/games/bulk-delete', { ids: selected });
       setSelectedIds([]);
-      await load();
+      await refresh();
     } catch (err) {
       setError(err.response?.data?.message ?? 'Failed to delete the selected games');
     } finally {
@@ -101,7 +93,7 @@ export default function GamesPage() {
   };
 
   const selectedFinished = games.filter(
-    (g) => selectedIds.includes(g.id) && g.status === 'finished'
+    (g) => selected.includes(g.id) && g.status === 'finished'
   ).length;
 
   return (
@@ -150,9 +142,9 @@ export default function GamesPage() {
         </p>
       )}
 
-      {selectedIds.length > 0 && (
+      {selected.length > 0 && (
         <div className="flex items-center gap-3 mb-3" data-testid="bulk-bar">
-          <span className="text-sm text-gray-600">{selectedIds.length} selected</span>
+          <span className="text-sm text-gray-600">{selected.length} selected</span>
           <button
             onClick={() => setBulkConfirm(true)}
             data-testid="bulk-delete"
@@ -192,7 +184,7 @@ export default function GamesPage() {
                       <input
                         type="checkbox"
                         aria-label={`Select ${game.name}`}
-                        checked={selectedIds.includes(game.id)}
+                        checked={selected.includes(game.id)}
                         onChange={() => toggleSelect(game.id)}
                         className="h-4 w-4 accent-red-600"
                       />
@@ -342,7 +334,7 @@ export default function GamesPage() {
       {bulkConfirm && (
         <ConfirmDialog
           message={
-            `Delete ${selectedIds.length} selected game${selectedIds.length === 1 ? '' : 's'}?` +
+            `Delete ${selected.length} selected game${selected.length === 1 ? '' : 's'}?` +
             (selectedFinished > 0
               ? ` This permanently removes the leaderboard and history of ${selectedFinished} finished game${selectedFinished === 1 ? '' : 's'}.`
               : '') +
