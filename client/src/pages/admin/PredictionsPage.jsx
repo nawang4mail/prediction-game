@@ -41,6 +41,7 @@ export default function PredictionsPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState({});
   const [readOnly, setReadOnly] = useState(false);
+  const [status, setStatus] = useState(null);
 
   const load = useCallback(async () => {
     const [{ data: u }, { data: m }, { data: p }, { data: games }] = await Promise.all([
@@ -57,10 +58,13 @@ export default function PredictionsPage() {
       map[pred.user_id][pred.match_id] = pred.prediction;
     });
 
+    const scopedStatus = resolveScopedGame(games)?.status ?? null;
     setUsers(u);
     setMatches(m);
     setCells(map);
-    setReadOnly(resolveScopedGame(games)?.status === 'finished');
+    setStatus(scopedStatus);
+    // Read-only once the game has started (locked) or finished. (US-37, US-63)
+    setReadOnly(scopedStatus === 'locked' || scopedStatus === 'finished');
     setLoading(false);
   }, []);
 
@@ -102,10 +106,13 @@ export default function PredictionsPage() {
 
       {readOnly && (
         <div
-          data-testid="finished-banner"
+          data-testid="readonly-banner"
           className="mb-4 text-sm text-gray-600 bg-gray-100 border border-gray-200 rounded-lg px-4 py-3"
         >
-          🔒 This game is finished — predictions are locked and cannot be edited.
+          🔒{' '}
+          {status === 'finished'
+            ? 'This game is finished — predictions are locked and cannot be edited.'
+            : 'The game has started — predictions are locked and cannot be edited.'}
         </div>
       )}
 
