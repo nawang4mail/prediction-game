@@ -471,6 +471,29 @@ button to finished rows in `GamesPage` with a stronger confirmation message.
 
 ---
 
+### US-61 · Delete Multiple Games at Once ✅
+**As an** admin,
+**I want to** select several games and delete them in one action,
+**So that** I can clean up many old or test games quickly instead of one at a time.
+
+**Acceptance Criteria:**
+- The admin game list shows a checkbox on each **deletable** row (draft or finished);
+  live (`open`/`locked`) games have no checkbox and can't be selected
+- A "Delete selected" action appears once one or more games are selected and removes them
+  all in one request
+- The server enforces the same rule (US-60): only draft/finished games can be deleted; if
+  any selected game is live (or no longer exists) the whole request is rejected and
+  nothing is deleted
+- Deleting finished games is confirmed with a clear warning that their leaderboards and
+  history are removed permanently
+- Selecting and deleting cascades each game's data exactly like a single delete (US-60)
+
+**Notes:** new `POST /api/admin/games/bulk-delete` (`{ ids }`) backed by
+`gameModel.findByIds` + `removeMany`, validating all ids against the `draft`/`finished`
+guard; `GamesPage` adds per-row checkboxes and a bulk-delete bar.
+
+---
+
 ## Navigation & Tabs (v3 additions)
 
 | Tab | Route | Access |

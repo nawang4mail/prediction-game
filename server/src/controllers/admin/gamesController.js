@@ -95,3 +95,26 @@ export const remove = async (req, res, next) => {
     next(err);
   }
 };
+
+// Delete several games at once. All selected games must be draft or finished;
+// the whole request is rejected if any is live, so nothing is partially deleted. (US-61)
+export const bulkRemove = async (req, res, next) => {
+  try {
+    const ids = Array.isArray(req.body.ids)
+      ? [...new Set(req.body.ids.map(Number).filter(Number.isInteger))]
+      : [];
+    if (!ids.length) return res.status(400).json({ message: 'No games selected' });
+
+    const found = await Game.findByIds(ids);
+    if (found.length !== ids.length) {
+      return res.status(404).json({ message: 'Some selected games no longer exist' });
+    }
+    if (found.some((g) => !DELETABLE.includes(g.status))) {
+      return res.status(409).json({ message: 'Only draft or finished games can be deleted' });
+    }
+    const deleted = await Game.removeMany(ids);
+    res.json({ deleted });
+  } catch (err) {
+    next(err);
+  }
+};
