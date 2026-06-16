@@ -58,6 +58,22 @@ export const join = async (req, res, next) => {
   }
 };
 
+// Returns the approval status for a set of entry tokens, so a device can warn the
+// player about its entries pending approval. (US-67)
+export const statuses = async (req, res, next) => {
+  try {
+    const tokens = Array.isArray(req.body.tokens) ? req.body.tokens : [];
+    const out = [];
+    for (const t of tokens) {
+      const u = await User.findByEntryToken(t);
+      if (u) out.push({ token: t, status: u.status });
+    }
+    res.json(out);
+  } catch (err) {
+    next(err);
+  }
+};
+
 export const me = async (req, res, next) => {
   try {
     const base = {

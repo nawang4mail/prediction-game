@@ -632,7 +632,7 @@ returns everyone for the Users tab).
 
 ---
 
-### US-67 · Warn About Entries Pending Approval
+### US-67 · Warn About Entries Pending Approval ✅
 **As a** player with more than one entry,
 **I want** My Predictions to warn me how many of my entries are awaiting approval,
 **So that** I notice pending entries even while viewing an approved one.
