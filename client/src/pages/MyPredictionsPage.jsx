@@ -282,9 +282,12 @@ export default function MyPredictionsPage() {
               key={data.participant.id}
               stages={data.stages ?? []}
               initialSelections={data.selections ?? []}
-              onSaved={() => {
+              onSaved={async () => {
                 setEditing(false);
-                loadMe();
+                await loadMe();
+                // The wizard's Save doubles as Finish — confirm with the admin's
+                // finish message (US-59).
+                await finish();
               }}
               onCancel={() => setEditing(false)}
               onError={setError}
@@ -350,6 +353,9 @@ export default function MyPredictionsPage() {
                 ✓ {finishMsg}
               </p>
             ) : (
+              // Bracket games confirm via the wizard's Save (US-59); only the match
+              // game shows a separate Finish button.
+              !isBracketGame &&
               hasPicks && (
                 <button
                   onClick={finish}
