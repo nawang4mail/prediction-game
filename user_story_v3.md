@@ -522,7 +522,7 @@ add the tab to `AdminLayout`'s bracket tab list; reuse the read-only layout from
 
 ---
 
-### US-63 · Lock User Predictions from Admin Editing Once the Game Starts
+### US-63 · Lock User Predictions from Admin Editing Once the Game Starts ✅
 **As an** admin,
 **I want** a user's predictions to become read-only once the game has started,
 **So that** nobody's picks — not even via the admin panel — can change after kickoff.
