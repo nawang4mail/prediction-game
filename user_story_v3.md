@@ -494,11 +494,40 @@ guard; `GamesPage` adds per-row checkboxes and a bulk-delete bar.
 
 ---
 
+### US-62 · "User's Entries" Admin Tab (Bracket Prediction)
+**As an** admin running a Bracket Prediction game,
+**I want** a "User's entries" tab listing every participant's entry and the teams they picked,
+**So that** I can review what everyone selected, read-only, without risk of changing it.
+
+**Acceptance Criteria:**
+- For a `bracket_prediction` game, the admin navigation shows a new **User's entries** tab
+  alongside the **Bracket** tab (Guess the Winners keeps Matches + Predictions, US-45)
+- The tab lists **every entry in the scoped game** by display name, including a player's
+  multiple entries (US-41) and respecting the admin game selector (per-game scope)
+- Each entry shows its picks **per stage** (the teams it selected) in **read-only** mode —
+  there are no controls to add, edit, or delete picks (mirrors the participant read-only
+  summary, US-57)
+- If a stage's results are set, the entry's winning picks are highlighted; a stage the
+  entry has not picked shows "no picks"
+- An empty state is shown when the game has no entries yet
+- Shown only for bracket games; Guess the Winners is unaffected
+
+**Notes:** new read endpoint `GET /api/admin/bracket/entries` (auth + `gameScope`) that
+returns each participant of the scoped game with their stage picks — back it with a
+`stageSelectionModel` query (all selections for a game's users joined to `stage_teams` and
+`bracket_stages`) plus `userModel.findAll`, grouped per user → stage → picked teams
+(parallels `predictionModel.findAll`). New admin `EntriesPage` + `/admin/entries` route;
+add the tab to `AdminLayout`'s bracket tab list; reuse the read-only layout from
+`BracketSummary`. No schema change.
+
+---
+
 ## Navigation & Tabs (v3 additions)
 
 | Tab | Route | Access |
 |-----|-------|--------|
 | Bracket (Stages) | `/admin/bracket` | Admin only (shown for `bracket_prediction` games instead of Matches/Predictions) |
+| User's entries | `/admin/entries` | Admin only (bracket games; read-only list of participants' picks, US-62) |
 | Game type selector | on `/admin/games` (create form) | Admin only |
 
 ---
