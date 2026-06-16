@@ -494,7 +494,7 @@ guard; `GamesPage` adds per-row checkboxes and a bulk-delete bar.
 
 ---
 
-### US-62 · "User's Entries" Admin Tab (Bracket Prediction)
+### US-62 · "User's Entries" Admin Tab (Bracket Prediction) ✅
 **As an** admin running a Bracket Prediction game,
 **I want** a "User's entries" tab listing every participant's entry and the teams they picked,
 **So that** I can review what everyone selected, read-only, without risk of changing it.
