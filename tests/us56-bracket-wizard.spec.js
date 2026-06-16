@@ -74,16 +74,21 @@ test('wizard steps through stages; combined stage reflects in-wizard picks; batc
   await expect.poll(() => puts.length).toBeGreaterThanOrEqual(2); // one PUT per stage
 });
 
-test('Cancel warns and discards, returning to the read-only summary', async ({ page }) => {
+test('Cancel of an edit warns and returns to the read-only summary', async ({ page }) => {
+  // An existing entry with a saved pick (US-68: cancelling an edit never deletes it).
+  const withPick = { ...meBody, selections: [{ stage_team_id: 11, stage_id: 1 }] };
   await page.addInitScript(() => localStorage.setItem('entry_token', 'tok'));
-  await page.route('**/api/participants/me', (r) => r.fulfill({ json: meBody }));
+  await page.route('**/api/participants/statuses', (r) => r.fulfill({ json: [{ token: 'tok', status: 'approved' }] }));
+  await page.route('**/api/participants/me', (r) => r.fulfill({ json: withPick }));
   await page.goto('/my-predictions');
 
+  // Shows the read-only summary; open the wizard via Edit, then cancel back.
+  await expect(page.getByTestId('edit-predictions')).toBeVisible();
+  await page.getByTestId('edit-predictions').click();
   await expect(page.getByTestId('bracket-wizard')).toBeVisible();
   page.once('dialog', (d) => d.accept()); // confirm the discard warning
   await page.getByTestId('wizard-cancel').click();
 
-  // Back to the read-only view with the Edit (Make predictions) button.
   await expect(page.getByTestId('edit-predictions')).toBeVisible();
   await expect(page.getByTestId('bracket-wizard')).toHaveCount(0);
 });

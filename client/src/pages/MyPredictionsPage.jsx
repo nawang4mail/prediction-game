@@ -8,6 +8,7 @@ import {
   getCurrentToken,
   migrateLegacy,
   nextSelfName,
+  removeEntry,
   setCurrentToken,
   upsertEntry,
 } from '../services/entries.js';
@@ -137,6 +138,33 @@ export default function MyPredictionsPage() {
       setError(err.response?.data?.message ?? 'Failed to add entry.');
     } finally {
       setAddBusy(false);
+    }
+  };
+
+  // Cancelling a brand-new entry (no saved picks) removes it so no empty record is
+  // kept; cancelling an edit of an entry that has picks just exits. (US-68)
+  const cancelEdit = async () => {
+    const incomplete = isBracketGame && (data.selections?.length ?? 0) === 0;
+    if (!incomplete) {
+      setEditing(false);
+      return;
+    }
+    const token = getCurrentToken();
+    try {
+      await api.delete('/participants/me');
+    } catch {
+      /* a completed entry can't be deleted server-side; just leave it */
+    }
+    removeEntry(token);
+    setEditing(false);
+    const remaining = entriesForGame(data.game.id);
+    if (remaining.length) {
+      setCurrentToken(remaining[0].token);
+      setData(null);
+      await loadMe();
+    } else {
+      setCurrentToken(null);
+      navigate('/join', { replace: true });
     }
   };
 
@@ -318,7 +346,7 @@ export default function MyPredictionsPage() {
                 // finish message (US-59).
                 await finish();
               }}
-              onCancel={() => setEditing(false)}
+              onCancel={cancelEdit}
               onError={setError}
             />
           ) : (
