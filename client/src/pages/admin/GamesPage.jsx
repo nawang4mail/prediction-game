@@ -18,11 +18,18 @@ export default function GamesPage() {
   const [type, setType] = useState('guess_winners');
   const [error, setError] = useState(null);
   const [confirm, setConfirm] = useState(null); // { game, status, message } — status change
-  const [deleteTarget, setDeleteTarget] = useState(null); // draft to delete
+  const [deleteTarget, setDeleteTarget] = useState(null); // single game to delete
+  const [selectedIds, setSelectedIds] = useState([]); // bulk-select (US-61)
+  const [bulkConfirm, setBulkConfirm] = useState(false);
+
+  // Only draft and finished games can be deleted (US-60/US-61).
+  const isDeletable = (g) => g.status === 'draft' || g.status === 'finished';
 
   const load = async () => {
     const { data } = await api.get('/admin/games');
     setGames(data);
+    // Drop any selections that no longer exist or are no longer deletable.
+    setSelectedIds((ids) => ids.filter((id) => data.some((g) => g.id === id && isDeletable(g))));
   };
 
   useEffect(() => {
@@ -77,6 +84,26 @@ export default function GamesPage() {
     }
   };
 
+  const toggleSelect = (id) =>
+    setSelectedIds((ids) => (ids.includes(id) ? ids.filter((x) => x !== id) : [...ids, id]));
+
+  const bulkDelete = async () => {
+    setError(null);
+    try {
+      await api.post('/admin/games/bulk-delete', { ids: selectedIds });
+      setSelectedIds([]);
+      await load();
+    } catch (err) {
+      setError(err.response?.data?.message ?? 'Failed to delete the selected games');
+    } finally {
+      setBulkConfirm(false);
+    }
+  };
+
+  const selectedFinished = games.filter(
+    (g) => selectedIds.includes(g.id) && g.status === 'finished'
+  ).length;
+
   return (
     <AdminLayout>
       <div className="mb-6">
@@ -123,6 +150,25 @@ export default function GamesPage() {
         </p>
       )}
 
+      {selectedIds.length > 0 && (
+        <div className="flex items-center gap-3 mb-3" data-testid="bulk-bar">
+          <span className="text-sm text-gray-600">{selectedIds.length} selected</span>
+          <button
+            onClick={() => setBulkConfirm(true)}
+            data-testid="bulk-delete"
+            className="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white text-xs font-medium rounded-lg transition"
+          >
+            Delete selected
+          </button>
+          <button
+            onClick={() => setSelectedIds([])}
+            className="text-xs text-gray-500 hover:text-gray-700"
+          >
+            Clear
+          </button>
+        </div>
+      )}
+
       {loading ? (
         <div className="h-32 bg-gray-100 rounded-xl animate-pulse" />
       ) : (
@@ -130,6 +176,7 @@ export default function GamesPage() {
           <table className="w-full text-sm">
             <thead className="bg-gray-50 text-left text-gray-500">
               <tr>
+                <th className="px-4 py-3 font-medium w-8"></th>
                 <th className="px-4 py-3 font-medium">Game</th>
                 <th className="px-4 py-3 font-medium">Type</th>
                 <th className="px-4 py-3 font-medium">Status</th>
@@ -140,6 +187,17 @@ export default function GamesPage() {
             <tbody className="divide-y">
               {games.map((game) => (
                 <tr key={game.id}>
+                  <td className="px-4 py-3">
+                    {isDeletable(game) && (
+                      <input
+                        type="checkbox"
+                        aria-label={`Select ${game.name}`}
+                        checked={selectedIds.includes(game.id)}
+                        onChange={() => toggleSelect(game.id)}
+                        className="h-4 w-4 accent-red-600"
+                      />
+                    )}
+                  </td>
                   <td className="px-4 py-3 font-medium text-gray-800">{game.name}</td>
                   <td className="px-4 py-3">
                     {game.status === 'draft' ? (
@@ -244,7 +302,7 @@ export default function GamesPage() {
               ))}
               {games.length === 0 && (
                 <tr>
-                  <td colSpan={5} className="px-4 py-8 text-center text-gray-400">
+                  <td colSpan={6} className="px-4 py-8 text-center text-gray-400">
                     No games yet.
                   </td>
                 </tr>
@@ -278,6 +336,21 @@ export default function GamesPage() {
           confirmLabel="Delete"
           onConfirm={handleDelete}
           onCancel={() => setDeleteTarget(null)}
+        />
+      )}
+
+      {bulkConfirm && (
+        <ConfirmDialog
+          message={
+            `Delete ${selectedIds.length} selected game${selectedIds.length === 1 ? '' : 's'}?` +
+            (selectedFinished > 0
+              ? ` This permanently removes the leaderboard and history of ${selectedFinished} finished game${selectedFinished === 1 ? '' : 's'}.`
+              : '') +
+            ' This cannot be undone.'
+          }
+          confirmLabel="Delete"
+          onConfirm={bulkDelete}
+          onCancel={() => setBulkConfirm(false)}
         />
       )}
     </AdminLayout>

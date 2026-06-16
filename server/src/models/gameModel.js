@@ -53,3 +53,15 @@ export const remove = async (id) => {
   const [result] = await pool.query('DELETE FROM games WHERE id = ?', [id]);
   return result.affectedRows;
 };
+
+export const findByIds = async (ids) => {
+  if (!ids.length) return [];
+  const [rows] = await pool.query('SELECT * FROM games WHERE id IN (?)', [ids]);
+  return rows;
+};
+
+export const removeMany = async (ids) => {
+  if (!ids.length) return 0;
+  const [result] = await pool.query('DELETE FROM games WHERE id IN (?)', [ids]);
+  return result.affectedRows;
+};
