@@ -229,7 +229,15 @@ export default function GamesPage() {
                       </>
                     )}
                     {game.status === 'finished' && (
-                      <span className="text-xs text-gray-400">archived</span>
+                      <>
+                        <span className="text-xs text-gray-400">archived</span>
+                        <button
+                          onClick={() => setDeleteTarget(game)}
+                          className="text-red-600 hover:text-red-800 text-xs font-medium"
+                        >
+                          Delete
+                        </button>
+                      </>
                     )}
                   </td>
                 </tr>
@@ -262,7 +270,11 @@ export default function GamesPage() {
 
       {deleteTarget && (
         <ConfirmDialog
-          message={`Delete draft "${deleteTarget.name}"? This cannot be undone.`}
+          message={
+            deleteTarget.status === 'finished'
+              ? `Delete finished game "${deleteTarget.name}"? This permanently removes its leaderboard, predictions and history. This cannot be undone.`
+              : `Delete draft "${deleteTarget.name}"? This cannot be undone.`
+          }
           confirmLabel="Delete"
           onConfirm={handleDelete}
           onCancel={() => setDeleteTarget(null)}

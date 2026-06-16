@@ -78,14 +78,16 @@ export const updateStatus = async (req, res, next) => {
   }
 };
 
-// Only an unpublished draft can be deleted; live and archived games keep their
-// history. (US-38)
+// An unpublished draft or an archived finished game can be deleted; a live game
+// (open/locked) cannot, so an in-progress game's data is never lost. (US-38, US-60)
+const DELETABLE = ['draft', 'finished'];
+
 export const remove = async (req, res, next) => {
   try {
     const game = await Game.findById(req.params.id);
     if (!game) return res.status(404).json({ message: 'Game not found' });
-    if (game.status !== 'draft') {
-      return res.status(409).json({ message: 'Only draft games can be deleted' });
+    if (!DELETABLE.includes(game.status)) {
+      return res.status(409).json({ message: 'Only draft or finished games can be deleted' });
     }
     await Game.remove(game.id);
     res.json({ message: 'Deleted' });
