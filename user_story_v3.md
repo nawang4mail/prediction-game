@@ -391,7 +391,7 @@ availability client-side from the in-memory picks (the client already has stages
 
 ---
 
-### US-57 · Edit Button on My Predictions (Bracket)
+### US-57 · Edit Button on My Predictions (Bracket) ✅
 **As a** player,
 **I want** my bracket predictions to be read-only until I tap an Edit button,
 **So that** I can review my picks without changing them by accident.

@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import api from '../services/api.js';
 import BracketPredictions from '../components/BracketPredictions.jsx';
+import BracketSummary from '../components/BracketSummary.jsx';
 import {
   entriesForGame,
   getCurrentToken,
@@ -29,6 +30,7 @@ export default function MyPredictionsPage() {
   const [addFor, setAddFor] = useState('self'); // 'self' | 'other'
   const [addName, setAddName] = useState('');
   const [addBusy, setAddBusy] = useState(false);
+  const [editing, setEditing] = useState(false); // bracket: read-only until Edit (US-57)
 
   // Loads the current entry (/me uses the current token) and refreshes the
   // device's entry list for that game.
@@ -64,6 +66,18 @@ export default function MyPredictionsPage() {
       }
     })();
   }, [navigate, loadMe]);
+
+  // Bracket games are read-only until the player taps Edit (US-57). Start in edit
+  // mode for a brand-new entry with no picks yet; otherwise show the summary.
+  // Re-evaluated per entry (switching entries changes participant.id).
+  useEffect(() => {
+    if (data?.game?.type === 'bracket_prediction' && data.game.status === 'open') {
+      setEditing((data.selections?.length ?? 0) === 0);
+    } else {
+      setEditing(false);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data?.participant?.id]);
 
   const locked = data && data.game.status !== 'open';
   const isBracketGame = !!data && data.game.type === 'bracket_prediction';
@@ -263,14 +277,38 @@ export default function MyPredictionsPage() {
             ))}
           </div>
         ) : isBracketGame ? (
-          <BracketPredictions
-            key={data.participant.id}
-            stages={data.stages ?? []}
-            initialSelections={data.selections ?? []}
-            locked={locked}
-            onError={setError}
-            onSaved={loadMe}
-          />
+          editing && !locked ? (
+            <>
+              <BracketPredictions
+                key={data.participant.id}
+                stages={data.stages ?? []}
+                initialSelections={data.selections ?? []}
+                locked={locked}
+                onError={setError}
+                onSaved={loadMe}
+              />
+              <button
+                onClick={() => setEditing(false)}
+                data-testid="done-editing"
+                className="mt-3 w-full py-2 bg-white/10 hover:bg-white/20 text-green-100 text-sm font-medium rounded-lg transition"
+              >
+                Done
+              </button>
+            </>
+          ) : (
+            <>
+              <BracketSummary stages={data.stages ?? []} selections={data.selections ?? []} />
+              {!locked && (
+                <button
+                  onClick={() => setEditing(true)}
+                  data-testid="edit-predictions"
+                  className="mt-3 w-full py-2 bg-green-500 hover:bg-green-400 text-white text-sm font-semibold rounded-lg transition"
+                >
+                  ✏️ {hasPicks ? 'Edit predictions' : 'Make predictions'}
+                </button>
+              )}
+            </>
+          )
         ) : data.predictions.length === 0 ? (
           <p className="text-center text-green-200 text-sm bg-white/10 rounded-xl px-4 py-6">
             No matches yet — check back once the admin adds fixtures.
@@ -308,7 +346,7 @@ export default function MyPredictionsPage() {
           </div>
         )}
 
-        {!locked && data && !adding && (
+        {!locked && data && !adding && !editing && (
           <div className="mt-6 text-center">
             {finishMsg ? (
               <p
