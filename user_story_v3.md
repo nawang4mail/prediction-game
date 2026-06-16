@@ -522,6 +522,52 @@ add the tab to `AdminLayout`'s bracket tab list; reuse the read-only layout from
 
 ---
 
+### US-63 · Lock User Predictions from Admin Editing Once the Game Starts
+**As an** admin,
+**I want** a user's predictions to become read-only once the game has started,
+**So that** nobody's picks — not even via the admin panel — can change after kickoff.
+
+**Acceptance Criteria:**
+- An admin can edit a user's predictions/entries only while the game is `draft` or `open`;
+  once the game is `locked` (started) or `finished`, they are **read-only**
+- The Guess the Winners admin Predictions grid disables its pick controls when the game is
+  `locked` (in addition to `finished`, US-37), with a clear notice
+- Enforced server-side: prediction write endpoints (`POST` / `DELETE` on
+  `/api/admin/predictions`) return 403 when the game is `locked` or `finished`
+- Bracket Prediction entries are already admin-read-only with no edit path (US-62), so they
+  already comply — no change needed there
+- Recording match results (US-10) is unaffected — admins still set results while `locked`
+
+**Amends:** US-37 (was finished-only) and supersedes the US-31 note that allowed admin
+corrections while `locked`. **Notes:** change the `editable` guard in
+`server/src/routes/admin/predictions.js` from `('draft','open','locked')` to
+`('draft','open')`; `PredictionsPage` treats `locked` like `finished` (read-only), which it
+already handles for `finished`.
+
+---
+
+### US-64 · Bracket Dashboard: Max Points, No Matches
+**As an** admin running a Bracket Prediction game,
+**I want** the dashboard to show the maximum achievable points and drop the Matches stat,
+**So that** the dashboard reflects the bracket format instead of match-based numbers.
+
+**Acceptance Criteria:**
+- For a `bracket_prediction` game the dashboard does **not** show the Matches stat (bracket
+  games have no matches, US-45)
+- The dashboard shows a **Max Points** stat = the maximum achievable score =
+  Σ over stages of (`pick_count` × `points_per_correct` + `all_correct_bonus`)
+- The dashboard's Top 5 uses bracket scoring (type-aware) so it reflects real bracket points
+  (US-49), not the empty match predictions
+- The Guess the Winners dashboard is unchanged (keeps its Matches card and existing stats,
+  US-19/US-36)
+
+**Notes:** make `dashboardController.getStats` type-aware — for bracket games compute
+`max_points` from `bracketStageModel.findByGame` and use `bracketStageModel.leaderboard` for
+`top5`, and omit the matches block; `DashboardPage` hides the Matches card and renders a Max
+Points card for bracket games.
+
+---
+
 ## Navigation & Tabs (v3 additions)
 
 | Tab | Route | Access |
