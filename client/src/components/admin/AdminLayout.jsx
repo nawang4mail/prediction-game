@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext.jsx';
-import api from '../../services/api.js';
+import { useGames } from '../../context/GamesContext.jsx';
+import { resolveScopedGame } from '../../utils/scopedGame.js';
 import { isBracket } from '../../constants/gameTypes.js';
 
 // Tabs that differ by the scoped game's type: a Bracket Prediction game manages
@@ -15,21 +15,12 @@ const GUESS_TABS = [
   { to: '/admin/predictions', label: 'Predictions' },
 ];
 
-// Mirrors the server gameScope fallback: explicit selection, else the active
-// (open/locked) game, else the most recent.
-function resolveScopedGame(games, selectedId) {
-  if (selectedId) return games.find((g) => String(g.id) === String(selectedId)) ?? null;
-  return games.find((g) => g.status === 'open' || g.status === 'locked') ?? games[0] ?? null;
-}
-
 export default function AdminLayout({ children }) {
   const { logout } = useAuth();
   const navigate = useNavigate();
-  const [games, setGames] = useState([]);
-
-  useEffect(() => {
-    api.get('/admin/games').then(({ data }) => setGames(data)).catch(() => {});
-  }, []);
+  // Shared list (US-69): a game created on the Games page updates these tabs
+  // immediately, so the first-ever bracket game shows the Bracket tab at once.
+  const { games } = useGames();
 
   const selectedGame = sessionStorage.getItem('admin_game_id') ?? '';
 

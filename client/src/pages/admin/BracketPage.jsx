@@ -3,6 +3,8 @@ import AdminLayout from '../../components/admin/AdminLayout.jsx';
 import Modal from '../../components/admin/Modal.jsx';
 import ConfirmDialog from '../../components/admin/ConfirmDialog.jsx';
 import api from '../../services/api.js';
+import { useGames } from '../../context/GamesContext.jsx';
+import { resolveScopedGame } from '../../utils/scopedGame.js';
 import { isBracket } from '../../constants/gameTypes.js';
 
 const EMPTY_FORM = {
@@ -15,14 +17,6 @@ const EMPTY_FORM = {
   parentIds: [],
 };
 
-// Mirrors the server gameScope fallback: explicit selection, else the active
-// (open/locked) game, else the most recent.
-function resolveScopedGame(games) {
-  const selected = sessionStorage.getItem('admin_game_id');
-  if (selected) return games.find((g) => String(g.id) === String(selected)) ?? null;
-  return games.find((g) => g.status === 'open' || g.status === 'locked') ?? games[0] ?? null;
-}
-
 const parseTeams = (text) =>
   text
     .split('\n')
@@ -30,8 +24,10 @@ const parseTeams = (text) =>
     .filter(Boolean);
 
 export default function BracketPage() {
+  // The scoped game comes from the shared admin games list (US-69).
+  const { games } = useGames();
+  const game = resolveScopedGame(games);
   const [stages, setStages] = useState([]);
-  const [game, setGame] = useState(null);
   const [loading, setLoading] = useState(true);
   const [modal, setModal] = useState(null); // 'add' | { edit: stage }
   const [deleteTarget, setDeleteTarget] = useState(null);
@@ -46,11 +42,7 @@ export default function BracketPage() {
 
   const load = useCallback(async () => {
     try {
-      const [{ data: games }, { data }] = await Promise.all([
-        api.get('/admin/games'),
-        api.get('/admin/bracket'),
-      ]);
-      setGame(resolveScopedGame(games));
+      const { data } = await api.get('/admin/bracket');
       setStages(data);
       setWinners(
         Object.fromEntries(
