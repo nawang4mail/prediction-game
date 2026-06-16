@@ -602,7 +602,7 @@ message banner when declined.
 
 ---
 
-### US-66 · Approval Drives Counts, Finance and Admin Views
+### US-66 · Approval Drives Counts, Finance and Admin Views ✅
 **As an** admin,
 **I want** approved and declined users reflected across the dashboard, finance, and the entries/predictions views,
 **So that** the app only counts and shows approved participants where it matters.

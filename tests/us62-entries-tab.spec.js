@@ -45,6 +45,12 @@ test.describe('US-62: user entries endpoint (server)', () => {
       headers: { 'x-entry-token': joined.entry_token },
       data: { stage_id: sid, team_ids: [t[0].id, t[1].id] },
     });
+    // Self-joined entries start declined (US-65) and the entries view is approved-only
+    // (US-66), so approve it first.
+    await request.put(`${API}/api/admin/users/${joined.id}/status?game_id=${gid}`, {
+      headers: auth,
+      data: { status: 'approved' },
+    });
 
     const list = await (
       await request.get(`${API}/api/admin/bracket/entries?game_id=${gid}`, { headers: auth })
