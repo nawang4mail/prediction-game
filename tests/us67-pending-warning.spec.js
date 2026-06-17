@@ -57,41 +57,5 @@ test.describe('US-67: entry statuses endpoint (server)', () => {
   });
 });
 
-test.describe('US-67: pending-entries warning (UI)', () => {
-  test('warns when some of the device\'s entries are pending', async ({ page }) => {
-    await page.addInitScript(() => {
-      localStorage.setItem('entry_token', 't1');
-      localStorage.setItem(
-        'pg_entries',
-        JSON.stringify([
-          { token: 't1', name: 'Bob', game_id: 100, is_self: true },
-          { token: 't2', name: 'Bob #2', game_id: 100, is_self: true },
-          { token: 't3', name: 'Bob #3', game_id: 100, is_self: true },
-        ])
-      );
-    });
-    await page.route('**/api/participants/statuses', (r) =>
-      r.fulfill({
-        json: [
-          { token: 't1', status: 'approved' },
-          { token: 't2', status: 'declined' },
-          { token: 't3', status: 'declined' },
-        ],
-      })
-    );
-    await page.route('**/api/participants/me', (r) =>
-      r.fulfill({
-        json: {
-          participant: { id: 1, display_name: 'Bob', status: 'approved', status_message: null },
-          game: { id: 100, name: 'Cup', status: 'open', type: 'guess_winners' },
-          predictions: [],
-        },
-      })
-    );
-    await page.goto('/my-predictions');
-
-    await expect(page.getByTestId('pending-entries-warning')).toContainText('2 of your 3 entries');
-    // The current entry is approved, so no per-entry declined banner.
-    await expect(page.getByTestId('declined-banner')).toHaveCount(0);
-  });
-});
+// The in-page pending-entries warning moved to a global banner on every public
+// page — see tests/us71-global-pending-banner.spec.js (US-71 amends US-67).

@@ -32,7 +32,6 @@ export default function MyPredictionsPage() {
   const [addName, setAddName] = useState('');
   const [addBusy, setAddBusy] = useState(false);
   const [editing, setEditing] = useState(false); // bracket: read-only until Edit (US-57)
-  const [pendingCount, setPendingCount] = useState(0); // entries awaiting approval (US-67)
 
   // Loads the current entry (/me uses the current token) and refreshes the
   // device's entry list for that game.
@@ -46,18 +45,7 @@ export default function MyPredictionsPage() {
       is_self: existing?.is_self ?? true,
     });
     setData(me);
-    const list = entriesForGame(me.game.id);
-    setEntries(list);
-
-    // Count how many of this device's entries for the game are pending approval. (US-67)
-    try {
-      const { data: sts } = await api.post('/participants/statuses', {
-        tokens: list.map((e) => e.token),
-      });
-      setPendingCount(sts.filter((s) => s.status === 'declined').length);
-    } catch {
-      setPendingCount(0);
-    }
+    setEntries(entriesForGame(me.game.id));
   }, []);
 
   useEffect(() => {
@@ -315,15 +303,8 @@ export default function MyPredictionsPage() {
             ⚠️ {data.participant.status_message || 'Your entry is awaiting admin approval.'}
           </p>
         )}
-        {data && !adding && entries.length > 1 && pendingCount > 0 && (
-          <p
-            data-testid="pending-entries-warning"
-            className="text-sm text-amber-100 bg-amber-500/15 border border-amber-400/40 rounded-xl px-4 py-3 mb-4 text-center"
-          >
-            ⏳ {pendingCount} of your {entries.length} entries{' '}
-            {pendingCount === 1 ? 'is' : 'are'} pending admin approval.
-          </p>
-        )}
+        {/* The "entries pending approval" warning now lives in a global banner
+            shown on every public page (US-71), not inline here. */}
 
         {/* While adding an entry, hide the current entry's predictions so the
             "Whose entry is this?" step stands alone. (US-58) */}

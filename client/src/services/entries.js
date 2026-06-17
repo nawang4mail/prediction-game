@@ -38,6 +38,9 @@ export const removeEntry = (token) => {
 export const entriesForGame = (gameId) =>
   getEntries().filter((e) => String(e.game_id) === String(gameId));
 
+// Every entry token tracked on this device, across all games (US-71).
+export const allTokens = () => getEntries().map((e) => e.token);
+
 // Computes the next auto-numbered name for a "myself" entry: the base name is
 // the player's first self-entry in this game; subsequent ones get " #N".
 export const nextSelfName = (gameId) => {

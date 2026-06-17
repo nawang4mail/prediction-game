@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext.jsx';
 import ProtectedRoute from './components/admin/ProtectedRoute.jsx';
+import PublicLayout from './components/PublicLayout.jsx';
 
 import HomePage from './pages/HomePage.jsx';
 import JoinPage from './pages/JoinPage.jsx';
@@ -21,10 +22,12 @@ export default function App() {
     <AuthProvider>
       <BrowserRouter>
         <Routes>
-          <Route path="/" element={<HomePage />} />
-          <Route path="/join" element={<JoinPage />} />
-          <Route path="/matches" element={<MatchesListPage />} />
-          <Route path="/my-predictions" element={<MyPredictionsPage />} />
+          <Route element={<PublicLayout />}>
+            <Route path="/" element={<HomePage />} />
+            <Route path="/join" element={<JoinPage />} />
+            <Route path="/matches" element={<MatchesListPage />} />
+            <Route path="/my-predictions" element={<MyPredictionsPage />} />
+          </Route>
           <Route path="/admin/login" element={<LoginPage />} />
           <Route element={<ProtectedRoute />}>
             <Route path="/admin" element={<DashboardPage />} />
