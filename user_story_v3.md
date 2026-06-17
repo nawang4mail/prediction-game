@@ -755,6 +755,46 @@ game is a bracket draft). Server + client; no schema change.
 
 ---
 
+## v3.1.0 — Refinements
+
+### US-71 · Show the Pending-Approval Warning on Every Page ✅
+**As a** player whose entry is awaiting approval,
+**I want** the "pending admin approval" warning pinned to the top of every public page
+(leaderboard, matches, my predictions),
+**So that** I always know an entry of mine isn't approved yet — not only when I open My
+Predictions.
+
+**Root cause:** the pending warning is rendered only inside
+`client/src/pages/MyPredictionsPage.jsx` (the US-67 `pending-entries-warning`, computed
+from `POST /api/participants/statuses`). The public pages are standalone — there is no
+shared public layout — so the leaderboard (`HomePage`) and matches (`MatchesListPage`)
+never show it.
+
+**Acceptance Criteria:**
+- A persistent warning banner shows at the **top of every public page** (`/`, `/matches`,
+  `/my-predictions`, and `/join`) whenever **any** of this device's entries is pending
+  approval (`status === 'declined'`, US-65), across **all** games — not just the selected one
+- The banner stays on top until **no** entry is pending (then it disappears); switching
+  pages or games never hides it while something is still pending
+- The banner summarises the count (e.g. "1 entry is pending admin approval"), the same
+  information the US-67 in-page warning showed
+- The US-67 in-page `pending-entries-warning` is **removed** from My Predictions (it is now
+  global); the per-entry US-65 declined message (`declined-banner`) **stays** inside My
+  Predictions for the selected entry
+- A player with no pending entries sees no banner; works on mobile within the existing
+  responsive layout (US-04)
+
+**Amends:** US-67 (the pending warning moves from the My Predictions page to a global
+top-of-page banner). **Notes:** add a shared public layout that renders a
+`PendingApprovalBanner` once for all public routes (mirror the admin `ProtectedRoute` +
+layout pattern in `client/src/App.jsx`); the banner reads all device entry tokens from
+`client/src/services/entries.js` and calls the existing `POST /api/participants/statuses`,
+counting `declined`. Remove the `pendingCount` state + status call and the
+`pending-entries-warning` block from `MyPredictionsPage`. Client-only; no schema change.
+Target release **v3.1.0**.
+
+---
+
 ## Navigation & Tabs (v3 additions)
 
 | Tab | Route | Access |
