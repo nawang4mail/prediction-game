@@ -1,6 +1,6 @@
 {
   "name": "prediction-game-server",
-  "version": "2.1.0",
+  "version": "3.0.0",
   "description": "World Cup Prediction Game — REST API",
   "type": "module",
   "main": "src/app.js",
