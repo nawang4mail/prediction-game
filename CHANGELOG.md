@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.1.0] - 2026-06-16
+
+Refinements release. Covers user story US-71.
+
+### Changed
+
+- **Pending approval** — the "your entry is awaiting admin approval" warning is now
+  a global banner pinned to the top of every public page (leaderboard, matches, my
+  predictions), reflecting any pending entry on the device across all games, instead
+  of only appearing inside My Predictions (US-71, amends US-67)
+
 ## [3.0.0] - 2026-06-16
 
 Game types & Bracket Prediction release. Covers user stories US-45 to US-70.
