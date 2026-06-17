@@ -2,11 +2,34 @@ import { randomUUID } from 'crypto';
 import * as User from '../models/userModel.js';
 import * as Game from '../models/gameModel.js';
 import * as Match from '../models/matchModel.js';
+import * as Stage from '../models/bracketStageModel.js';
+import * as Selection from '../models/stageSelectionModel.js';
 import { getAll as getSettings } from '../models/settingsModel.js';
 import { upsert, remove, findByUser } from '../models/predictionModel.js';
 
 const PREDICTIONS = ['team_a', 'team_b', 'draw'];
 const DEFAULT_FINISH_MESSAGE = 'Game set — your predictions are saved. Good luck!';
+
+// Maps each stage id to the set of team NAMES a participant picked in it.
+const pickedNamesByStage = (stages, selections) => {
+  const nameById = new Map();
+  for (const s of stages) for (const t of s.teams) nameById.set(t.id, t.name);
+  const byStage = new Map();
+  for (const sel of selections) {
+    const name = nameById.get(sel.stage_team_id);
+    if (!name) continue;
+    if (!byStage.has(sel.stage_id)) byStage.set(sel.stage_id, new Set());
+    byStage.get(sel.stage_id).add(name);
+  }
+  return byStage;
+};
+
+// Union of the team names a participant advanced across the given parent stages.
+const unionNames = (byStage, parentIds) => {
+  const out = new Set();
+  for (const pid of parentIds) for (const n of byStage.get(pid) ?? []) out.add(n);
+  return out;
+};
 
 export const join = async (req, res, next) => {
   try {
@@ -35,13 +58,52 @@ export const join = async (req, res, next) => {
   }
 };
 
+// Returns the approval status for a set of entry tokens, so a device can warn the
+// player about its entries pending approval. (US-67)
+export const statuses = async (req, res, next) => {
+  try {
+    const tokens = Array.isArray(req.body.tokens) ? req.body.tokens : [];
+    const out = [];
+    for (const t of tokens) {
+      const u = await User.findByEntryToken(t);
+      if (u) out.push({ token: t, status: u.status });
+    }
+    res.json(out);
+  } catch (err) {
+    next(err);
+  }
+};
+
 export const me = async (req, res, next) => {
   try {
-    res.json({
-      participant: { id: req.participant.id, display_name: req.participant.display_name },
-      game: { id: req.game.id, name: req.game.name, status: req.game.status },
-      predictions: await findByUser(req.participant.id),
-    });
+    const base = {
+      participant: {
+        id: req.participant.id,
+        display_name: req.participant.display_name,
+        status: req.participant.status,
+        status_message: req.participant.status_message,
+      },
+      game: { id: req.game.id, name: req.game.name, status: req.game.status, type: req.game.type },
+    };
+
+    if (req.game.type === 'bracket_prediction') {
+      // Hide which teams actually won until the game is finished, so picks aren't
+      // influenced by results mid-tournament.
+      const reveal = req.game.status === 'finished';
+      const rawStages = await Stage.findByGame(req.game.id);
+      const selections = await Selection.findByUser(req.participant.id);
+
+      // Return the full team pool (plus parent_ids) for every stage. The client
+      // computes a combined stage's available teams from the player's own picks so
+      // the prediction wizard can update live before anything is saved (US-52, US-56).
+      const stages = rawStages.map((s) => ({
+        ...s,
+        teams: s.teams.map((t) => ({ ...t, is_winner: reveal ? t.is_winner : 0 })),
+      }));
+      return res.json({ ...base, predictions: [], stages, selections });
+    }
+
+    res.json({ ...base, predictions: await findByUser(req.participant.id) });
   } catch (err) {
     next(err);
   }
@@ -68,6 +130,70 @@ export const savePrediction = async (req, res, next) => {
     }
     await upsert({ user_id: req.participant.id, match_id, prediction });
     res.json({ message: 'Saved' });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// Saves a participant's picks for one bracket stage. They must choose exactly
+// the stage's pick_count teams, all belonging to that stage. (US-48)
+export const saveBracketPick = async (req, res, next) => {
+  try {
+    if (req.game.status !== 'open') {
+      return res.status(403).json({ message: 'The game has started — predictions are locked' });
+    }
+    if (req.game.type !== 'bracket_prediction') {
+      return res.status(400).json({ message: 'This game does not use brackets' });
+    }
+    const stages = await Stage.findByGame(req.game.id);
+    const stage = stages.find((s) => s.id === Number(req.body.stage_id));
+    if (!stage) return res.status(404).json({ message: 'Stage not found in your game' });
+
+    // For a combined stage, a player may only pick teams they advanced from its
+    // parents (US-52); a source stage allows any of its teams.
+    let validIds;
+    if (stage.parent_ids?.length) {
+      const selections = await Selection.findByUser(req.participant.id);
+      const advanced = unionNames(pickedNamesByStage(stages, selections), stage.parent_ids);
+      validIds = new Set(stage.teams.filter((t) => advanced.has(t.name)).map((t) => t.id));
+    } else {
+      validIds = new Set(stage.teams.map((t) => t.id));
+    }
+    const teamIds = [
+      ...new Set(
+        (Array.isArray(req.body.team_ids) ? req.body.team_ids : [])
+          .map(Number)
+          .filter((id) => validIds.has(id))
+      ),
+    ];
+    if (teamIds.length !== stage.pick_count) {
+      return res.status(400).json({ message: `Pick exactly ${stage.pick_count} team(s) for this stage` });
+    }
+
+    await Selection.replaceForStage(req.participant.id, stage.id, teamIds);
+    res.json({ message: 'Saved' });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// Removes the current entry, but only while the game is open and the entry has no
+// saved picks — so a cancelled, never-completed entry leaves no record while a
+// completed entry can never be self-deleted. (US-68)
+export const deleteMe = async (req, res, next) => {
+  try {
+    if (req.game.status !== 'open') {
+      return res.status(403).json({ message: 'The game has started — entries can no longer be removed' });
+    }
+    const hasPicks =
+      req.game.type === 'bracket_prediction'
+        ? (await Selection.findByUser(req.participant.id)).length > 0
+        : (await findByUser(req.participant.id)).some((p) => p.prediction);
+    if (hasPicks) {
+      return res.status(409).json({ message: 'This entry has saved picks and cannot be removed' });
+    }
+    await User.remove(req.participant.id);
+    res.json({ message: 'Deleted' });
   } catch (err) {
     next(err);
   }

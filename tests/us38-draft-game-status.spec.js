@@ -41,10 +41,11 @@ test.describe.serial('US-38: draft games', () => {
     expect(pub.every((g) => g.status !== 'draft')).toBe(true);
   });
 
-  test('a non-draft (finished) game cannot be deleted', async ({ request }) => {
-    const finished = (await games(request)).find((g) => g.status === 'finished');
-    expect(finished).toBeTruthy();
-    const res = await request.delete(`${API}/api/admin/games/${finished.id}`, { headers: auth });
+  test('a live (open/locked) game cannot be deleted', async ({ request }) => {
+    // Finished games are deletable (US-60); a live game still is not.
+    const live = (await games(request)).find((g) => g.status === 'open' || g.status === 'locked');
+    expect(live).toBeTruthy();
+    const res = await request.delete(`${API}/api/admin/games/${live.id}`, { headers: auth });
     expect(res.status()).toBe(409);
   });
 

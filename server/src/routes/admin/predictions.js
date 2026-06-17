@@ -8,9 +8,9 @@ const router = Router();
 
 router.use(requireAuth, gameScope);
 
-// Predictions are read-only once a game is finished (US-37); editing is still
-// allowed while a game is being set up or is in progress.
-const editable = requireGameStatus('draft', 'open', 'locked');
+// A user's predictions can only be edited before the game starts (draft/open);
+// once it is locked (started) or finished they are read-only. (US-37, US-63)
+const editable = requireGameStatus('draft', 'open');
 
 router.get('/', list);
 router.post('/', editable, upsert);

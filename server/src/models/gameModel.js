@@ -31,8 +31,11 @@ export const findLatestVisible = async () => {
   return rows[0] ?? null;
 };
 
-export const create = async ({ name }) => {
-  const [result] = await pool.query("INSERT INTO games (name, status) VALUES (?, 'draft')", [name]);
+export const create = async ({ name, type = 'guess_winners' }) => {
+  const [result] = await pool.query(
+    "INSERT INTO games (name, type, status) VALUES (?, ?, 'draft')",
+    [name, type]
+  );
   return result.insertId;
 };
 
@@ -41,7 +44,24 @@ export const updateStatus = async (id, status) => {
   return result.affectedRows;
 };
 
+export const updateType = async (id, type) => {
+  const [result] = await pool.query('UPDATE games SET type = ? WHERE id = ?', [type, id]);
+  return result.affectedRows;
+};
+
 export const remove = async (id) => {
   const [result] = await pool.query('DELETE FROM games WHERE id = ?', [id]);
+  return result.affectedRows;
+};
+
+export const findByIds = async (ids) => {
+  if (!ids.length) return [];
+  const [rows] = await pool.query('SELECT * FROM games WHERE id IN (?)', [ids]);
+  return rows;
+};
+
+export const removeMany = async (ids) => {
+  if (!ids.length) return 0;
+  const [result] = await pool.query('DELETE FROM games WHERE id IN (?)', [ids]);
   return result.affectedRows;
 };

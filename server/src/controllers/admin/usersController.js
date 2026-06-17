@@ -36,6 +36,25 @@ export const update = async (req, res, next) => {
   }
 };
 
+const STATUSES = ['approved', 'declined'];
+
+// Approve or decline a user's entry; a declined entry carries a message shown to
+// the participant. (US-65)
+export const setStatus = async (req, res, next) => {
+  try {
+    const { status } = req.body;
+    if (!STATUSES.includes(status)) {
+      return res.status(400).json({ message: 'Invalid status' });
+    }
+    const message = status === 'declined' ? (req.body.message ?? '').trim() || null : null;
+    const affected = await User.setStatus(req.params.id, status, message);
+    if (!affected) return res.status(404).json({ message: 'User not found' });
+    res.json({ message: 'Updated' });
+  } catch (err) {
+    next(err);
+  }
+};
+
 export const remove = async (req, res, next) => {
   try {
     const affected = await User.remove(req.params.id);

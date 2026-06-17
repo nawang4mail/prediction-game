@@ -70,7 +70,7 @@ test.describe('US-37: predictions grid is read-only in the UI for finished games
     );
 
     await page.goto('/admin/predictions');
-    await expect(page.getByTestId('finished-banner')).toBeVisible();
+    await expect(page.getByTestId('readonly-banner')).toBeVisible();
     await expect(page.getByTestId('cell-1-1')).toBeDisabled();
   });
 });

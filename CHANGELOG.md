@@ -7,6 +7,57 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.0.0] - 2026-06-16
+
+Game types & Bracket Prediction release. Covers user stories US-45 to US-70.
+
+**BREAKING** — requires a schema migration: a `type` column on `games`, the new
+`bracket_stages`, `stage_teams`, `stage_selections`, and `stage_parents` tables,
+a stage `description` column, and a `status` column on `users`. Run the
+migrations before deploying.
+
+### Added
+
+- **Game types** — every game now has a type, chosen at creation: **Guess the
+  Winners** (the existing match-winner game, the default) or **Bracket
+  Prediction**; admin pages adapt to the type and all existing games migrate to
+  `guess_winners` (US-45)
+- **Bracket Prediction** — admins define one or more dynamic stages, each with a
+  team list, pick count, points-per-correct, and an all-correct bonus; players
+  fill the whole bracket upfront and score cumulatively (US-46 to US-49)
+- **Combined stages** — stages can inherit the teams a player advanced from one
+  or more parent stages, enabling real multi-round brackets (US-52)
+- **Bracket UX** — step-by-step prediction wizard with progress, a read-only My
+  Predictions view with an Edit button, optional per-stage descriptions, and the
+  wizard's Save doubling as Finish (US-55 to US-59)
+- **Public bracket views** — type-aware leaderboard, per-player stage picks with
+  per-pick points, and a Matches/Bracket tab ranked by number of selections
+  (US-50, US-51, US-53, US-54)
+- **Admin bracket views** — a "User's entries" tab and a bracket-aware dashboard
+  showing maximum achievable points instead of match stats (US-62, US-64)
+- **Entry approval** — admins approve or decline each entry with an optional
+  message; approval drives participant counts and finance, and players are warned
+  about entries pending approval (US-65 to US-67)
+
+### Changed
+
+- **Games** — draft and finished games can be deleted, individually or in bulk
+  (US-60, US-61)
+- **Predictions** — a user's predictions become read-only to admins once the game
+  is locked, not only when finished (US-63)
+
+### Fixed
+
+- **Admin tabs** — a Bracket Prediction game now shows the Bracket tab even when
+  it is the first game created, without a manual reload (US-69)
+- **Admin panel** — the panel no longer goes blank when the only game is a draft;
+  an admin falls back to the latest game including drafts, and the dashboard
+  degrades gracefully on an empty stats response (US-70)
+- **Entries** — a brand-new entry cancelled before any picks are saved leaves no
+  record, while cancelling an edit never deletes an existing entry (US-68)
+- **Add entry** — the add-entry step shows only the "Whose entry is this?" prompt
+  without the previous entry's predictions (US-58)
+
 ## [2.1.0] - 2026-06-14
 
 ### Changed

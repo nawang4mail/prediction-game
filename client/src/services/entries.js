@@ -30,6 +30,11 @@ export const upsertEntry = (entry) => {
   saveEntries(list);
 };
 
+// Forgets an entry on this device (US-68). Caller decides the next current token.
+export const removeEntry = (token) => {
+  saveEntries(getEntries().filter((e) => e.token !== token));
+};
+
 export const entriesForGame = (gameId) =>
   getEntries().filter((e) => String(e.game_id) === String(gameId));
 

@@ -22,8 +22,23 @@ export default function DashboardPage() {
   useEffect(() => {
     api.get('/admin/dashboard')
       .then(({ data }) => setStats(data))
+      .catch(() => setStats(null))
       .finally(() => setLoading(false));
   }, []);
+
+  // No game to report on yet (e.g. an empty system): keep the panel/nav usable
+  // instead of blanking on a null stats response.
+  if (!loading && !stats) {
+    return (
+      <AdminLayout>
+        <h2 className="text-lg font-semibold text-gray-800 mb-6">Dashboard</h2>
+        <div className="text-center py-16 text-gray-400">
+          <p className="text-4xl mb-3">📊</p>
+          <p className="text-sm">No games yet. Create one on the Games tab to see stats here.</p>
+        </div>
+      </AdminLayout>
+    );
+  }
 
   return (
     <AdminLayout>
@@ -37,25 +52,36 @@ export default function DashboardPage() {
         </div>
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
-          <StatCard
-            label="Matches"
-            value={`${stats.matches.total} / 10`}
-            sub={`${stats.matches.with_result} result${stats.matches.with_result !== 1 ? 's' : ''} set · ${stats.matches.pending} pending`}
-            color="text-green-700"
-          />
+          {/* Bracket Prediction games have no matches (US-64). */}
+          {stats.matches && (
+            <StatCard
+              label="Matches"
+              value={stats.matches.total}
+              sub={`${stats.matches.with_result} result${stats.matches.with_result !== 1 ? 's' : ''} set · ${stats.matches.pending} pending`}
+              color="text-green-700"
+            />
+          )}
           <StatCard
             label="Users"
             value={stats.users}
-            sub="on the leaderboard"
+            sub="approved"
           />
           <StatCard
-            label="Predictions"
-            value={stats.predictions}
-            sub="total picks recorded"
+            label="Pending Users"
+            value={stats.pending_users}
+            sub="awaiting approval"
+            color={stats.pending_users > 0 ? 'text-amber-600' : undefined}
           />
+          {stats.matches && (
+            <StatCard
+              label="Predictions"
+              value={stats.predictions}
+              sub="total picks recorded"
+            />
+          )}
           <StatCard
             label="Max Points"
-            value={stats.matches.with_result}
+            value={stats.matches ? stats.matches.with_result : stats.max_points}
             sub="available to score"
             color="text-blue-600"
           />

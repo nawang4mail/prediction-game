@@ -1,11 +1,14 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import api from '../services/api.js';
+import BracketWizard from '../components/BracketWizard.jsx';
+import BracketSummary from '../components/BracketSummary.jsx';
 import {
   entriesForGame,
   getCurrentToken,
   migrateLegacy,
   nextSelfName,
+  removeEntry,
   setCurrentToken,
   upsertEntry,
 } from '../services/entries.js';
@@ -28,6 +31,8 @@ export default function MyPredictionsPage() {
   const [addFor, setAddFor] = useState('self'); // 'self' | 'other'
   const [addName, setAddName] = useState('');
   const [addBusy, setAddBusy] = useState(false);
+  const [editing, setEditing] = useState(false); // bracket: read-only until Edit (US-57)
+  const [pendingCount, setPendingCount] = useState(0); // entries awaiting approval (US-67)
 
   // Loads the current entry (/me uses the current token) and refreshes the
   // device's entry list for that game.
@@ -41,7 +46,18 @@ export default function MyPredictionsPage() {
       is_self: existing?.is_self ?? true,
     });
     setData(me);
-    setEntries(entriesForGame(me.game.id));
+    const list = entriesForGame(me.game.id);
+    setEntries(list);
+
+    // Count how many of this device's entries for the game are pending approval. (US-67)
+    try {
+      const { data: sts } = await api.post('/participants/statuses', {
+        tokens: list.map((e) => e.token),
+      });
+      setPendingCount(sts.filter((s) => s.status === 'declined').length);
+    } catch {
+      setPendingCount(0);
+    }
   }, []);
 
   useEffect(() => {
@@ -64,8 +80,25 @@ export default function MyPredictionsPage() {
     })();
   }, [navigate, loadMe]);
 
+  // Bracket games are read-only until the player taps Edit (US-57). Start in edit
+  // mode for a brand-new entry with no picks yet; otherwise show the summary.
+  // Re-evaluated per entry (switching entries changes participant.id).
+  useEffect(() => {
+    if (data?.game?.type === 'bracket_prediction' && data.game.status === 'open') {
+      setEditing((data.selections?.length ?? 0) === 0);
+    } else {
+      setEditing(false);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data?.participant?.id]);
+
   const locked = data && data.game.status !== 'open';
-  const hasPicks = !!data && data.predictions.some((p) => p.prediction);
+  const isBracketGame = !!data && data.game.type === 'bracket_prediction';
+  const hasPicks =
+    !!data &&
+    (isBracketGame
+      ? (data.selections?.length ?? 0) > 0
+      : data.predictions.some((p) => p.prediction));
 
   const switchEntry = async (token) => {
     if (token === getCurrentToken()) return;
@@ -105,6 +138,33 @@ export default function MyPredictionsPage() {
       setError(err.response?.data?.message ?? 'Failed to add entry.');
     } finally {
       setAddBusy(false);
+    }
+  };
+
+  // Cancelling a brand-new entry (no saved picks) removes it so no empty record is
+  // kept; cancelling an edit of an entry that has picks just exits. (US-68)
+  const cancelEdit = async () => {
+    const incomplete = isBracketGame && (data.selections?.length ?? 0) === 0;
+    if (!incomplete) {
+      setEditing(false);
+      return;
+    }
+    const token = getCurrentToken();
+    try {
+      await api.delete('/participants/me');
+    } catch {
+      /* a completed entry can't be deleted server-side; just leave it */
+    }
+    removeEntry(token);
+    setEditing(false);
+    const remaining = entriesForGame(data.game.id);
+    if (remaining.length) {
+      setCurrentToken(remaining[0].token);
+      setData(null);
+      await loadMe();
+    } else {
+      setCurrentToken(null);
+      navigate('/join', { replace: true });
     }
   };
 
@@ -237,7 +297,7 @@ export default function MyPredictionsPage() {
           </div>
         )}
 
-        {locked && (
+        {locked && !adding && (
           <p className="text-sm text-amber-200 bg-amber-500/20 border border-amber-400/40 rounded-xl px-4 py-3 mb-4 text-center">
             🔒 The game has started — predictions are locked.
           </p>
@@ -247,13 +307,62 @@ export default function MyPredictionsPage() {
             {error}
           </p>
         )}
+        {data && !adding && data.participant.status === 'declined' && (
+          <p
+            data-testid="declined-banner"
+            className="text-sm text-amber-100 bg-amber-500/25 border border-amber-400/50 rounded-xl px-4 py-3 mb-4 text-center"
+          >
+            ⚠️ {data.participant.status_message || 'Your entry is awaiting admin approval.'}
+          </p>
+        )}
+        {data && !adding && entries.length > 1 && pendingCount > 0 && (
+          <p
+            data-testid="pending-entries-warning"
+            className="text-sm text-amber-100 bg-amber-500/15 border border-amber-400/40 rounded-xl px-4 py-3 mb-4 text-center"
+          >
+            ⏳ {pendingCount} of your {entries.length} entries{' '}
+            {pendingCount === 1 ? 'is' : 'are'} pending admin approval.
+          </p>
+        )}
 
-        {!data ? (
+        {/* While adding an entry, hide the current entry's predictions so the
+            "Whose entry is this?" step stands alone. (US-58) */}
+        {adding ? null : !data ? (
           <div className="space-y-2">
             {[...Array(4)].map((_, i) => (
               <div key={i} className="h-20 bg-white/10 rounded-xl animate-pulse" />
             ))}
           </div>
+        ) : isBracketGame ? (
+          editing && !locked ? (
+            <BracketWizard
+              key={data.participant.id}
+              stages={data.stages ?? []}
+              initialSelections={data.selections ?? []}
+              onSaved={async () => {
+                setEditing(false);
+                await loadMe();
+                // The wizard's Save doubles as Finish — confirm with the admin's
+                // finish message (US-59).
+                await finish();
+              }}
+              onCancel={cancelEdit}
+              onError={setError}
+            />
+          ) : (
+            <>
+              <BracketSummary stages={data.stages ?? []} selections={data.selections ?? []} />
+              {!locked && (
+                <button
+                  onClick={() => setEditing(true)}
+                  data-testid="edit-predictions"
+                  className="mt-3 w-full py-2 bg-green-500 hover:bg-green-400 text-white text-sm font-semibold rounded-lg transition"
+                >
+                  ✏️ {hasPicks ? 'Edit predictions' : 'Make predictions'}
+                </button>
+              )}
+            </>
+          )
         ) : data.predictions.length === 0 ? (
           <p className="text-center text-green-200 text-sm bg-white/10 rounded-xl px-4 py-6">
             No matches yet — check back once the admin adds fixtures.
@@ -291,7 +400,7 @@ export default function MyPredictionsPage() {
           </div>
         )}
 
-        {!locked && data && (
+        {!locked && data && !adding && !editing && (
           <div className="mt-6 text-center">
             {finishMsg ? (
               <p
@@ -301,6 +410,9 @@ export default function MyPredictionsPage() {
                 ✓ {finishMsg}
               </p>
             ) : (
+              // Bracket games confirm via the wizard's Save (US-59); only the match
+              // game shows a separate Finish button.
+              !isBracketGame &&
               hasPicks && (
                 <button
                   onClick={finish}
