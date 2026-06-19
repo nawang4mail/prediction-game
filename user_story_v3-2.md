@@ -306,3 +306,20 @@
 - If no entries anywhere: empty state with "Browse Games" link
 - Loading skeleton while games list fetches
 - Back link on the prediction detail view returns to this game list (`/prediction`)
+
+---
+
+### US-89 · Games Page — Dual-Action Buttons + Re-join After Rejection ✅
+
+**As a** participant
+**I want to** see "Join Game" and "View My Prediction" as independent buttons on each game card
+**So that** I can add a new entry even after a previous one was rejected by the admin
+
+**Acceptance Criteria:**
+- Open game: always shows "Join Game" (blue) — visible even if device already has an entry
+- Has any entry for this game: always shows "View My Prediction" (orange)
+- Open game with existing entry: both buttons shown simultaneously (stacked)
+- Locked/finished with entry: shows "View My Prediction" (orange)
+- Locked/finished without entry: shows "View Leaderboard" (gray)
+- Clicking "Join Game" opens the join form (`/games/:id/join`) which creates a new entry
+- client-2 only; no backend changes

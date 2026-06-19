@@ -108,22 +108,24 @@ function GameCard({ game, navigate }) {
         </span>
       </div>
 
-      <div className="mt-auto pt-2 border-t border-gray-100">
-        {hasEntry ? (
+      <div className="mt-auto pt-2 border-t border-gray-100 flex flex-col gap-2">
+        {game.status === 'open' && (
+          <button
+            onClick={() => navigate(`/games/${game.id}/join`)}
+            className="block w-full text-center py-2.5 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold transition-colors"
+          >
+            + Join Game
+          </button>
+        )}
+        {hasEntry && (
           <Link
             to={`/prediction?game=${game.id}`}
             className="block w-full text-center py-2.5 px-4 rounded-xl bg-orange-500 hover:bg-orange-600 text-white text-sm font-semibold transition-colors"
           >
             View My Prediction
           </Link>
-        ) : game.status === 'open' ? (
-          <button
-            onClick={() => navigate(`/games/${game.id}/join`)}
-            className="block w-full text-center py-2.5 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold transition-colors"
-          >
-            Join Game
-          </button>
-        ) : (
+        )}
+        {!hasEntry && game.status !== 'open' && (
           <Link
             to={`/leaderboard?game=${game.id}`}
             className="block w-full text-center py-2.5 px-4 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-semibold transition-colors"
