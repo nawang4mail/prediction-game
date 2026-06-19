@@ -6,7 +6,7 @@
 
 ---
 
-### US-72 · App Shell, Fonts & Sticky Navigation
+### US-72 · App Shell, Fonts & Sticky Navigation ✅
 
 **As a** participant  
 **I want to** see a polished, responsive app shell with a sticky dark navbar  
@@ -27,7 +27,7 @@
 
 ---
 
-### US-73 · Leaderboard Hero Section & Game Selector
+### US-73 · Leaderboard Hero Section & Game Selector ✅
 
 **As a** participant  
 **I want to** see a striking hero banner on the leaderboard page with a game selection dropdown  
@@ -46,7 +46,7 @@
 
 ---
 
-### US-74 · Leaderboard Table with Pinned User Row
+### US-74 · Leaderboard Table with Pinned User Row ✅
 
 **As a** participant  
 **I want to** see the full leaderboard for the selected game, with my own best entry pinned at the bottom in orange  
@@ -66,7 +66,7 @@
 
 ---
 
-### US-75 · Games Browse & Filter Page
+### US-75 · Games Browse & Filter Page ✅
 
 **As a** participant  
 **I want to** browse all available games and filter by type  
@@ -84,7 +84,7 @@
 
 ---
 
-### US-76 · Join Game Flow
+### US-76 · Join Game Flow ✅
 
 **As a** participant  
 **I want to** join an open game by entering my display name and optional phone number  
@@ -104,7 +104,7 @@
 
 ---
 
-### US-77 · My Prediction Page — Guess Winners
+### US-77 · My Prediction Page — Guess Winners ✅
 
 **As a** participant  
 **I want to** view and make predictions for a Guess Winners game  
@@ -125,7 +125,7 @@
 
 ---
 
-### US-78 · My Prediction Page — Bracket Prediction
+### US-78 · My Prediction Page — Bracket Prediction ✅
 
 **As a** participant  
 **I want to** view and make bracket picks for a Bracket Prediction game  
@@ -145,7 +145,7 @@
 
 ---
 
-### US-79 · Entry Status Awareness & Multi-Game Identity
+### US-79 · Entry Status Awareness & Multi-Game Identity ✅
 
 **As a** participant  
 **I want to** see my approval status clearly and have my device remember all my entries  
@@ -160,7 +160,7 @@
 
 ---
 
-### US-80 · Admin Authentication
+### US-80 · Admin Authentication ✅
 
 **As an** admin  
 **I want to** log in to a protected admin panel within the same app  
@@ -176,7 +176,7 @@
 
 ---
 
-### US-81 · Admin Dashboard
+### US-81 · Admin Dashboard ✅
 
 **As an** admin  
 **I want to** see a summary of the current game's activity at a glance  
@@ -192,7 +192,7 @@
 
 ---
 
-### US-82 · Admin Game Management
+### US-82 · Admin Game Management ✅
 
 **As an** admin  
 **I want to** create, configure, and lifecycle-manage games  
@@ -209,7 +209,7 @@
 
 ---
 
-### US-83 · Admin Match Management (Guess Winners)
+### US-83 · Admin Match Management (Guess Winners) ✅
 
 **As an** admin  
 **I want to** add, edit, and score matches for a Guess Winners game  
@@ -225,7 +225,7 @@
 
 ---
 
-### US-84 · Admin Bracket Management
+### US-84 · Admin Bracket Management ✅
 
 **As an** admin  
 **I want to** create stages and mark winners for a Bracket Prediction game  
@@ -241,7 +241,7 @@
 
 ---
 
-### US-85 · Admin User Management
+### US-85 · Admin User Management ✅
 
 **As an** admin  
 **I want to** view, approve, decline, add, and bulk-import participants  
@@ -260,7 +260,7 @@
 
 ---
 
-### US-86 · Admin Settings & Prize Tiers
+### US-86 · Admin Settings & Prize Tiers ✅
 
 **As an** admin  
 **I want to** configure game settings and prize distribution  
@@ -275,7 +275,7 @@
 
 ---
 
-### US-87 · Admin Prediction Grid (Guess Winners)
+### US-87 · Admin Prediction Grid (Guess Winners) ✅
 
 **As an** admin  
 **I want to** view all approved participants' predictions in a grid  
@@ -288,3 +288,21 @@
 - Admin can click a cell to set/change a prediction → `POST /api/admin/predictions`
 - Admin can clear a cell → `DELETE /api/admin/predictions/:userId/:matchId`
 - Grid is read-only once game is `locked` (per backend rule US-63)
+
+---
+
+### US-88 · My Prediction — Games Entry List ✅
+
+**As a** participant
+**I want to** see a list of all games I have entries in when I open "My Prediction" without a specific game selected
+**So that** I can quickly pick which game's predictions to view
+
+**Acceptance Criteria:**
+- Route: `/prediction` (no `?game=` param)
+- Reads entries from `localStorage` via `getEntries()`
+- Fetches `GET /api/games` to get game metadata (name, type, status)
+- Filters to games where `entriesForGame(game.id).length > 0`
+- Shows a card grid: game name, type badge, status badge, entry count, "View Predictions" button → navigates to `/prediction?game=<id>`
+- If no entries anywhere: empty state with "Browse Games" link
+- Loading skeleton while games list fetches
+- Back link on the prediction detail view returns to this game list (`/prediction`)

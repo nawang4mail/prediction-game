@@ -1,12 +1,85 @@
 import { useState, useEffect, useCallback } from 'react'
-import { useSearchParams, Link } from 'react-router-dom'
+import { useSearchParams, Link, useNavigate } from 'react-router-dom'
 import api from '../services/api.js'
-import { entriesForGame } from '../services/entries.js'
+import { entriesForGame, getEntries } from '../services/entries.js'
+
+const TYPE_LABELS = { guess_winners: 'Guess Winners', bracket_prediction: 'Bracket' }
+const STATUS_CONFIG = {
+  open: { label: 'Open', cls: 'bg-green-100 text-green-800 border-green-200' },
+  locked: { label: 'Locked', cls: 'bg-yellow-100 text-yellow-800 border-yellow-200' },
+  finished: { label: 'Finished', cls: 'bg-gray-100 text-gray-600 border-gray-200' },
+}
+
+function MyGamesSelector({ games, loading }) {
+  const navigate = useNavigate()
+  const myGames = games.filter((g) => entriesForGame(g.id).length > 0)
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <div className="bg-gradient-to-br from-blue-600 to-blue-800 py-10 px-4">
+        <div className="max-w-3xl mx-auto">
+          <h1 className="font-oswald text-4xl sm:text-5xl font-bold text-white uppercase tracking-wider">
+            My Predictions
+          </h1>
+          <p className="text-blue-200 text-sm mt-1">Games you have entered</p>
+        </div>
+      </div>
+
+      <div className="max-w-3xl mx-auto px-4 py-8">
+        {loading ? (
+          <div className="grid sm:grid-cols-2 gap-4">
+            {[...Array(3)].map((_, i) => (
+              <div key={i} className="h-36 bg-white rounded-2xl shadow-sm animate-pulse" />
+            ))}
+          </div>
+        ) : myGames.length === 0 ? (
+          <div className="text-center py-20 text-gray-400">
+            <p className="text-4xl mb-3">🎯</p>
+            <p className="text-sm mb-4">You haven't joined any games yet.</p>
+            <Link to="/games" className="inline-block px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-xl transition-colors">
+              Browse Games
+            </Link>
+          </div>
+        ) : (
+          <div className="grid sm:grid-cols-2 gap-4">
+            {myGames.map((game) => {
+              const entries = entriesForGame(game.id)
+              const cfg = STATUS_CONFIG[game.status] ?? STATUS_CONFIG.finished
+              return (
+                <div key={game.id} className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 flex flex-col gap-3 hover:shadow-md transition-shadow">
+                  <div className="flex items-start justify-between gap-2">
+                    <h2 className="font-oswald text-lg font-semibold text-gray-900 leading-tight">{game.name}</h2>
+                    <span className={`shrink-0 text-xs font-semibold px-2.5 py-1 rounded-full border ${cfg.cls}`}>
+                      {cfg.label}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-medium px-2.5 py-1 rounded-full bg-blue-50 text-blue-700 border border-blue-100">
+                      {TYPE_LABELS[game.type] ?? game.type}
+                    </span>
+                    <span className="text-xs text-gray-400">{entries.length} entr{entries.length !== 1 ? 'ies' : 'y'}</span>
+                  </div>
+                  <button
+                    onClick={() => navigate(`/prediction?game=${game.id}`)}
+                    className="mt-auto w-full py-2.5 px-4 rounded-xl bg-orange-500 hover:bg-orange-600 text-white text-sm font-semibold transition-colors"
+                  >
+                    View Predictions
+                  </button>
+                </div>
+              )
+            })}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
 
 export default function PredictionPage() {
   const [searchParams] = useSearchParams()
   const gameId = searchParams.get('game') ? Number(searchParams.get('game')) : null
   const [games, setGames] = useState([])
+  const [gamesLoading, setGamesLoading] = useState(true)
   const [game, setGame] = useState(null)
   const [participant, setParticipant] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -17,10 +90,11 @@ export default function PredictionPage() {
 
   // Load games list to find game type (needed before we have participant)
   useEffect(() => {
+    setGamesLoading(true)
     api.get('/games').then(({ data }) => {
       setGames(data)
       if (gameId) setGame(data.find((g) => g.id === gameId) ?? null)
-    }).catch(() => {})
+    }).catch(() => {}).finally(() => setGamesLoading(false))
   }, [gameId])
 
   const load = useCallback(async () => {
@@ -42,16 +116,9 @@ export default function PredictionPage() {
 
   useEffect(() => { load() }, [load])
 
-  // Redirect to games if no gameId
+  // No game selected — show list of games the user has entries in
   if (!gameId) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-gray-500 mb-4">Select a game to view your predictions.</p>
-          <Link to="/games" className="text-blue-600 font-semibold hover:underline">Browse Games</Link>
-        </div>
-      </div>
-    )
+    return <MyGamesSelector games={games} loading={gamesLoading} />
   }
 
   const gameName = game?.name ?? 'Game'
@@ -65,8 +132,8 @@ export default function PredictionPage() {
       {/* Hero */}
       <div className="bg-gradient-to-br from-blue-600 to-blue-800 py-10 px-4">
         <div className="max-w-3xl mx-auto">
-          <Link to="/games" className="inline-flex items-center gap-1.5 text-blue-200 hover:text-white text-sm mb-4 transition-colors">
-            ← All Games
+          <Link to="/prediction" className="inline-flex items-center gap-1.5 text-blue-200 hover:text-white text-sm mb-4 transition-colors">
+            ← My Predictions
           </Link>
           <h1 className="font-oswald text-4xl sm:text-5xl font-bold text-white uppercase tracking-wider">
             My Prediction
@@ -133,7 +200,7 @@ function PendingBanner({ message }) {
   )
 }
 
-// ─── Guess Winners ───────────────────────────────────────────────────────────
+// Guess Winners
 
 function GuessWinnersPredictions({ gameId, gameStatus, participant }) {
   const matches = participant?.matches ?? []
@@ -173,7 +240,6 @@ function GuessWinnersPredictions({ gameId, gameStatus, participant }) {
   }
 
   const allPicked = matches.length > 0 && matches.every((m) => local[m.id])
-  const result = (matchId) => matches.find((m) => m.id === matchId)?.result
 
   return (
     <div className="space-y-3">
@@ -222,7 +288,6 @@ function MatchCard({ match, selected, saving, editable, onPick, result }) {
     const isWrong = result && selected === value && result !== value
 
     if (result) {
-      // game locked/finished — show result
       if (isResult && isSelected) return 'bg-green-500 text-white ring-2 ring-green-400'
       if (isResult && !isSelected) return 'bg-green-100 text-green-800 border-green-200'
       if (isWrong) return 'bg-red-100 text-red-700 border-red-200'
@@ -255,7 +320,7 @@ function MatchCard({ match, selected, saving, editable, onPick, result }) {
   )
 }
 
-// ─── Bracket Prediction ──────────────────────────────────────────────────────
+// Bracket Prediction
 
 function BracketPredictions({ gameId, gameStatus, participant }) {
   const stages = participant?.stages ?? []
@@ -264,7 +329,6 @@ function BracketPredictions({ gameId, gameStatus, participant }) {
   const [finished, setFinished] = useState(participant?.participant?.finished ?? false)
   const isEditable = gameStatus === 'open' && !finished
 
-  // Init selections from participant data
   useEffect(() => {
     const init = {}
     ;(participant?.stages ?? []).forEach((stage) => {
@@ -283,7 +347,6 @@ function BracketPredictions({ gameId, gameStatus, participant }) {
       } else if (current.length < pickCount) {
         next = [...current, teamId]
       } else {
-        // Replace oldest pick
         next = [...current.slice(1), teamId]
       }
       return { ...prev, [stageId]: next }
