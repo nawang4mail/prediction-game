@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Outlet, NavLink, useNavigate } from 'react-router-dom'
+import { AdminGameProvider, useAdminGame } from '../../context/AdminGameContext.jsx'
 
 const adminLinks = [
   { to: '/admin/dashboard', label: 'Dashboard', icon: '📊' },
@@ -11,9 +12,10 @@ const adminLinks = [
   { to: '/admin/settings', label: 'Settings', icon: '⚙️' },
 ]
 
-export default function AdminLayout() {
+function AdminLayoutInner() {
   const navigate = useNavigate()
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const { games, selectedId, select } = useAdminGame()
 
   useEffect(() => {
     const token = localStorage.getItem('admin_token')
@@ -22,6 +24,7 @@ export default function AdminLayout() {
 
   const handleLogout = () => {
     localStorage.removeItem('admin_token')
+    sessionStorage.removeItem('admin_game_id')
     navigate('/admin/login', { replace: true })
   }
 
@@ -98,11 +101,34 @@ export default function AdminLayout() {
           <h1 className="font-oswald text-gray-900 font-semibold text-lg uppercase tracking-wide">
             Admin Panel
           </h1>
+          {games.length > 0 && (
+            <div className="ml-auto">
+              <select
+                value={selectedId ?? ''}
+                onChange={(e) => select(e.target.value)}
+                className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 text-gray-700 focus:border-blue-400 focus:ring-1 focus:ring-blue-200 outline-none"
+              >
+                {games.map((g) => (
+                  <option key={g.id} value={g.id}>
+                    {g.name} ({g.status})
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
         </header>
         <main className="flex-1 p-6 overflow-auto">
           <Outlet />
         </main>
       </div>
     </div>
+  )
+}
+
+export default function AdminLayout() {
+  return (
+    <AdminGameProvider>
+      <AdminLayoutInner />
+    </AdminGameProvider>
   )
 }
