@@ -831,3 +831,28 @@ the picks panel rendered every pick blue with no `+points`.
 stages with no results set simply have `is_winner = 0` and render as plain picks.
 The player's own `/participants/me` editing view is unchanged (still hides results
 until finished, so live picks aren't influenced). server only.
+
+---
+
+### US-114 · Team Reference Database (Countries/Clubs) with Icons
+
+**As an** organizer adding matches or bracket stages
+**I want to** pick teams from a validated reference list that carries an icon
+**So that** team names are consistent (no typos) and flags/logos show everywhere
+
+**Acceptance Criteria:**
+- A `teams` reference table (full_name, short_name, type country|club, local icon)
+  with `full_name` unique — the canonical string already stored in
+  `matches.team_a/team_b` and `stage_teams.name` (names are kept, not converted to
+  FKs, because combined-stage logic matches teams by name)
+- ~200 countries seeded with flags (`npm run seed:teams`, flagcdn.com), downloaded
+  into `server/public/icons/` and served at `/icons` (no runtime hot-linking)
+- Admin Teams CRUD page (global, like Games): add/edit/delete; a pasted icon URL is
+  downloaded and stored locally (mainly for club logos)
+- Writes are validated: adding/editing a match or a bracket **source** stage with a
+  team not in the table returns 400. Combined stages inherit from validated parents
+- Admin match inputs become a searchable `TeamSelect`; bracket teams use a
+  `TeamMultiSelect` (chips) instead of the comma-separated textarea
+- Icons render across admin pickers and public/player views (Matches, Leaderboard
+  incl. player picks, My Game, Play flow); legacy free-text names degrade gracefully
+- Existing legacy rows are left as-is; only new writes are validated

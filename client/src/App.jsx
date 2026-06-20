@@ -1,47 +1,61 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { AuthProvider } from './context/AuthContext.jsx';
-import ProtectedRoute from './components/admin/ProtectedRoute.jsx';
-import PublicLayout from './components/PublicLayout.jsx';
-
-import HomePage from './pages/HomePage.jsx';
-import JoinPage from './pages/JoinPage.jsx';
-import MatchesListPage from './pages/MatchesListPage.jsx';
-import MyPredictionsPage from './pages/MyPredictionsPage.jsx';
-import LoginPage from './pages/admin/LoginPage.jsx';
-import DashboardPage from './pages/admin/DashboardPage.jsx';
-import GamesPage from './pages/admin/GamesPage.jsx';
-import MatchesPage from './pages/admin/MatchesPage.jsx';
-import BracketPage from './pages/admin/BracketPage.jsx';
-import EntriesPage from './pages/admin/EntriesPage.jsx';
-import UsersPage from './pages/admin/UsersPage.jsx';
-import PredictionsPage from './pages/admin/PredictionsPage.jsx';
-import SettingsPage from './pages/admin/SettingsPage.jsx';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { EntryProvider } from './context/EntryContext.jsx'
+import { TeamsProvider } from './context/TeamsContext.jsx'
+import PublicLayout from './components/layout/PublicLayout.jsx'
+import LeaderboardPage from './pages/LeaderboardPage.jsx'
+import GamesPage from './pages/GamesPage.jsx'
+import JoinPage from './pages/JoinPage.jsx'
+import PlayPage from './pages/PlayPage.jsx'
+import PredictionPage from './pages/PredictionPage.jsx'
+import MatchesPage from './pages/MatchesPage.jsx'
+import AdminLayout from './components/layout/AdminLayout.jsx'
+import AdminLoginPage from './pages/admin/AdminLoginPage.jsx'
+import AdminDashboard from './pages/admin/AdminDashboard.jsx'
+import AdminGamesPage from './pages/admin/AdminGamesPage.jsx'
+import AdminMatchesPage from './pages/admin/AdminMatchesPage.jsx'
+import AdminBracketPage from './pages/admin/AdminBracketPage.jsx'
+import AdminUsersPage from './pages/admin/AdminUsersPage.jsx'
+import AdminSettingsPage from './pages/admin/AdminSettingsPage.jsx'
+import AdminPredictionsPage from './pages/admin/AdminPredictionsPage.jsx'
+import AdminTeamsPage from './pages/admin/AdminTeamsPage.jsx'
 
 export default function App() {
   return (
-    <AuthProvider>
-      <BrowserRouter>
+    <BrowserRouter>
+      <EntryProvider>
+        <TeamsProvider>
         <Routes>
+          {/* Public routes */}
           <Route element={<PublicLayout />}>
-            <Route path="/" element={<HomePage />} />
-            <Route path="/join" element={<JoinPage />} />
-            <Route path="/matches" element={<MatchesListPage />} />
-            <Route path="/my-predictions" element={<MyPredictionsPage />} />
+            <Route index element={<Navigate to="/leaderboard" replace />} />
+            <Route path="/leaderboard" element={<LeaderboardPage />} />
+            <Route path="/leagues" element={<GamesPage />} />
+            <Route path="/leagues/:id/join" element={<JoinPage />} />
+            <Route path="/leagues/:id/play" element={<PlayPage />} />
+            <Route path="/my-game" element={<PredictionPage />} />
+            <Route path="/matches" element={<MatchesPage />} />
+            {/* Backward-compat redirects */}
+            <Route path="/games" element={<Navigate to="/leagues" replace />} />
+            <Route path="/games/:id/join" element={<Navigate to="/leagues/:id/join" replace />} />
+            <Route path="/prediction" element={<Navigate to="/my-game" replace />} />
           </Route>
-          <Route path="/admin/login" element={<LoginPage />} />
-          <Route element={<ProtectedRoute />}>
-            <Route path="/admin" element={<DashboardPage />} />
-            <Route path="/admin/games" element={<GamesPage />} />
-            <Route path="/admin/matches" element={<MatchesPage />} />
-            <Route path="/admin/bracket" element={<BracketPage />} />
-            <Route path="/admin/entries" element={<EntriesPage />} />
-            <Route path="/admin/users" element={<UsersPage />} />
-            <Route path="/admin/predictions" element={<PredictionsPage />} />
-            <Route path="/admin/settings" element={<SettingsPage />} />
+
+          {/* Admin routes */}
+          <Route path="/admin/login" element={<AdminLoginPage />} />
+          <Route path="/admin" element={<AdminLayout />}>
+            <Route index element={<Navigate to="/admin/dashboard" replace />} />
+            <Route path="dashboard" element={<AdminDashboard />} />
+            <Route path="games" element={<AdminGamesPage />} />
+            <Route path="matches" element={<AdminMatchesPage />} />
+            <Route path="bracket" element={<AdminBracketPage />} />
+            <Route path="users" element={<AdminUsersPage />} />
+            <Route path="teams" element={<AdminTeamsPage />} />
+            <Route path="settings" element={<AdminSettingsPage />} />
+            <Route path="predictions" element={<AdminPredictionsPage />} />
           </Route>
-          <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
-      </BrowserRouter>
-    </AuthProvider>
-  );
+        </TeamsProvider>
+      </EntryProvider>
+    </BrowserRouter>
+  )
 }
