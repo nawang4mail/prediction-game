@@ -72,7 +72,7 @@ export default function AdminPredictionsPage() {
             <div className="h-40 bg-gray-100 rounded-xl animate-pulse" />
           </div>
         ) : users.length === 0 ? (
-          <p className="p-8 text-center text-gray-400 text-sm">No approved users yet.</p>
+          <p className="p-8 text-center text-gray-400 text-sm">No entries yet.</p>
         ) : (
           <table className="text-xs border-collapse">
             <thead>
@@ -97,7 +97,16 @@ export default function AdminPredictionsPage() {
             <tbody className="divide-y divide-gray-50">
               {users.map((u) => (
                 <tr key={u.id} className="hover:bg-blue-50/40">
-                  <td className="sticky left-0 bg-white z-10 py-2.5 px-4 font-medium text-gray-900 border-r border-gray-100 text-xs">{u.display_name}</td>
+                  <td className="sticky left-0 bg-white z-10 py-2.5 px-4 font-medium text-gray-900 border-r border-gray-100 text-xs">
+                    <span className="flex items-center gap-1.5">
+                      {u.display_name}
+                      {u.status === 'declined' && (
+                        <span className="text-[9px] font-semibold uppercase bg-yellow-100 text-yellow-700 px-1.5 py-0.5 rounded-full tracking-wide">
+                          Pending
+                        </span>
+                      )}
+                    </span>
+                  </td>
                   {matches.map((m) => {
                     const pred = predictions[u.id]?.[m.id]
                     const isEditing = editing?.userId === u.id && editing?.matchId === m.id
