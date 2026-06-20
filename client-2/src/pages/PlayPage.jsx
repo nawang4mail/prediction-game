@@ -22,6 +22,7 @@ export default function PlayPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
+  const [submitted, setSubmitted] = useState(false)
 
   // Local-only pick state — never sent until Submit.
   const [predictions, setPredictions] = useState({}) // { matchId: 'team_a'|'draw'|'team_b' }
@@ -106,7 +107,8 @@ export default function PlayPage() {
         status: data.participant?.status ?? 'declined',
       })
       reload()
-      navigate(`/my-game?game=${gameId}`, { replace: true })
+      // Confirm the entry, then send the player to the leaderboard.
+      setSubmitted(true)
     } catch (err) {
       setError(err.response?.data?.message ?? 'Could not submit your entry. Please try again.')
       setSubmitting(false)
@@ -224,6 +226,52 @@ export default function PlayPage() {
           </div>
         </div>
       )}
+
+      {/* Submission confirmation → leaderboard */}
+      {submitted && (
+        <EntrySubmittedModal
+          gameName={game?.name}
+          playerName={identity?.display_name}
+          onGo={() => navigate(`/leaderboard?game=${gameId}`, { replace: true })}
+        />
+      )}
+    </div>
+  )
+}
+
+// Confirms the entry was saved, then sends the player to the leaderboard
+// (auto-redirect after a short pause, or immediately via the button). (US-104)
+function EntrySubmittedModal({ gameName, playerName, onGo }) {
+  useEffect(() => {
+    document.body.style.overflow = 'hidden'
+    const t = setTimeout(onGo, 3000)
+    return () => { document.body.style.overflow = ''; clearTimeout(t) }
+  }, [onGo])
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      style={{ backgroundColor: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(2px)' }}
+    >
+      <div className="w-full max-w-sm bg-white rounded-2xl shadow-2xl p-7 text-center">
+        <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-4">
+          <svg className="w-9 h-9 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+          </svg>
+        </div>
+        <h2 className="font-oswald text-2xl font-bold text-gray-900 uppercase tracking-wide mb-2">Entry Submitted!</h2>
+        <p className="text-sm text-gray-600 leading-relaxed mb-1">
+          {playerName ? <span className="font-semibold">{playerName}</span> : 'Your'} picks{gameName ? ` for ${gameName}` : ''} are in.
+        </p>
+        <p className="text-xs text-gray-400 mb-6">They'll count once the organizer approves your entry.</p>
+        <button
+          onClick={onGo}
+          className="w-full py-3 rounded-xl bg-[#2b4dff] hover:bg-[#1a33cc] text-white text-sm font-semibold transition-colors"
+        >
+          View Leaderboard →
+        </button>
+        <p className="text-[11px] text-gray-400 mt-3">Taking you to the leaderboard…</p>
+      </div>
     </div>
   )
 }

@@ -407,8 +407,9 @@ function GuessWinnersPredictions({ gameId, gameStatus, participant, entryToken }
   const predictions = participant?.predictions ?? {}
   const [local, setLocal] = useState(predictions)
   const [saving, setSaving] = useState({})
-  const [finished, setFinished] = useState(participant?.participant?.finished ?? false)
-  const isEditable = gameStatus === 'open' && !finished
+  const [editMode, setEditMode] = useState(false)
+  const canEdit = gameStatus === 'open'        // editing is allowed at all
+  const isEditable = canEdit && editMode       // editing is currently on
   const authCfg = entryToken ? { headers: { 'x-entry-token': entryToken } } : undefined
 
   useEffect(() => { setLocal(participant?.predictions ?? {}) }, [participant])
@@ -427,23 +428,10 @@ function GuessWinnersPredictions({ gameId, gameStatus, participant, entryToken }
     }
   }
 
-  const handleFinish = async () => {
-    try {
-      await api.post('/participants/me/finish', { game_id: gameId }, authCfg)
-      setFinished(true)
-    } catch (err) {
-      alert(err.response?.data?.message ?? 'Could not finish entry.')
-    }
-  }
-
-  const allPicked = matches.length > 0 && matches.every((m) => local[m.id])
-
   return (
     <div className="space-y-3 pt-2">
-      {finished && (
-        <div className="bg-green-50 border border-green-200 rounded-xl px-4 py-3 text-green-800 text-sm font-medium">
-          ✅ Your entry is confirmed. Good luck!
-        </div>
+      {canEdit && (
+        <EditToggle editMode={editMode} onToggle={() => setEditMode((v) => !v)} />
       )}
       {matches.length === 0 ? (
         <p className="text-center text-gray-400 text-sm py-6">No matches have been added yet.</p>
@@ -460,14 +448,26 @@ function GuessWinnersPredictions({ gameId, gameStatus, participant, entryToken }
           />
         ))
       )}
-      {isEditable && allPicked && (
-        <button
-          onClick={handleFinish}
-          className="w-full py-3.5 bg-[#f05a00] hover:bg-orange-600 text-white font-semibold rounded-xl transition-colors mt-4"
-        >
-          Confirm & Finish Entry
-        </button>
-      )}
+    </div>
+  )
+}
+
+// Read-only by default; the player must press Edit to change picks, which turns
+// the button into "Confirm Changes". Picks save as they are made. (US-104)
+function EditToggle({ editMode, onToggle }) {
+  return (
+    <div className="flex items-center justify-between gap-3 bg-white rounded-xl border border-gray-200 px-4 py-2.5 shadow-sm">
+      <span className="text-xs text-gray-500">
+        {editMode ? 'Editing — tap options to change' : 'Your picks are locked'}
+      </span>
+      <button
+        onClick={onToggle}
+        className={`px-4 py-2 rounded-lg text-sm font-semibold text-white transition-colors shrink-0 ${
+          editMode ? 'bg-green-600 hover:bg-green-700' : 'bg-[#f05a00] hover:bg-orange-600'
+        }`}
+      >
+        {editMode ? '✓ Confirm Changes' : '✎ Edit Entry'}
+      </button>
     </div>
   )
 }
@@ -522,8 +522,9 @@ function BracketPredictions({ gameId, gameStatus, participant, entryToken }) {
   const stages = participant?.stages ?? []
   const [selections, setSelections] = useState({})
   const [saving, setSaving] = useState({})
-  const [finished, setFinished] = useState(participant?.participant?.finished ?? false)
-  const isEditable = gameStatus === 'open' && !finished
+  const [editMode, setEditMode] = useState(false)
+  const canEdit = gameStatus === 'open'
+  const isEditable = canEdit && editMode
   const authCfg = entryToken ? { headers: { 'x-entry-token': entryToken } } : undefined
 
   useEffect(() => {
@@ -559,25 +560,10 @@ function BracketPredictions({ gameId, gameStatus, participant, entryToken }) {
     finally { setSaving((s) => ({ ...s, [stageId]: false })) }
   }
 
-  const handleFinish = async () => {
-    try {
-      await api.post('/participants/me/finish', { game_id: gameId }, authCfg)
-      setFinished(true)
-    } catch (err) {
-      alert(err.response?.data?.message ?? 'Could not finish entry.')
-    }
-  }
-
-  const allComplete = stages.length > 0 && stages.every((stage) =>
-    (selections[stage.id] ?? []).length === stage.pick_count
-  )
-
   return (
     <div className="space-y-4 pt-2">
-      {finished && (
-        <div className="bg-green-50 border border-green-200 rounded-xl px-4 py-3 text-green-800 text-sm font-medium">
-          ✅ Your bracket is confirmed. Good luck!
-        </div>
+      {canEdit && (
+        <EditToggle editMode={editMode} onToggle={() => setEditMode((v) => !v)} />
       )}
       {stages.length === 0 ? (
         <p className="text-center text-gray-400 text-sm py-6">No stages have been added yet.</p>
@@ -592,14 +578,6 @@ function BracketPredictions({ gameId, gameStatus, participant, entryToken }) {
             onToggle={(teamId) => toggleTeam(stage.id, teamId, stage.pick_count)}
           />
         ))
-      )}
-      {isEditable && allComplete && (
-        <button
-          onClick={handleFinish}
-          className="w-full py-3.5 bg-[#f05a00] hover:bg-orange-600 text-white font-semibold rounded-xl transition-colors mt-4"
-        >
-          Confirm & Finish Bracket
-        </button>
       )}
     </div>
   )

@@ -586,3 +586,31 @@
   recognises (deleted server-side), in addition to refreshing statuses
 - My Game reconciles on mount and re-renders, so stale/deleted entries disappear
   and entry counts are correct
+
+---
+
+### US-104 · Read-Only My Game with Edit Toggle & Submit Confirmation
+
+**As a** player viewing my entry in My Game
+**I want to** see my picks locked by default and edit only after pressing Edit
+**So that** I don't change picks by accident
+
+**Acceptance Criteria:**
+- In My Game (accordion and detail view) picks are read-only by default, even when
+  the game is open
+- An "✎ Edit Entry" button appears for open games; pressing it enables editing and
+  the button becomes "✓ Confirm Changes"
+- Pressing "Confirm Changes" returns the picks to read-only (changes save as they
+  are made)
+- Locked/finished games show no edit button (always read-only)
+- The old "Confirm & Finish Entry" button is removed in favour of this toggle
+
+**As a** player who just submitted an entry from Leagues (Join or Add Entry)
+**I want to** see a confirmation, then land on the leaderboard
+**So that** I know my entry was saved and can see standings
+
+**Acceptance Criteria:**
+- After submitting picks on the play page, a confirmation modal appears
+  ("Entry Submitted!") with the player/game name
+- It then goes to the leaderboard for that game (auto-redirect after a short pause,
+  or immediately via the "View Leaderboard" button) — no longer to My Game
