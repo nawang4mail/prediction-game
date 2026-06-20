@@ -37,7 +37,8 @@ export const findByUser = async (userId) => {
        m.id          AS match_id,
        m.team_a,
        m.team_b,
-       COALESCE(m.label, CONCAT(m.team_a, ' vs ', m.team_b)) AS match_label,
+       m.label       AS match_label,
+       m.match_date,
        m.result      AS match_result,
        p.prediction
      FROM matches m

@@ -236,6 +236,7 @@ export const breakdown = async (gameId) => {
         pick_count: r.pick_count,
         points_per_correct: r.points_per_correct,
         all_correct_bonus: r.all_correct_bonus,
+        parent_ids: [],
         teams: [],
       });
     }
@@ -245,6 +246,15 @@ export const breakdown = async (gameId) => {
       is_winner: r.is_winner,
       picks: Number(r.picks),
     });
+  }
+  // Attach parent links so the player UI can apply combined-stage availability
+  // (US-52/US-107): a combined stage only offers the teams advanced from parents.
+  if (byStage.size) {
+    const [parents] = await pool.query(
+      'SELECT stage_id, parent_stage_id FROM stage_parents WHERE stage_id IN (?)',
+      [[...byStage.keys()]]
+    );
+    for (const p of parents) byStage.get(p.stage_id)?.parent_ids.push(p.parent_stage_id);
   }
   return [...byStage.values()];
 };

@@ -1,6 +1,7 @@
 import * as Stage from '../../models/bracketStageModel.js';
 import * as User from '../../models/userModel.js';
 import * as Selection from '../../models/stageSelectionModel.js';
+import * as Team from '../../models/teamModel.js';
 
 // Validates and normalises a stage payload. A stage with parent_ids is a
 // combined stage (US-52): its teams are derived from its parents, so the team
@@ -43,6 +44,15 @@ const parseStage = (body) => {
   return {
     value: { name, description, teams, pick_count, points_per_correct, all_correct_bonus, parent_ids },
   };
+};
+
+// Source-stage teams must exist in the reference table (US-114).
+const teamError = async (teams) => {
+  const missing = await Team.findMissing(teams);
+  if (missing.length) {
+    return `Unknown team(s): ${missing.join(', ')}. Add them on the Teams page first.`;
+  }
+  return null;
 };
 
 // Validates a combined stage's parent links: each must belong to the game and be
@@ -123,6 +133,9 @@ export const create = async (req, res, next) => {
     if (value.parent_ids.length) {
       const pErr = await validateParents(req.gameId, value.parent_ids, null, value.pick_count);
       if (pErr) return res.status(400).json({ message: pErr });
+    } else {
+      const tErr = await teamError(value.teams);
+      if (tErr) return res.status(400).json({ message: tErr });
     }
     const id = await Stage.create({ game_id: req.gameId, ...value });
     await Stage.recomputeDerived(req.gameId);
@@ -143,6 +156,9 @@ export const update = async (req, res, next) => {
     if (value.parent_ids.length) {
       const pErr = await validateParents(req.gameId, value.parent_ids, stage.id, value.pick_count);
       if (pErr) return res.status(400).json({ message: pErr });
+    } else {
+      const tErr = await teamError(value.teams);
+      if (tErr) return res.status(400).json({ message: tErr });
     }
     await Stage.update(stage.id, value);
     await Stage.recomputeDerived(req.gameId);

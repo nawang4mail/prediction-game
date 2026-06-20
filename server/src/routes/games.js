@@ -13,7 +13,7 @@ router.get('/', async (req, res, next) => {
     res.json(
       games
         .filter((g) => g.status !== 'draft')
-        .map(({ id, name, status, type, created_at }) => ({ id, name, status, type, created_at }))
+        .map(({ id, name, status, type, created_at, participant_count }) => ({ id, name, status, type, created_at, participant_count: Number(participant_count) }))
     );
   } catch (err) {
     next(err);

@@ -7,6 +7,54 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.2.0] - 2026-06-20
+
+FIFA-styled UI release. A complete frontend rebuild plus a team reference
+database. Covers user stories US-72 to US-114.
+
+**BREAKING** — the legacy `client/` app is replaced by the rebuilt frontend
+(previously developed as `client-2/`, now promoted to `client/`, dev server on
+port 5173). Requires a schema migration: the new `teams` table (US-114). Run
+`npm run migrate` and `npm run seed:teams` before deploying.
+
+### Added
+
+- **FIFA-styled frontend** — a ground-up rebuild of the public and admin UI:
+  app shell with Oswald/Inter fonts, sticky 4-tab navigation, and the FIFA
+  colour theme (US-72, US-90)
+- **Leaderboard** — hero with game selector, pinned "you" row, defaults to the
+  open game, community pick bars, tap a player to view their picks, and a
+  per-stage bracket point breakdown (US-73, US-74, US-91, US-97, US-105, US-111,
+  US-112)
+- **Leagues** — browse & filter, player count per game, card redesign with a
+  rules modal and join, dual-action buttons, and re-join after rejection
+  (US-75, US-89, US-94, US-95, US-96)
+- **Join & entries** — pick-before-save join flow, multi-entry selector,
+  add-entry chooser, and pruning of deleted entries (US-76, US-79, US-99,
+  US-102, US-103)
+- **My Game** — guess-winners and bracket prediction views, accordion games
+  list with a type filter, read-only view with an edit toggle and submit
+  confirmation, and a bracket picks-only view with an edit wizard (US-77, US-78,
+  US-88, US-93, US-104, US-109)
+- **Matches** — matches and bracket stages with community picks for visitors,
+  and a one-stage-at-a-time bracket join wizard (US-92, US-108, US-110)
+- **Admin panel** — auth, dashboard, game/match/bracket/user management,
+  settings & prize tiers, prediction grid with full labels and coloured score
+  cells, and jump-to-tab by type with combined-stage editing (US-80 to US-87,
+  US-100, US-101, US-107)
+- **Social share** — Open Graph / Twitter Card preview banner (US-106)
+- **Team Reference Database** — a `teams` reference table (countries/clubs) with
+  locally-stored icons (country flags via flagcdn, club logos by URL), an admin
+  Teams CRUD page, name validation on match and bracket-stage writes, ~200
+  seeded countries, and team icons rendered across admin pickers and public
+  views; includes the MATKA wordmark logo and mobile short-code labels (US-114)
+
+### Fixed
+
+- **Public bracket picks** — results (correct picks and points) now reveal in a
+  player's public picks view whenever the leaderboard already shows points, not
+  only when the game is finished (US-113)
+
 ## [3.1.0] - 2026-06-16
 
 Refinements release. Covers user story US-71.
