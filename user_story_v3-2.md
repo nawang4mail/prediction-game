@@ -653,8 +653,11 @@
 - When the app URL is pasted into Facebook, Twitter/X, LinkedIn, Slack, iMessage,
   WhatsApp, etc., the unfurled preview shows the banner image plus title + description
 - Open Graph meta tags added to `client-2/index.html`:
-  `og:title`, `og:description`, `og:type` (website), `og:image`, `og:image:width`
-  (1100), `og:image:height` (614)
+  `og:title`, `og:description`, `og:type` (website), `og:site_name`, `og:image`,
+  `og:image:width` (1100), `og:image:height` (614)
+- URLs are relative and `og:url` is omitted, so the preview's title/link line and
+  image resolve against whatever link the user pasted — no hardcoded domain, works
+  on any deploy
 - Twitter Card meta tags added: `twitter:card` (`summary_large_image`),
   `twitter:title`, `twitter:description`, `twitter:image`
 - The banner image is served from a stable, crawler-readable path (`/banner.jpg` in
