@@ -327,7 +327,11 @@ export const publicPicks = async (req, res, next) => {
     };
 
     if (game.type === 'bracket_prediction') {
-      const reveal = game.status === 'finished';
+      // Always reflect actual results in this public "how did they score" view:
+      // the leaderboard it's opened from already ranks by is_winner at every
+      // status, so the breakdown must show the same correct picks/points. Stages
+      // with no results set simply have is_winner = 0 and render as plain picks.
+      const reveal = true;
       const rawStages = await Stage.findByGame(game_id);
       const selections = await Selection.findByUser(participant.id);
       const selectedIds = new Set(selections.map((s) => s.stage_team_id));

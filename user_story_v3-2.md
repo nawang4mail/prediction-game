@@ -811,3 +811,23 @@ wizard with my current picks pre-selected
 - The verbose per-stage math line ("N correct × P = … · Stage: X pt") is removed
 - The grand total bar remains
 - client-2 only; no backend changes (refines US-111)
+
+---
+
+### US-113 · Fix — Reveal Bracket Results in Public Picks View
+
+**As a** visitor opening a player's bracket picks from the leaderboard
+**I want to** see the correct picks/points whenever the leaderboard already shows
+points
+**So that** the breakdown (US-111/112) is actually visible, not just when the
+game is finished
+
+**Bug:** `GET /participants/:id/picks` only revealed `is_winner` when the game was
+`finished`. But the leaderboard ranks by `is_winner` at every status, so a game
+that was `open`/`locked` with results set showed points on the leaderboard while
+the picks panel rendered every pick blue with no `+points`.
+
+**Fix:** the public picks view now always reflects actual results (`reveal = true`);
+stages with no results set simply have `is_winner = 0` and render as plain picks.
+The player's own `/participants/me` editing view is unchanged (still hides results
+until finished, so live picks aren't influenced). server only.
