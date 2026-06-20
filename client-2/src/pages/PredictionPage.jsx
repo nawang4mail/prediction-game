@@ -187,13 +187,16 @@ function AccordionRow({ game, isOpen, onToggle }) {
           {loadState === 'done' && !entries[0] && (
             <NoEntry gameId={game.id} />
           )}
-          {loadState === 'done' && entries[0] && participant?.participant?.status === 'declined' && (
-            <PendingBanner message={participant?.participant?.status_message} />
-          )}
-          {loadState === 'done' && entries[0] && participant?.participant?.status !== 'declined' && (
-            game.type === 'bracket_prediction'
-              ? <BracketPredictions gameId={game.id} gameStatus={game.status} participant={participant} onRefresh={refresh} />
-              : <GuessWinnersPredictions gameId={game.id} gameStatus={game.status} participant={participant} onRefresh={refresh} />
+          {loadState === 'done' && entries[0] && (
+            <>
+              {participant?.participant?.status === 'declined' && (
+                <PendingNotice message={participant?.participant?.status_message} />
+              )}
+              {game.type === 'bracket_prediction'
+                ? <BracketPredictions gameId={game.id} gameStatus={game.status} participant={participant} onRefresh={refresh} />
+                : <GuessWinnersPredictions gameId={game.id} gameStatus={game.status} participant={participant} onRefresh={refresh} />
+              }
+            </>
           )}
         </div>
       )}
@@ -293,14 +296,16 @@ export default function PredictionPage() {
             </div>
           ) : error ? (
             <div className="bg-white rounded-xl shadow-xl border border-gray-200 p-6 text-center py-12 text-red-500 text-sm">{error}</div>
-          ) : participant?.participant?.status === 'declined' ? (
-            <div className="bg-white rounded-xl shadow-xl border border-gray-200 p-6">
-              <PendingBanner message={participant?.participant?.status_message} />
-            </div>
-          ) : gameType === 'bracket_prediction' ? (
-            <BracketPredictions {...commonProps} />
           ) : (
-            <GuessWinnersPredictions {...commonProps} />
+            <>
+              {participant?.participant?.status === 'declined' && (
+                <PendingNotice message={participant?.participant?.status_message} />
+              )}
+              {gameType === 'bracket_prediction'
+                ? <BracketPredictions {...commonProps} />
+                : <GuessWinnersPredictions {...commonProps} />
+              }
+            </>
           )}
         </div>
       </main>
@@ -326,20 +331,16 @@ function NoEntry({ gameId }) {
   )
 }
 
-function PendingBanner({ message }) {
+function PendingNotice({ message }) {
   return (
-    <div className="bg-yellow-50 border border-yellow-200 rounded-2xl p-6">
-      <div className="flex gap-3">
-        <span className="text-2xl shrink-0">⏳</span>
-        <div>
-          <h2 className="font-semibold text-yellow-900 mb-1">Entry Pending Approval</h2>
-          <p className="text-yellow-800 text-sm">
-            Your entry is waiting for the organizer to approve it. You'll be able to make predictions once approved.
-          </p>
-          {message && (
-            <p className="mt-2 text-yellow-700 text-sm italic">"{message}"</p>
-          )}
-        </div>
+    <div className="flex items-start gap-2.5 bg-yellow-50 border border-yellow-200 rounded-xl px-4 py-3 mb-3">
+      <span className="text-base shrink-0 mt-0.5">⏳</span>
+      <div>
+        <p className="text-yellow-900 text-xs font-semibold">Pending approval</p>
+        <p className="text-yellow-800 text-xs mt-0.5 leading-relaxed">
+          Your picks are saved and will count once the organizer approves your entry.
+          {message && <span className="block italic mt-0.5">"{message}"</span>}
+        </p>
       </div>
     </div>
   )

@@ -13,8 +13,6 @@ export default function JoinPage() {
   const [phone, setPhone] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
-  const [joined, setJoined] = useState(false)
-  const [finishMessage, setFinishMessage] = useState('')
 
   useEffect(() => {
     // Load game info
@@ -44,53 +42,14 @@ export default function JoinPage() {
         is_self: true,
         status: data.participant?.status ?? 'declined',
       })
-      // Update the global entry context
       reload()
-      setFinishMessage(data.finish_message ?? '')
-      setJoined(true)
+      navigate(`/my-game?game=${id}`, { replace: true })
     } catch (err) {
       const msg = err.response?.data?.message ?? 'Something went wrong. Please try again.'
       setError(msg)
     } finally {
       setSubmitting(false)
     }
-  }
-
-  if (joined) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
-        <div className="max-w-md w-full">
-          <div className="bg-white rounded-2xl shadow-md p-8 text-center">
-            <div className="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-4 text-3xl">
-              ⏳
-            </div>
-            <h2 className="font-oswald text-2xl font-bold text-gray-900 mb-2">Entry Submitted!</h2>
-            <p className="text-gray-600 text-sm mb-4 leading-relaxed">
-              Your entry is pending approval. You'll be able to make predictions once approved.
-            </p>
-            {finishMessage && (
-              <p className="text-blue-700 bg-blue-50 border border-blue-100 rounded-xl px-4 py-3 text-sm mb-4">
-                {finishMessage}
-              </p>
-            )}
-            <div className="flex flex-col gap-3 mt-6">
-              <Link
-                to={`/my-game?game=${id}`}
-                className="block w-full py-3 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold transition-colors text-center"
-              >
-                View My Prediction
-              </Link>
-              <Link
-                to={`/leaderboard?game=${id}`}
-                className="block w-full py-3 px-4 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-semibold transition-colors text-center"
-              >
-                View Leaderboard
-              </Link>
-            </div>
-          </div>
-        </div>
-      </div>
-    )
   }
 
   return (
