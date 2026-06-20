@@ -132,21 +132,22 @@ function GWPicksList({ matches, gameStatus }) {
   )
 }
 
-// Shows only the player's own picks. Once results are in, each correct pick is
-// tagged with its +points and a stage earns its all-correct bonus, so a visitor
-// can see exactly how the player's total was built. (US-111)
+// Shows only the player's own picks. Once results are in, a correct pick turns
+// green with its +points shown *beside* (outside) the team, and a fully-correct
+// stage shows its bonus next to the stage name — a simple, readable account of
+// how the player scored. (US-111, US-112)
 function BracketPicksList({ stages }) {
   if (!stages || stages.length === 0) {
     return <p className="px-4 py-4 text-center text-gray-400 text-xs">No picks recorded yet.</p>
   }
   const revealed = stages.some((s) => (s.teams ?? []).some((t) => t.is_winner))
-  const stageScore = (stage) => {
-    const picked = (stage.teams ?? []).filter((t) => t.selected)
-    const correct = picked.filter((t) => t.is_winner)
-    const allCorrect = correct.length === stage.pick_count
-    return correct.length * stage.points_per_correct + (allCorrect ? stage.all_correct_bonus : 0)
-  }
-  const total = revealed ? stages.reduce((sum, s) => sum + stageScore(s), 0) : 0
+  const total = revealed
+    ? stages.reduce((sum, stage) => {
+        const correct = (stage.teams ?? []).filter((t) => t.selected && t.is_winner)
+        const allCorrect = correct.length === stage.pick_count
+        return sum + correct.length * stage.points_per_correct + (allCorrect ? stage.all_correct_bonus : 0)
+      }, 0)
+    : 0
 
   return (
     <div className="px-3 py-3 space-y-2.5">
@@ -157,9 +158,16 @@ function BracketPicksList({ stages }) {
         const allCorrect = hasResults && correct.length === stage.pick_count
         return (
           <div key={stage.id} className="bg-gray-50 rounded-xl p-3">
-            <div className="flex items-center justify-between mb-2">
-              <span className="font-oswald text-xs font-bold text-gray-700 uppercase">{stage.name}</span>
-              <span className="text-[10px] bg-blue-50 text-blue-700 border border-blue-100 px-2 py-0.5 rounded-full font-semibold">
+            <div className="flex items-center justify-between gap-2 mb-2">
+              <div className="flex items-center gap-1.5 min-w-0">
+                <span className="font-oswald text-xs font-bold text-gray-700 uppercase truncate">{stage.name}</span>
+                {allCorrect && stage.all_correct_bonus > 0 && (
+                  <span className="shrink-0 text-[10px] bg-green-100 text-green-700 border border-green-200 px-1.5 py-0.5 rounded-full font-bold">
+                    +{stage.all_correct_bonus} bonus
+                  </span>
+                )}
+              </div>
+              <span className="shrink-0 text-[10px] bg-blue-50 text-blue-700 border border-blue-100 px-2 py-0.5 rounded-full font-semibold">
                 {picked.length}/{stage.pick_count}
               </span>
             </div>
@@ -167,33 +175,23 @@ function BracketPicksList({ stages }) {
             {picked.length === 0 ? (
               <p className="text-[10px] text-gray-400">No picks for this stage</p>
             ) : (
-              <div className="flex flex-wrap gap-1.5">
+              <div className="flex flex-wrap gap-x-2.5 gap-y-1.5">
                 {picked.map((team) => {
                   const correctPick = hasResults && team.is_winner
                   const wrongPick = hasResults && !team.is_winner
-                  let cls = 'inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium border '
-                  if (correctPick) cls += 'bg-green-500 text-white border-green-400'
-                  else if (wrongPick) cls += 'bg-red-100 text-red-700 border-red-200'
-                  else cls += 'bg-[#2b4dff] text-white border-[#2b4dff]'
+                  let chip = 'px-2.5 py-1 rounded-lg text-xs font-medium border '
+                  if (correctPick) chip += 'bg-green-500 text-white border-green-400'
+                  else if (wrongPick) chip += 'bg-red-100 text-red-700 border-red-200'
+                  else chip += 'bg-[#2b4dff] text-white border-[#2b4dff]'
                   return (
-                    <span key={team.id} className={cls}>
-                      {team.name}
+                    <span key={team.id} className="inline-flex items-center gap-1">
+                      <span className={chip}>{team.name}</span>
                       {correctPick && (
-                        <span className="bg-white/25 rounded px-1 text-[10px] font-bold">+{stage.points_per_correct}</span>
+                        <span className="text-green-600 text-xs font-bold">+{stage.points_per_correct}</span>
                       )}
                     </span>
                   )
                 })}
-              </div>
-            )}
-
-            {hasResults && (
-              <div className="mt-2 pt-2 border-t border-gray-200 text-[10px] text-gray-500 flex flex-wrap items-center gap-x-2 gap-y-0.5">
-                <span>{correct.length} correct × {stage.points_per_correct} = {correct.length * stage.points_per_correct} pt</span>
-                {allCorrect && stage.all_correct_bonus > 0 && (
-                  <span className="text-green-700 font-semibold">+{stage.all_correct_bonus} all-correct bonus</span>
-                )}
-                <span className="ml-auto font-bold text-gray-700">Stage: {stageScore(stage)} pt</span>
               </div>
             )}
           </div>
