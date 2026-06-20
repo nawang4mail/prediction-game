@@ -2,11 +2,24 @@ import { useState, useEffect } from 'react'
 import api from '../../services/api.js'
 import { useAdminGame } from '../../context/AdminGameContext.jsx'
 
-const PRED_OPTS = ['team_a', 'draw', 'team_b']
-const PRED_LABELS = { team_a: 'A', draw: 'D', team_b: 'B' }
+// The exact option a player picked, shown in full (team name or "Draw").
+function predLabel(pred, match) {
+  if (pred === 'team_a') return match.team_a
+  if (pred === 'team_b') return match.team_b
+  if (pred === 'draw') return 'Draw'
+  return null
+}
+
+// The actual result, shown in full for the column header.
+function resultLabel(result, match) {
+  if (result === 'team_a') return match.team_a
+  if (result === 'team_b') return match.team_b
+  if (result === 'draw') return 'Draw'
+  return null
+}
 
 function cellClass(pred, result) {
-  if (!pred) return 'text-gray-200'
+  if (!pred) return 'text-gray-300'
   if (!result) return 'text-blue-600 font-semibold'
   if (pred === result) return 'text-green-600 font-bold'
   return 'text-red-500 font-semibold'
@@ -16,10 +29,6 @@ export default function AdminPredictionsPage() {
   const { selectedId, selectedGame } = useAdminGame()
   const [data, setData] = useState({ users: [], matches: [], predictions: {} })
   const [loading, setLoading] = useState(true)
-  const [editing, setEditing] = useState(null) // { userId, matchId }
-  const [saving, setSaving] = useState(false)
-
-  const canEdit = selectedGame?.status === 'open'
 
   const load = () => {
     if (!selectedId) return
@@ -27,24 +36,6 @@ export default function AdminPredictionsPage() {
     api.get('/admin/predictions').then(({ data: d }) => setData(d)).catch(() => {}).finally(() => setLoading(false))
   }
   useEffect(load, [selectedId])
-
-  const setPred = async (userId, matchId, prediction) => {
-    setSaving(true)
-    try {
-      await api.post('/admin/predictions', { user_id: userId, match_id: matchId, prediction })
-      load()
-    } catch (err) { alert(err.response?.data?.message ?? 'Failed.') }
-    finally { setSaving(false); setEditing(null) }
-  }
-
-  const clearPred = async (userId, matchId) => {
-    setSaving(true)
-    try {
-      await api.delete(`/admin/predictions/${userId}/${matchId}`)
-      load()
-    } catch (err) { alert(err.response?.data?.message ?? 'Failed.') }
-    finally { setSaving(false); setEditing(null) }
-  }
 
   if (selectedGame?.type !== 'guess_winners') {
     return (
@@ -61,9 +52,7 @@ export default function AdminPredictionsPage() {
     <div className="space-y-4">
       <div className="flex items-center gap-3">
         <h2 className="font-oswald text-2xl font-bold text-gray-900 uppercase tracking-wide flex-1">Prediction Grid</h2>
-        {!canEdit && selectedGame && (
-          <span className="text-xs text-gray-500 bg-gray-100 px-3 py-1.5 rounded-full">Read-only (game {selectedGame.status})</span>
-        )}
+        <span className="text-xs text-gray-500 bg-gray-100 px-3 py-1.5 rounded-full">Read-only</span>
       </div>
 
       <div className="bg-white rounded-2xl shadow-sm overflow-auto">
@@ -77,17 +66,17 @@ export default function AdminPredictionsPage() {
           <table className="text-xs border-collapse">
             <thead>
               <tr className="bg-gray-50">
-                <th className="sticky left-0 bg-gray-50 z-10 py-3 px-4 text-left text-xs font-semibold text-gray-500 uppercase border-b border-r border-gray-100 min-w-[120px]">
+                <th className="sticky left-0 bg-gray-50 z-10 py-3 px-4 text-left text-xs font-semibold text-gray-500 uppercase border-b border-r border-gray-100 min-w-[140px]">
                   Player
                 </th>
                 {matches.map((m) => (
-                  <th key={m.id} className="py-2 px-2 border-b border-gray-100 text-gray-400 font-normal text-center min-w-[56px]">
+                  <th key={m.id} className="py-2 px-3 border-b border-gray-100 text-gray-400 font-normal text-center min-w-[100px]">
                     <div className="font-semibold text-gray-600 text-xs">{m.team_a}</div>
                     <div className="text-gray-300">vs</div>
                     <div className="font-semibold text-gray-600 text-xs">{m.team_b}</div>
                     {m.result && (
                       <div className="text-green-600 font-bold text-xs mt-0.5">
-                        {m.result === 'team_a' ? m.team_a : m.result === 'team_b' ? m.team_b : 'D'}
+                        {resultLabel(m.result, m)}
                       </div>
                     )}
                   </th>
@@ -109,31 +98,11 @@ export default function AdminPredictionsPage() {
                   </td>
                   {matches.map((m) => {
                     const pred = predictions[u.id]?.[m.id]
-                    const isEditing = editing?.userId === u.id && editing?.matchId === m.id
                     return (
-                      <td key={m.id} className="py-2 px-2 text-center">
-                        {canEdit && isEditing ? (
-                          <div className="flex flex-col gap-1">
-                            {PRED_OPTS.map((opt) => (
-                              <button key={opt} disabled={saving} onClick={() => setPred(u.id, m.id, opt)}
-                                className={`w-8 h-6 rounded text-xs font-bold transition-colors ${pred === opt ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-blue-100'} disabled:opacity-60`}>
-                                {PRED_LABELS[opt]}
-                              </button>
-                            ))}
-                            {pred && <button disabled={saving} onClick={() => clearPred(u.id, m.id)} className="w-8 h-5 rounded text-xs text-gray-400 hover:text-red-500 transition-colors disabled:opacity-60">✕</button>}
-                            <button onClick={() => setEditing(null)} className="w-8 h-5 rounded text-xs text-gray-300 hover:text-gray-500 transition-colors">↩</button>
-                          </div>
-                        ) : (
-                          <button
-                            disabled={!canEdit}
-                            onClick={() => canEdit && setEditing({ userId: u.id, matchId: m.id })}
-                            className={`w-8 h-8 rounded-lg font-bold text-xs transition-colors ${
-                              canEdit ? 'hover:bg-blue-100 cursor-pointer' : 'cursor-default'
-                            } ${cellClass(pred, m.result)}`}
-                          >
-                            {pred ? PRED_LABELS[pred] : '·'}
-                          </button>
-                        )}
+                      <td key={m.id} className="py-2.5 px-3 text-center">
+                        <span className={`text-xs ${cellClass(pred, m.result)}`}>
+                          {pred ? predLabel(pred, m) : '·'}
+                        </span>
                       </td>
                     )
                   })}
@@ -144,10 +113,10 @@ export default function AdminPredictionsPage() {
         )}
       </div>
 
-      <div className="text-xs text-gray-400 flex gap-4">
-        <span><span className="font-bold text-green-600">A/D/B</span> = correct</span>
-        <span><span className="font-bold text-red-500">A/D/B</span> = wrong</span>
-        <span><span className="font-bold text-blue-600">A/D/B</span> = no result yet</span>
+      <div className="text-xs text-gray-400 flex gap-4 flex-wrap">
+        <span><span className="font-bold text-green-600">Pick</span> = correct</span>
+        <span><span className="font-bold text-red-500">Pick</span> = wrong</span>
+        <span><span className="font-bold text-blue-600">Pick</span> = no result yet</span>
         <span className="text-gray-300">·</span>
         <span>= no pick</span>
       </div>

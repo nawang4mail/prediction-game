@@ -504,3 +504,21 @@
   - 403 if the game is not open; 400 if name missing or picks incomplete/invalid
   - Bracket combined stages validated against teams advanced from parent picks
   - Atomic: a failed/incomplete submit leaves no row in the database
+
+---
+
+### US-100 · Admin Prediction Grid — Full Labels & Read-Only
+
+**As an** admin
+**I want to** see each player's exact pick (team name or "Draw") in a read-only grid
+**So that** I can review entries clearly without risk of changing them
+
+**Acceptance Criteria:**
+- Grid cells show the exact option picked: the team's name for team_a/team_b,
+  or "Draw" — no more A/D/B abbreviations
+- Column headers and the result row also show full team names / "Draw"
+- The grid is fully read-only: admins can no longer click cells to set, change,
+  or clear a player's prediction (edit controls removed)
+- Colour coding retained: green = correct, red = wrong, blue = no result yet,
+  grey dot = no pick
+- Header shows a "Read-only" indicator
