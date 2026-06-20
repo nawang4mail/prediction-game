@@ -28,6 +28,7 @@ export default function PlayPage() {
   // Local-only pick state — never sent until Submit.
   const [predictions, setPredictions] = useState({}) // { matchId: 'team_a'|'draw'|'team_b' }
   const [selections, setSelections] = useState({})    // { stageId: [teamId, ...] }
+  const [step, setStep] = useState(0)                 // bracket wizard: current stage index
 
   // No identity in router state means the player landed here directly (e.g. a
   // refresh wiped it) — send them back to the name form.
@@ -82,10 +83,13 @@ export default function PlayPage() {
       return { ...prev, [stageId]: next }
     })
 
+  // A stage is done when its count of *valid* picks (a pick can fall out of a
+  // combined stage's pool when its parent picks change) equals its pick_count.
+  const stageComplete = (stage) =>
+    (selections[stage.id] ?? []).filter((id) => availability[stage.id]?.has(id)).length === stage.pick_count
+
   const complete = useMemo(() => {
     if (isBracket) {
-      // Count only valid picks (a pick can fall out of a combined stage's pool
-      // when its parent picks change).
       return stages.length > 0 && stages.every(
         (s) => (selections[s.id] ?? []).filter((id) => availability[s.id]?.has(id)).length === s.pick_count
       )
@@ -169,21 +173,19 @@ export default function PlayPage() {
               </Link>
             </div>
           ) : isBracket ? (
-            <div className="space-y-4">
-              {stages.length === 0 ? (
-                <p className="text-center text-gray-400 text-sm py-10">This game has no stages yet.</p>
-              ) : (
-                stages.map((stage) => (
-                  <StagePick
-                    key={stage.id}
-                    stage={stage}
-                    selected={selections[stage.id] ?? []}
-                    available={availability[stage.id]}
-                    onToggle={(teamId) => toggleTeam(stage.id, teamId, stage.pick_count)}
-                  />
-                ))
-              )}
-            </div>
+            stages.length === 0 ? (
+              <p className="text-center text-gray-400 text-sm py-10">This game has no stages yet.</p>
+            ) : (
+              <BracketWizard
+                stages={stages}
+                step={Math.min(step, stages.length - 1)}
+                onStep={setStep}
+                selections={selections}
+                availability={availability}
+                stageComplete={stageComplete}
+                onToggle={toggleTeam}
+              />
+            )
           ) : (
             <div className="space-y-3">
               {matches.length === 0 ? (
@@ -313,6 +315,70 @@ function MatchPick({ match, selected, onPick }) {
             </button>
           )
         })}
+      </div>
+    </div>
+  )
+}
+
+// One-stage-at-a-time bracket wizard (US-108): a progress bar, the current stage,
+// and Back / Next. Next is disabled until the current stage is complete, which
+// also guarantees a combined stage's parents are picked before it's reached.
+function BracketWizard({ stages, step, onStep, selections, availability, stageComplete, onToggle }) {
+  const stage = stages[step]
+  const isLast = step === stages.length - 1
+  return (
+    <div className="space-y-4">
+      {/* Progress bar */}
+      <div className="bg-white rounded-2xl shadow-sm p-4">
+        <div className="flex gap-1.5 mb-2">
+          {stages.map((s, i) => (
+            <button
+              key={s.id}
+              type="button"
+              onClick={() => onStep(i)}
+              aria-label={`Go to ${s.name}`}
+              className={`h-1.5 flex-1 rounded-full transition-colors ${
+                stageComplete(s) ? 'bg-green-500' : i === step ? 'bg-[#2b4dff]' : 'bg-gray-200'
+              }`}
+            />
+          ))}
+        </div>
+        <p className="text-xs text-gray-400 text-center">
+          Stage {step + 1} of {stages.length}
+        </p>
+      </div>
+
+      <StagePick
+        stage={stage}
+        selected={selections[stage.id] ?? []}
+        available={availability[stage.id]}
+        onToggle={(teamId) => onToggle(stage.id, teamId, stage.pick_count)}
+      />
+
+      {/* Back / Next */}
+      <div className="flex items-center justify-between gap-3">
+        <button
+          type="button"
+          onClick={() => onStep(step - 1)}
+          disabled={step === 0}
+          className="py-2.5 px-5 rounded-xl bg-white border border-gray-200 text-gray-700 text-sm font-semibold transition-colors hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
+        >
+          ← Back
+        </button>
+        {!isLast ? (
+          <button
+            type="button"
+            onClick={() => onStep(step + 1)}
+            disabled={!stageComplete(stage)}
+            className={`py-2.5 px-6 rounded-xl text-white text-sm font-semibold transition-colors ${
+              stageComplete(stage) ? 'bg-[#2b4dff] hover:bg-[#1a33cc]' : 'bg-gray-300 cursor-not-allowed'
+            }`}
+          >
+            Next →
+          </button>
+        ) : (
+          <span className="text-xs text-gray-400">Submit your entry below ↓</span>
+        )}
       </div>
     </div>
   )
