@@ -10,8 +10,11 @@
       content="Predict World Cup match outcomes, climb the leaderboard, and compete with friends."
     />
 
-    <!-- Open Graph / Facebook, LinkedIn, Slack, WhatsApp, iMessage -->
+    <!-- Open Graph / Facebook, LinkedIn, Slack, WhatsApp, iMessage.
+         og:image is relative and og:url is intentionally omitted, so crawlers
+         resolve them against whatever link was pasted — no hardcoded domain. -->
     <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="BRACKET" />
     <meta property="og:title" content="World Cup Prediction Game" />
     <meta
       property="og:description"
