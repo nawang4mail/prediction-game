@@ -708,3 +708,25 @@ the teams they advanced in A and B
   parent picks are made
 - Applies to both the join/play flow (`/leagues/:id/play`) and My Game
 - client-2 only; backend already supports edit + `parent_ids` (US-52)
+
+---
+
+### US-108 · Bracket Join — One-Stage-at-a-Time Wizard
+
+**As a** player joining a Bracket game
+**I want to** make my picks one stage at a time with Back/Next and a progress bar
+**So that** the flow is focused and I clearly see how far through I am
+
+**Acceptance Criteria:**
+- On the play page (`/leagues/:id/play`) for a Bracket game, only the current
+  stage is shown (not all stages stacked)
+- A progress bar at the top has one segment per stage: green when complete, blue
+  for the current stage, gray otherwise; a "Stage X of N" caption is shown
+- Each stage has **← Back** (disabled on the first stage) and **Next →** at the end
+- Next is disabled until the current stage has exactly its `pick_count` valid picks
+  — so a combined stage's parents are always completed before it is reached
+- A combined stage (C = A + B) still shows only the teams the player advanced in
+  its parents (US-107)
+- The sticky **Submit Entry** button activates only when every stage is complete
+- Progress-bar segments are clickable to jump to a stage
+- client-2 only; no backend changes
