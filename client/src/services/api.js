@@ -1,31 +1,49 @@
-import axios from 'axios';
+import axios from 'axios'
 
-const api = axios.create({
-  baseURL: '/api',
-});
+const api = axios.create({ baseURL: '/api' })
 
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('admin_token');
-  if (token) config.headers.Authorization = `Bearer ${token}`;
+  const adminToken = localStorage.getItem('admin_token')
+  if (adminToken) config.headers.Authorization = `Bearer ${adminToken}`
 
-  const entryToken = localStorage.getItem('entry_token');
-  if (entryToken && (config.url ?? '').startsWith('/participants')) {
-    config.headers['x-entry-token'] = entryToken;
+  const url = config.url ?? ''
+
+  // Send entry token for participant routes. A caller may target a specific
+  // entry by setting x-entry-token itself (used when a device has multiple
+  // entries in one game); only auto-fill it when not already provided.
+  if (url.startsWith('/participants') && !config.headers['x-entry-token']) {
+    const entries = getEntries()
+    const gameId = config.params?.game_id
+    if (gameId) {
+      const match = entries.find((e) => String(e.game_id) === String(gameId))
+      if (match) config.headers['x-entry-token'] = match.token
+    } else {
+      const current = localStorage.getItem('entry_token')
+      if (current) config.headers['x-entry-token'] = current
+    }
   }
 
-  // Admin pages operate on the game selected in the layout dropdown;
-  // without a selection the server falls back to the active game.
-  const gameId = sessionStorage.getItem('admin_game_id');
-  const url = config.url ?? '';
+  // Admin game scope
+  const adminGameId = sessionStorage.getItem('admin_game_id')
   if (
-    gameId &&
+    adminGameId &&
     url.startsWith('/admin') &&
     !url.startsWith('/admin/games') &&
+    !url.startsWith('/admin/teams') &&
     !url.startsWith('/admin/auth')
   ) {
-    config.params = { ...config.params, game_id: gameId };
+    config.params = { ...config.params, game_id: adminGameId }
   }
-  return config;
-});
 
-export default api;
+  return config
+})
+
+function getEntries() {
+  try {
+    return JSON.parse(localStorage.getItem('pg_entries')) || []
+  } catch {
+    return []
+  }
+}
+
+export default api
