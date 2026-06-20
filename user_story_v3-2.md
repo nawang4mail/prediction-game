@@ -476,3 +476,31 @@
 - Modal closes on Close button, backdrop click, or Escape
 - Changing the game selector closes any open modal
 - client-2 + server; no DB schema changes (query only)
+
+---
+
+### US-99 · Pick-Before-Save Join Flow
+
+**As a** player joining a game
+**I want to** make all my picks and then explicitly submit
+**So that** my entry is only saved when I'm ready — cancelling or closing the app saves nothing
+
+**Acceptance Criteria:**
+- Join form (`/leagues/:id/join`) only collects display name + phone; it no longer
+  creates a database entry. "Continue to Picks →" navigates to the pick page.
+- New pick page `/leagues/:id/play` shows the pick UI based on game type:
+  - Guess Winners: a card per match with team_a / DRAW / team_b options
+  - Bracket: a card per stage with selectable teams (up to pick_count each)
+- Picks are held in local state only — nothing is sent to the server while picking.
+- Two buttons in a sticky bar: **Submit Entry** and **Cancel**
+  - Submit is disabled until every match is picked / every stage has exactly pick_count
+  - Submit calls `POST /api/participants/complete` which creates the entry AND all
+    picks in a single transaction, then routes to `/my-game?game=<id>`
+  - Cancel returns to Leagues and saves nothing
+- Closing the app before submitting saves nothing (no entry is created until Submit)
+- If the player reaches `/play` without going through the form (e.g. refresh), they
+  are redirected back to the join form
+- Backend `POST /api/participants/complete`:
+  - 403 if the game is not open; 400 if name missing or picks incomplete/invalid
+  - Bracket combined stages validated against teams advanced from parent picks
+  - Atomic: a failed/incomplete submit leaves no row in the database

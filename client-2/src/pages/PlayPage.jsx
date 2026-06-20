@@ -1,0 +1,303 @@
+import { useState, useEffect, useMemo } from 'react'
+import { useParams, useNavigate, useLocation, Link } from 'react-router-dom'
+import api from '../services/api.js'
+import { upsertEntry } from '../services/entries.js'
+import { useEntryStatus } from '../context/EntryContext.jsx'
+
+// The player has already entered their name/phone on the Join page. Here they
+// make their picks and submit. Nothing is written to the database until they
+// press Submit — Cancel or closing the app leaves no entry behind (US-99).
+export default function PlayPage() {
+  const { id } = useParams()
+  const gameId = Number(id)
+  const navigate = useNavigate()
+  const location = useLocation()
+  const { reload } = useEntryStatus()
+
+  const identity = location.state // { display_name, phone }
+
+  const [game, setGame] = useState(null)
+  const [matches, setMatches] = useState([])
+  const [stages, setStages] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+  const [submitting, setSubmitting] = useState(false)
+
+  // Local-only pick state — never sent until Submit.
+  const [predictions, setPredictions] = useState({}) // { matchId: 'team_a'|'draw'|'team_b' }
+  const [selections, setSelections] = useState({})    // { stageId: [teamId, ...] }
+
+  // No identity in router state means the player landed here directly (e.g. a
+  // refresh wiped it) — send them back to the name form.
+  useEffect(() => {
+    if (!identity) navigate(`/leagues/${id}/join`, { replace: true })
+  }, [identity, id, navigate])
+
+  useEffect(() => {
+    if (!identity) return
+    let cancelled = false
+    async function load() {
+      try {
+        const { data: games } = await api.get('/games')
+        const g = games.find((x) => x.id === gameId)
+        if (!g) { setError('Game not found.'); setLoading(false); return }
+        if (g.status !== 'open') { setError('This game is no longer open for joining.'); setLoading(false); return }
+        if (cancelled) return
+        setGame(g)
+
+        if (g.type === 'bracket_prediction') {
+          const { data } = await api.get('/bracket', { params: { game_id: gameId } })
+          if (!cancelled) setStages(data)
+        } else {
+          const { data } = await api.get('/matches', { params: { game_id: gameId } })
+          if (!cancelled) setMatches(data)
+        }
+      } catch {
+        if (!cancelled) setError('Failed to load the game. Please try again.')
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    }
+    load()
+    return () => { cancelled = true }
+  }, [identity, gameId])
+
+  const isBracket = game?.type === 'bracket_prediction'
+
+  const pickMatch = (matchId, value) =>
+    setPredictions((p) => ({ ...p, [matchId]: value }))
+
+  const toggleTeam = (stageId, teamId, pickCount) =>
+    setSelections((prev) => {
+      const current = prev[stageId] ?? []
+      let next
+      if (current.includes(teamId)) next = current.filter((t) => t !== teamId)
+      else if (current.length < pickCount) next = [...current, teamId]
+      else next = [...current.slice(1), teamId]
+      return { ...prev, [stageId]: next }
+    })
+
+  const complete = useMemo(() => {
+    if (isBracket) {
+      return stages.length > 0 && stages.every((s) => (selections[s.id] ?? []).length === s.pick_count)
+    }
+    return matches.length > 0 && matches.every((m) => predictions[m.id])
+  }, [isBracket, stages, selections, matches, predictions])
+
+  const handleSubmit = async () => {
+    if (!complete || submitting) return
+    setSubmitting(true)
+    setError('')
+    try {
+      const payload = {
+        game_id: gameId,
+        display_name: identity.display_name,
+        phone: identity.phone,
+      }
+      if (isBracket) payload.bracket = selections
+      else payload.predictions = predictions
+
+      const { data } = await api.post('/participants/complete', payload)
+      upsertEntry({
+        token: data.entry_token,
+        name: data.participant?.display_name ?? identity.display_name,
+        game_id: gameId,
+        is_self: true,
+        status: data.participant?.status ?? 'declined',
+      })
+      reload()
+      navigate(`/my-game?game=${gameId}`, { replace: true })
+    } catch (err) {
+      setError(err.response?.data?.message ?? 'Could not submit your entry. Please try again.')
+      setSubmitting(false)
+    }
+  }
+
+  const handleCancel = () => {
+    // Nothing was saved — just leave.
+    navigate('/leagues')
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-100">
+      {/* Hero */}
+      <div
+        className="relative overflow-hidden py-10 px-4"
+        style={{ background: 'linear-gradient(135deg, #2b4dff 0%, #1a33cc 100%)' }}
+      >
+        <div
+          className="absolute pointer-events-none"
+          style={{
+            right: '-10%', top: '-50%', width: '50%', height: '200%',
+            borderRadius: '50%', background: 'rgba(255,255,255,0.05)', transform: 'rotate(-15deg)',
+          }}
+        />
+        <div className="relative max-w-3xl mx-auto">
+          <Link to={`/leagues/${id}/join`} className="inline-flex items-center gap-1.5 text-blue-200 hover:text-white text-sm mb-3 transition-colors">
+            ← Back
+          </Link>
+          <h1 className="font-oswald text-4xl sm:text-5xl font-bold text-white uppercase tracking-wider">
+            Make Your Picks
+          </h1>
+          {game && <p className="text-blue-200 text-sm mt-1 font-inter">{game.name}{identity ? ` · ${identity.display_name}` : ''}</p>}
+        </div>
+      </div>
+
+      <main className="-mt-6 relative z-20 pb-32 px-4">
+        <div className="max-w-3xl mx-auto">
+          {loading ? (
+            <div className="space-y-3">
+              {[...Array(4)].map((_, i) => (
+                <div key={i} className="h-24 bg-white rounded-2xl shadow-sm animate-pulse" />
+              ))}
+            </div>
+          ) : error ? (
+            <div className="bg-white rounded-2xl shadow-md p-8 text-center">
+              <p className="text-red-500 text-sm mb-4">{error}</p>
+              <Link to="/leagues" className="inline-block px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-xl transition-colors">
+                Back to Leagues
+              </Link>
+            </div>
+          ) : isBracket ? (
+            <div className="space-y-4">
+              {stages.length === 0 ? (
+                <p className="text-center text-gray-400 text-sm py-10">This game has no stages yet.</p>
+              ) : (
+                stages.map((stage) => (
+                  <StagePick
+                    key={stage.id}
+                    stage={stage}
+                    selected={selections[stage.id] ?? []}
+                    onToggle={(teamId) => toggleTeam(stage.id, teamId, stage.pick_count)}
+                  />
+                ))
+              )}
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {matches.length === 0 ? (
+                <p className="text-center text-gray-400 text-sm py-10">This game has no matches yet.</p>
+              ) : (
+                matches.map((match) => (
+                  <MatchPick
+                    key={match.id}
+                    match={match}
+                    selected={predictions[match.id]}
+                    onPick={(v) => pickMatch(match.id, v)}
+                  />
+                ))
+              )}
+            </div>
+          )}
+        </div>
+      </main>
+
+      {/* Sticky action bar: Submit + Cancel */}
+      {!loading && !error && (
+        <div className="fixed bottom-0 inset-x-0 z-30 bg-white border-t border-gray-200 shadow-[0_-4px_16px_rgba(0,0,0,0.08)]">
+          <div className="max-w-3xl mx-auto px-4 py-3">
+            {!complete && (
+              <p className="text-xs text-gray-400 text-center mb-2">
+                {isBracket ? 'Complete every stage to submit.' : 'Pick every match to submit.'}
+              </p>
+            )}
+            <div className="flex gap-3">
+              <button
+                onClick={handleSubmit}
+                disabled={!complete || submitting}
+                className={`flex-1 py-3 px-4 rounded-xl text-white text-sm font-semibold transition-colors ${
+                  complete && !submitting
+                    ? 'bg-[#2b4dff] hover:bg-[#1a33cc] cursor-pointer'
+                    : 'bg-gray-300 cursor-not-allowed'
+                }`}
+              >
+                {submitting ? 'Submitting…' : 'Submit Entry'}
+              </button>
+              <button
+                onClick={handleCancel}
+                disabled={submitting}
+                className="py-3 px-6 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-semibold transition-colors disabled:opacity-50"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function MatchPick({ match, selected, onPick }) {
+  const opts = [
+    { value: 'team_a', label: match.team_a },
+    { value: 'draw', label: 'DRAW' },
+    { value: 'team_b', label: match.team_b },
+  ]
+  return (
+    <div className="bg-white rounded-2xl shadow-sm p-4">
+      {match.match_label && (
+        <p className="text-xs text-gray-400 mb-2 font-medium uppercase tracking-wide">{match.match_label}</p>
+      )}
+      <div className="grid grid-cols-3 gap-2">
+        {opts.map(({ value, label }) => {
+          const isSel = selected === value
+          return (
+            <button
+              key={value}
+              onClick={() => onPick(value)}
+              className={`py-3 px-2 rounded-xl border text-sm font-semibold transition-all ${
+                isSel
+                  ? 'bg-[#2b4dff] text-white border-[#2b4dff] shadow-sm'
+                  : 'bg-gray-50 hover:bg-blue-50 text-gray-700 border-gray-200 hover:border-[#2b4dff]/40'
+              }`}
+            >
+              {label}
+            </button>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
+function StagePick({ stage, selected, onToggle }) {
+  const teams = stage.teams ?? []
+  return (
+    <div className="bg-white rounded-2xl shadow-sm p-5">
+      <div className="flex items-start justify-between gap-3 mb-1">
+        <h3 className="font-oswald text-lg font-bold text-gray-900">{stage.name}</h3>
+        <span className={`shrink-0 text-xs px-2.5 py-1 rounded-full font-semibold border ${
+          selected.length === stage.pick_count
+            ? 'bg-green-50 text-green-700 border-green-200'
+            : 'bg-blue-50 text-blue-700 border-blue-100'
+        }`}>
+          {selected.length}/{stage.pick_count} picked
+        </span>
+      </div>
+      {stage.description && <p className="text-xs text-gray-400 mb-3">{stage.description}</p>}
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mt-3">
+        {teams.map((team) => {
+          const isSel = selected.includes(team.id)
+          return (
+            <button
+              key={team.id}
+              onClick={() => onToggle(team.id)}
+              className={`border rounded-xl px-3 py-2.5 text-sm font-medium transition-all text-left ${
+                isSel
+                  ? 'bg-[#2b4dff] text-white border-[#2b4dff] shadow-sm'
+                  : 'bg-gray-50 hover:bg-blue-50 text-gray-700 border-gray-200 hover:border-blue-300'
+              }`}
+            >
+              {team.name}
+            </button>
+          )
+        })}
+      </div>
+      <p className="text-xs text-gray-400 mt-3">
+        {stage.points_per_correct} pt{stage.points_per_correct !== 1 ? 's' : ''} per correct pick
+        {stage.all_correct_bonus > 0 && ` · +${stage.all_correct_bonus} bonus if all correct`}
+      </p>
+    </div>
+  )
+}

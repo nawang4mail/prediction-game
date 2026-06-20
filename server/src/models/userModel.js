@@ -49,6 +49,65 @@ export const createWithAutoSuffix = async ({ game_id, display_name, phone, entry
   throw new Error('Too many users with the same name');
 };
 
+// Creates a self-joined entry together with all of its picks in a single
+// transaction (US-99). Nothing is persisted unless every insert succeeds, so a
+// cancelled or abandoned join leaves no trace in the database. `predictions` is
+// an array of { match_id, prediction }; `selections` is a flat array of
+// stage_team_id values. The entry starts declined (pending approval).
+export const createWithPicks = async ({
+  game_id,
+  display_name,
+  phone,
+  entry_token,
+  predictions = [],
+  selections = [],
+}) => {
+  const conn = await pool.getConnection();
+  try {
+    await conn.beginTransaction();
+
+    let name = display_name;
+    let n = 1;
+    let userId;
+    while (n <= 99) {
+      try {
+        const [result] = await conn.query(
+          'INSERT INTO users (game_id, display_name, phone, entry_token, status, status_message) VALUES (?, ?, ?, ?, ?, ?)',
+          [game_id, name, phone ?? null, entry_token, 'declined', DEFAULT_DECLINE_MESSAGE]
+        );
+        userId = result.insertId;
+        break;
+      } catch (err) {
+        if (err.code !== 'ER_DUP_ENTRY') throw err;
+        n++;
+        name = `${display_name} ${n}`;
+      }
+    }
+    if (!userId) throw new Error('Too many users with the same name');
+
+    for (const p of predictions) {
+      await conn.query(
+        'INSERT INTO predictions (user_id, match_id, prediction) VALUES (?, ?, ?)',
+        [userId, p.match_id, p.prediction]
+      );
+    }
+    for (const teamId of selections) {
+      await conn.query('INSERT INTO stage_selections (user_id, stage_team_id) VALUES (?, ?)', [
+        userId,
+        teamId,
+      ]);
+    }
+
+    await conn.commit();
+    return { id: userId, display_name: name };
+  } catch (err) {
+    await conn.rollback();
+    throw err;
+  } finally {
+    conn.release();
+  }
+};
+
 export const setStatus = async (id, status, message) => {
   const [result] = await pool.query(
     'UPDATE users SET status = ?, status_message = ? WHERE id = ?',

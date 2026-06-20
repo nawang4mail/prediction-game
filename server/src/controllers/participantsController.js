@@ -217,6 +217,95 @@ export const deleteMe = async (req, res, next) => {
 // Confirms a participant has finished entering predictions and returns the
 // admin-configured confirmation message (or a sensible default). Predictions
 // already save as they are picked, so this is a confirmation, not a lock. (US-35)
+// Atomic join: creates the entry together with all of the player's picks in one
+// transaction (US-99). The client stages name, phone and picks locally and only
+// calls this on "Submit", so cancelling or closing the app before finishing
+// never writes anything to the database.
+export const complete = async (req, res, next) => {
+  try {
+    const display_name = (req.body.display_name ?? '').trim();
+    if (!display_name) return res.status(400).json({ message: 'Display name is required' });
+    if (display_name.length > 50) {
+      return res.status(400).json({ message: 'Name must be 50 characters or less' });
+    }
+
+    const game = req.body.game_id ? await Game.findById(req.body.game_id) : null;
+    if (!game || game.status !== 'open') {
+      return res.status(403).json({ message: 'That game is not open for joining right now' });
+    }
+
+    const entry_token = randomUUID();
+    let predictions = [];
+    let selections = [];
+
+    if (game.type === 'bracket_prediction') {
+      // payload.bracket: { [stage_id]: [team_id, ...] }
+      const bracket = req.body.bracket ?? {};
+      const stages = await Stage.findByGame(game.id);
+
+      // Build a selections list across all stages so combined stages can be
+      // validated against the teams the player advanced from their parents.
+      const allSelections = [];
+      for (const s of stages) {
+        for (const id of bracket[s.id] ?? []) {
+          allSelections.push({ stage_team_id: Number(id), stage_id: s.id });
+        }
+      }
+      const byStage = pickedNamesByStage(stages, allSelections);
+
+      for (const stage of stages) {
+        let validIds;
+        if (stage.parent_ids?.length) {
+          const advanced = unionNames(byStage, stage.parent_ids);
+          validIds = new Set(stage.teams.filter((t) => advanced.has(t.name)).map((t) => t.id));
+        } else {
+          validIds = new Set(stage.teams.map((t) => t.id));
+        }
+        const teamIds = [
+          ...new Set((bracket[stage.id] ?? []).map(Number).filter((id) => validIds.has(id))),
+        ];
+        if (teamIds.length !== stage.pick_count) {
+          return res
+            .status(400)
+            .json({ message: `Pick exactly ${stage.pick_count} team(s) for "${stage.name}"` });
+        }
+        selections.push(...teamIds);
+      }
+    } else {
+      // payload.predictions: { [match_id]: 'team_a' | 'draw' | 'team_b' }
+      const preds = req.body.predictions ?? {};
+      const matches = await Match.findAll(game.id);
+      for (const m of matches) {
+        const value = preds[m.id];
+        if (!value) {
+          return res.status(400).json({ message: 'Please make a pick for every match' });
+        }
+        if (!PREDICTIONS.includes(value)) {
+          return res.status(400).json({ message: 'Invalid prediction' });
+        }
+        predictions.push({ match_id: m.id, prediction: value });
+      }
+    }
+
+    const result = await User.createWithPicks({
+      game_id: game.id,
+      display_name,
+      phone: req.body.phone,
+      entry_token,
+      predictions,
+      selections,
+    });
+
+    res.status(201).json({
+      entry_token,
+      participant: { id: result.id, display_name: result.display_name, status: 'declined' },
+      game: { id: game.id, name: game.name },
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
 // Public view of a participant's predictions — visible to any visitor on the
 // leaderboard. Only serves approved participants; hides picks while game is open.
 export const publicPicks = async (req, res, next) => {

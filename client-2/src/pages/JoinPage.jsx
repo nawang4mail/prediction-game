@@ -1,17 +1,13 @@
 import { useState, useEffect } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import api from '../services/api.js'
-import { upsertEntry } from '../services/entries.js'
-import { useEntryStatus } from '../context/EntryContext.jsx'
 
 export default function JoinPage() {
   const { id } = useParams()
   const navigate = useNavigate()
-  const { reload } = useEntryStatus()
   const [game, setGame] = useState(null)
   const [name, setName] = useState('')
   const [phone, setPhone] = useState('')
-  const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
 
   useEffect(() => {
@@ -22,34 +18,17 @@ export default function JoinPage() {
     }).catch(() => {})
   }, [id])
 
-  const handleSubmit = async (e) => {
+  // Nothing is saved here — we only collect name/phone, then move to the pick
+  // page where the player makes their selections and submits. The entry is only
+  // written to the database on final submit (US-99).
+  const handleSubmit = (e) => {
     e.preventDefault()
     setError('')
     if (!name.trim()) { setError('Display name is required.'); return }
     if (name.trim().length > 50) { setError('Name must be 50 characters or less.'); return }
-    setSubmitting(true)
-    try {
-      const { data } = await api.post('/participants', {
-        game_id: Number(id),
-        display_name: name.trim(),
-        phone: phone.trim() || null,
-      })
-      // Store entry on device
-      upsertEntry({
-        token: data.entry_token,
-        name: data.participant?.display_name ?? name.trim(),
-        game_id: Number(id),
-        is_self: true,
-        status: data.participant?.status ?? 'declined',
-      })
-      reload()
-      navigate(`/my-game?game=${id}`, { replace: true })
-    } catch (err) {
-      const msg = err.response?.data?.message ?? 'Something went wrong. Please try again.'
-      setError(msg)
-    } finally {
-      setSubmitting(false)
-    }
+    navigate(`/leagues/${id}/play`, {
+      state: { display_name: name.trim(), phone: phone.trim() || null },
+    })
   }
 
   return (
@@ -112,15 +91,14 @@ export default function JoinPage() {
 
             <button
               type="submit"
-              disabled={submitting}
-              className="w-full py-3 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:opacity-60 disabled:cursor-not-allowed text-white text-sm font-semibold transition-colors"
+              className="w-full py-3 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold transition-colors"
             >
-              {submitting ? 'Joining…' : 'Join Game'}
+              Continue to Picks →
             </button>
           </form>
 
           <p className="text-xs text-gray-400 text-center mt-4 leading-relaxed">
-            After submitting, your entry will be reviewed by the organizer before you can make predictions.
+            Next you'll make your picks. Your entry is only saved when you submit them.
           </p>
         </div>
       </div>

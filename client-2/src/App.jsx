@@ -4,6 +4,7 @@ import PublicLayout from './components/layout/PublicLayout.jsx'
 import LeaderboardPage from './pages/LeaderboardPage.jsx'
 import GamesPage from './pages/GamesPage.jsx'
 import JoinPage from './pages/JoinPage.jsx'
+import PlayPage from './pages/PlayPage.jsx'
 import PredictionPage from './pages/PredictionPage.jsx'
 import MatchesPage from './pages/MatchesPage.jsx'
 import AdminLayout from './components/layout/AdminLayout.jsx'
@@ -27,6 +28,7 @@ export default function App() {
             <Route path="/leaderboard" element={<LeaderboardPage />} />
             <Route path="/leagues" element={<GamesPage />} />
             <Route path="/leagues/:id/join" element={<JoinPage />} />
+            <Route path="/leagues/:id/play" element={<PlayPage />} />
             <Route path="/my-game" element={<PredictionPage />} />
             <Route path="/matches" element={<MatchesPage />} />
             {/* Backward-compat redirects */}
