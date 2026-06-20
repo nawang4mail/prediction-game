@@ -753,3 +753,24 @@ wizard with my current picks pre-selected
   non-existent `stage.selections`; they live in the top-level `selections`
   array (`{ stage_id, stage_team_id }`) and are now grouped by stage
 - client-2 only; no backend changes
+
+---
+
+### US-110 · Matches Tab — Bracket Stages & Community Picks (Visitor)
+
+**As a** visitor on the Matches tab viewing a Bracket game
+**I want to** see each stage with its teams and how many players picked each
+**So that** I can read the crowd's bracket predictions at a glance
+
+**Acceptance Criteria:**
+- When the selected game is a Bracket game, the Matches tab shows the game's
+  stages (instead of fixtures), each with its teams listed below it
+- Teams are laid out as **columns in a horizontally-scrollable row** (scroll
+  left/right to see more teams)
+- Each team column shows its **number of community picks**
+- Teams are ordered **highest picks → lowest** within each stage
+- The actual qualifying/winning teams are **highlighted green** once results are set
+- Header reads "Stages & Community Picks"; empty state if no stages
+- Guess-winners games are unchanged (still show match fixtures + pick bars)
+- Data comes from the public `GET /bracket` breakdown (picks + is_winner, already
+  sorted by picks DESC); client-2 only, no backend changes

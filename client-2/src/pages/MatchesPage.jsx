@@ -7,6 +7,7 @@ export default function MatchesPage() {
   const gameId = searchParams.get('game') ? Number(searchParams.get('game')) : null
   const [games, setGames] = useState([])
   const [matches, setMatches] = useState([])
+  const [stages, setStages] = useState([])
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
@@ -20,16 +21,20 @@ export default function MatchesPage() {
     }).catch(() => {})
   }, [])
 
-  useEffect(() => {
-    if (!gameId) return
-    setLoading(true)
-    api.get('/matches', { params: { game_id: gameId } })
-      .then(({ data }) => setMatches(data))
-      .catch(() => setMatches([]))
-      .finally(() => setLoading(false))
-  }, [gameId])
-
   const selectedGame = games.find((g) => g.id === gameId)
+  const isBracket = selectedGame?.type === 'bracket_prediction'
+
+  // Bracket games show stages + community picks per team (/bracket breakdown);
+  // guess-winners games show matches (/matches). Wait for the game's type before
+  // fetching so we hit the right endpoint.
+  useEffect(() => {
+    if (!gameId || !selectedGame) return
+    setLoading(true)
+    const load = isBracket
+      ? api.get('/bracket', { params: { game_id: gameId } }).then(({ data }) => { setStages(data); setMatches([]) })
+      : api.get('/matches', { params: { game_id: gameId } }).then(({ data }) => { setMatches(data); setStages([]) })
+    load.catch(() => { setMatches([]); setStages([]) }).finally(() => setLoading(false))
+  }, [gameId, isBracket, selectedGame])
 
   return (
     <div className="min-h-screen bg-gray-100">
@@ -62,13 +67,26 @@ export default function MatchesPage() {
         <div className="bg-white rounded-xl shadow-xl border border-gray-200 overflow-hidden">
           {/* Table header */}
           <div className="bg-[#4b4b4b] text-white px-4 py-3 text-xs md:text-sm font-semibold uppercase tracking-wider">
-            Matches & Community Picks
+            {isBracket ? 'Stages & Community Picks' : 'Matches & Community Picks'}
           </div>
 
           {loading ? (
             <div className="p-6 space-y-4">
               {[...Array(4)].map((_, i) => <div key={i} className="h-24 bg-gray-100 rounded-xl animate-pulse" />)}
             </div>
+          ) : isBracket ? (
+            stages.length === 0 ? (
+              <div className="p-12 text-center text-gray-400">
+                <p className="text-4xl mb-3">🏆</p>
+                <p className="text-sm">No stages for this game yet.</p>
+              </div>
+            ) : (
+              <div className="divide-y divide-gray-100">
+                {stages.map((stage) => (
+                  <StageRow key={stage.id} stage={stage} />
+                ))}
+              </div>
+            )
           ) : matches.length === 0 ? (
             <div className="p-12 text-center text-gray-400">
               <p className="text-4xl mb-3">⚽</p>
@@ -83,6 +101,58 @@ export default function MatchesPage() {
           )}
         </div>
       </main>
+    </div>
+  )
+}
+
+// Bracket stage: teams laid out as horizontally-scrollable columns, ordered by
+// most-picked first (the API already sorts by picks DESC). Each column shows the
+// pick count; the actual qualifiers/winners are highlighted green.
+function StageRow({ stage }) {
+  const teams = stage.teams ?? []
+  const totalPicks = teams.reduce((sum, t) => sum + (Number(t.picks) || 0), 0)
+  return (
+    <div className="p-5">
+      <div className="flex items-baseline justify-between gap-3 mb-1">
+        <h3 className="font-oswald text-lg font-bold text-gray-900">{stage.name}</h3>
+        <span className="shrink-0 text-xs text-gray-400 font-semibold">
+          Pick {stage.pick_count} · {stage.points_per_correct}pt each
+        </span>
+      </div>
+      {stage.description && <p className="text-xs text-gray-400 mb-3">{stage.description}</p>}
+      <p className="text-xs text-gray-500 font-semibold mb-2">
+        Community Picks{totalPicks > 0 ? ` · ${totalPicks} total` : ''} · scroll for more →
+      </p>
+      {teams.length === 0 ? (
+        <p className="text-sm text-gray-400">No teams in this stage yet.</p>
+      ) : (
+        <div className="flex gap-3 overflow-x-auto pb-2 -mx-1 px-1">
+          {teams.map((team) => (
+            <TeamColumn key={team.id} team={team} />
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function TeamColumn({ team }) {
+  const won = !!team.is_winner
+  return (
+    <div
+      className={`shrink-0 w-28 sm:w-32 rounded-xl border p-3 text-center transition-colors ${
+        won ? 'bg-green-50 border-green-400' : 'bg-gray-50 border-gray-200'
+      }`}
+    >
+      <p className={`font-semibold text-sm leading-tight min-h-[2.5rem] flex items-center justify-center ${won ? 'text-green-700' : 'text-gray-800'}`}>
+        {won ? '✓ ' : ''}{team.name}
+      </p>
+      <p className={`font-oswald text-2xl font-bold mt-1 ${won ? 'text-green-600' : 'text-gray-900'}`}>
+        {Number(team.picks) || 0}
+      </p>
+      <p className="text-[10px] text-gray-400 uppercase tracking-wider">
+        {Number(team.picks) === 1 ? 'pick' : 'picks'}
+      </p>
     </div>
   )
 }
