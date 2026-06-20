@@ -3,7 +3,7 @@ import { useSearchParams, Link } from 'react-router-dom'
 import api from '../services/api.js'
 import { entriesForGame, getEntries } from '../services/entries.js'
 import { useEntryStatus } from '../context/EntryContext.jsx'
-import { availabilityByStage } from '../services/bracket.js'
+import { availabilityByStage, pruneSelections } from '../services/bracket.js'
 
 const TYPE_LABELS = { guess_winners: 'Guess Winners', bracket_prediction: 'Bracket' }
 const STATUS_CONFIG = {
@@ -519,71 +519,205 @@ function MatchCard({ match, selected, saving, editable, onPick, result }) {
 
 // ─── Bracket Prediction ──────────────────────────────────────────────────────
 
-function BracketPredictions({ gameId, gameStatus, participant, entryToken }) {
+// My Game bracket view (US-109). Read-only by default and showing only the teams
+// the player picked. Pressing Edit opens a one-stage-at-a-time wizard (mirroring
+// the join flow) with the player's saved picks pre-selected; changes are held
+// locally and written on Submit.
+function BracketPredictions({ gameId, gameStatus, participant, entryToken, onRefresh }) {
   const stages = useMemo(() => participant?.stages ?? [], [participant])
   const [selections, setSelections] = useState({})
-  const [saving, setSaving] = useState({})
   const [editMode, setEditMode] = useState(false)
+  const [step, setStep] = useState(0)
+  const [submitting, setSubmitting] = useState(false)
   const canEdit = gameStatus === 'open'
-  const isEditable = canEdit && editMode
   const authCfg = entryToken ? { headers: { 'x-entry-token': entryToken } } : undefined
 
-  useEffect(() => {
+  const resetFromSaved = useCallback(() => {
+    // /participants/me returns selections as a flat [{ stage_id, stage_team_id }]
+    // array — group them by stage so saved picks pre-select in the view/wizard.
     const init = {}
-    ;(participant?.stages ?? []).forEach((stage) => {
-      init[stage.id] = (stage.selections ?? []).map((s) => s.stage_team_id)
+    ;(participant?.stages ?? []).forEach((stage) => { init[stage.id] = [] })
+    ;(participant?.selections ?? []).forEach((sel) => {
+      ;(init[sel.stage_id] ??= []).push(sel.stage_team_id)
     })
     setSelections(init)
   }, [participant])
 
+  useEffect(() => { resetFromSaved() }, [resetFromSaved])
+
   // Combined stages only offer the teams advanced from their parents (US-107).
   const availability = useMemo(() => availabilityByStage(stages, selections), [stages, selections])
+  const stageComplete = (stage) =>
+    (selections[stage.id] ?? []).filter((id) => availability[stage.id]?.has(id)).length === stage.pick_count
+  const allComplete = stages.length > 0 && stages.every(stageComplete)
 
-  const toggleTeam = async (stageId, teamId, pickCount) => {
-    if (!isEditable) return
+  const toggleTeam = (stageId, teamId, pickCount) =>
     setSelections((prev) => {
       const current = prev[stageId] ?? []
       let next
-      if (current.includes(teamId)) {
-        next = current.filter((t) => t !== teamId)
-      } else if (current.length < pickCount) {
-        next = [...current, teamId]
-      } else {
-        next = [...current.slice(1), teamId]
-      }
+      if (current.includes(teamId)) next = current.filter((t) => t !== teamId)
+      else if (current.length < pickCount) next = [...current, teamId]
+      else next = [...current.slice(1), teamId]
       return { ...prev, [stageId]: next }
     })
-    setSaving((s) => ({ ...s, [stageId]: true }))
+
+  const startEdit = () => { setStep(0); setEditMode(true) }
+  const cancelEdit = () => { resetFromSaved(); setEditMode(false) }
+  const submitEdit = async () => {
+    if (!allComplete || submitting) return
+    setSubmitting(true)
     try {
-      const current = selections[stageId] ?? []
-      const next = current.includes(teamId)
-        ? current.filter((t) => t !== teamId)
-        : current.length < pickCount ? [...current, teamId] : [...current.slice(1), teamId]
-      await api.put('/participants/me/bracket', { game_id: gameId, stage_id: stageId, team_ids: next }, authCfg)
-    } catch {}
-    finally { setSaving((s) => ({ ...s, [stageId]: false })) }
+      const clean = pruneSelections(stages, selections)
+      // Save in stage order so a combined stage validates against its saved parents.
+      for (const s of stages) {
+        await api.put('/participants/me/bracket', { game_id: gameId, stage_id: s.id, team_ids: clean[s.id] ?? [] }, authCfg)
+      }
+      setEditMode(false)
+      onRefresh?.()
+    } catch (err) {
+      alert(err.response?.data?.message ?? 'Failed to save your changes.')
+    } finally {
+      setSubmitting(false)
+    }
   }
 
+  if (stages.length === 0) {
+    return <p className="text-center text-gray-400 text-sm py-6">No stages have been added yet.</p>
+  }
+
+  // ── Edit wizard: one stage at a time ──
+  if (editMode) {
+    const safeStep = Math.min(step, stages.length - 1)
+    const stage = stages[safeStep]
+    const isLast = safeStep === stages.length - 1
+    return (
+      <div className="space-y-4 pt-2">
+        <div className="bg-white rounded-xl shadow-sm p-4">
+          <div className="flex gap-1.5 mb-2">
+            {stages.map((s, i) => (
+              <button
+                key={s.id}
+                type="button"
+                onClick={() => setStep(i)}
+                aria-label={`Go to ${s.name}`}
+                className={`h-1.5 flex-1 rounded-full transition-colors ${
+                  stageComplete(s) ? 'bg-green-500' : i === safeStep ? 'bg-[#2b4dff]' : 'bg-gray-200'
+                }`}
+              />
+            ))}
+          </div>
+          <p className="text-xs text-gray-400 text-center">Stage {safeStep + 1} of {stages.length} · editing</p>
+        </div>
+
+        <StageCard
+          stage={stage}
+          selected={selections[stage.id] ?? []}
+          available={availability[stage.id]}
+          editable
+          onToggle={(teamId) => toggleTeam(stage.id, teamId, stage.pick_count)}
+        />
+
+        <div className="flex items-center justify-between gap-2">
+          <button
+            onClick={cancelEdit}
+            className="py-2.5 px-5 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-semibold transition-colors"
+          >
+            Cancel
+          </button>
+          <div className="flex gap-2">
+            {safeStep > 0 && (
+              <button
+                onClick={() => setStep(safeStep - 1)}
+                className="py-2.5 px-5 rounded-xl bg-white border border-gray-200 text-gray-700 text-sm font-semibold transition-colors hover:bg-gray-50"
+              >
+                ← Back
+              </button>
+            )}
+            {!isLast ? (
+              <button
+                onClick={() => setStep(safeStep + 1)}
+                disabled={!stageComplete(stage)}
+                className={`py-2.5 px-6 rounded-xl text-white text-sm font-semibold transition-colors ${
+                  stageComplete(stage) ? 'bg-[#2b4dff] hover:bg-[#1a33cc]' : 'bg-gray-300 cursor-not-allowed'
+                }`}
+              >
+                Next →
+              </button>
+            ) : (
+              <button
+                onClick={submitEdit}
+                disabled={!allComplete || submitting}
+                className={`py-2.5 px-6 rounded-xl text-white text-sm font-semibold transition-colors ${
+                  allComplete && !submitting ? 'bg-green-600 hover:bg-green-700' : 'bg-gray-300 cursor-not-allowed'
+                }`}
+              >
+                {submitting ? 'Saving…' : 'Submit Changes'}
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // ── Read-only: show only the teams the player picked ──
   return (
     <div className="space-y-4 pt-2">
       {canEdit && (
-        <EditToggle editMode={editMode} onToggle={() => setEditMode((v) => !v)} />
+        <div className="flex items-center justify-between gap-3 bg-white rounded-xl border border-gray-200 px-4 py-2.5 shadow-sm">
+          <span className="text-xs text-gray-500">Your picks are locked</span>
+          <button
+            onClick={startEdit}
+            className="px-4 py-2 rounded-lg text-sm font-semibold text-white bg-[#f05a00] hover:bg-orange-600 transition-colors shrink-0"
+          >
+            ✎ Edit Entry
+          </button>
+        </div>
       )}
-      {stages.length === 0 ? (
-        <p className="text-center text-gray-400 text-sm py-6">No stages have been added yet.</p>
+      {stages.map((stage) => (
+        <PickedSummaryCard
+          key={stage.id}
+          stage={stage}
+          selectedIds={selections[stage.id] ?? []}
+          available={availability[stage.id]}
+        />
+      ))}
+    </div>
+  )
+}
+
+// Read-only stage summary: only the teams the player picked, with result colours
+// once the bracket is scored (green = correct, red = wrong).
+function PickedSummaryCard({ stage, selectedIds, available }) {
+  const teams = available ? (stage.teams ?? []).filter((t) => available.has(t.id)) : (stage.teams ?? [])
+  const picked = teams.filter((t) => selectedIds.includes(t.id))
+  const hasResults = (stage.teams ?? []).some((t) => t.is_winner)
+
+  return (
+    <div className="bg-white rounded-xl shadow-sm p-5">
+      <div className="flex items-start justify-between gap-3 mb-1">
+        <h3 className="font-oswald text-lg font-bold text-gray-900">{stage.name}</h3>
+        <span className="shrink-0 text-xs bg-blue-50 text-blue-700 border border-blue-100 px-2.5 py-1 rounded-full font-semibold">
+          {picked.length}/{stage.pick_count} picked
+        </span>
+      </div>
+      {stage.description && <p className="text-xs text-gray-400 mb-3">{stage.description}</p>}
+      {picked.length === 0 ? (
+        <p className="text-xs text-gray-400">No picks yet — tap Edit Entry to choose your teams.</p>
       ) : (
-        stages.map((stage) => (
-          <StageCard
-            key={stage.id}
-            stage={stage}
-            selected={selections[stage.id] ?? []}
-            available={availability[stage.id]}
-            saving={saving[stage.id]}
-            editable={isEditable}
-            onToggle={(teamId) => toggleTeam(stage.id, teamId, stage.pick_count)}
-          />
-        ))
+        <div className="flex flex-wrap gap-2 mt-2">
+          {picked.map((t) => {
+            let cls = 'px-3 py-1.5 rounded-full text-sm font-medium border '
+            if (hasResults) cls += t.is_winner ? 'bg-green-500 text-white border-green-400' : 'bg-red-100 text-red-700 border-red-200'
+            else cls += 'bg-[#2b4dff] text-white border-[#2b4dff]'
+            return <span key={t.id} className={cls}>{hasResults && t.is_winner ? '✓ ' : ''}{t.name}</span>
+          })}
+        </div>
       )}
+      <p className="text-xs text-gray-400 mt-3">
+        {stage.points_per_correct} pt{stage.points_per_correct !== 1 ? 's' : ''} per correct pick
+        {stage.all_correct_bonus > 0 && ` · +${stage.all_correct_bonus} bonus if all correct`}
+      </p>
     </div>
   )
 }

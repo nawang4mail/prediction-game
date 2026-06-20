@@ -730,3 +730,26 @@ the teams they advanced in A and B
 - The sticky **Submit Entry** button activates only when every stage is complete
 - Progress-bar segments are clickable to jump to a stage
 - client-2 only; no backend changes
+
+---
+
+### US-109 · My Game (Bracket) — Picks-Only View + Edit Wizard
+
+**As a** player viewing my Bracket entry in My Game
+**I want to** see only the teams I picked, and edit them in a one-stage-at-a-time
+wizard with my current picks pre-selected
+**So that** my entry is easy to read and changing it feels like the join flow
+
+**Acceptance Criteria:**
+- Read-only by default: each stage shows **only the teams the player picked**
+  (not the whole team pool), with result colours once the bracket is scored
+- An **✎ Edit Entry** button appears for open games
+- Edit opens a wizard: one stage at a time, progress bar, Back/Next, with the
+  player's **saved picks pre-selected** and the full pool available to change
+- Changes are held locally and written on **Submit Changes** (saves every stage,
+  in order, via `PUT /participants/me/bracket`); Cancel discards and restores
+- Combined stages still honour chain-aware availability (US-107)
+- Fix (pre-existing): saved picks never pre-selected because the client read a
+  non-existent `stage.selections`; they live in the top-level `selections`
+  array (`{ stage_id, stage_team_id }`) and are now grouped by stage
+- client-2 only; no backend changes
