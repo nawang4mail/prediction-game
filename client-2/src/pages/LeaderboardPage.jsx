@@ -194,8 +194,11 @@ export default function LeaderboardPage() {
   useEffect(() => {
     api.get('/games').then(({ data }) => {
       setGames(data)
+      // Default to the latest open game (games are newest-first); fall back to the
+      // most recent game if none are open, so the logo never lands on a stale one.
       if (!searchParams.get('game') && data.length > 0) {
-        setSearchParams({ game: data[0].id }, { replace: true })
+        const preferred = data.find((g) => g.status === 'open') ?? data[0]
+        setSearchParams({ game: preferred.id }, { replace: true })
       }
     }).catch(() => {}).finally(() => setGamesLoading(false))
   }, []) // eslint-disable-line react-hooks/exhaustive-deps

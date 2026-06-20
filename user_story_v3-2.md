@@ -614,3 +614,29 @@
   ("Entry Submitted!") with the player/game name
 - It then goes to the leaderboard for that game (auto-redirect after a short pause,
   or immediately via the "View Leaderboard" button) — no longer to My Game
+
+---
+
+### US-105 · Leaderboard Defaults to Open Game & Community Pick Bars
+
+**As a** visitor clicking the logo
+**I want to** land on the latest open game's leaderboard
+**So that** I see an active game instead of an empty/old one
+
+**Acceptance Criteria:**
+- Leaderboard auto-selects the latest **open** game (newest-first), falling back to
+  the most recent game only if none are open
+- Matches page uses the same default for consistency
+
+**As a** visitor on the Matches page
+**I want to** see each option's share of community picks as a coloured bar
+**So that** I can read the crowd's prediction at a glance
+
+**Acceptance Criteria:**
+- Each match's bar is split into three colour-coded segments sized by the share of
+  picks: team A (blue), Draw (gray), team B (orange)
+- Percentages are computed from the API's team_a_count / draw_count / team_b_count
+- Labels under the bar show each option's % in its segment colour, plus the total
+  pick count
+- When a result is set, the winning option's segment turns green
+- "No community picks yet" shown when a match has zero picks

@@ -14,7 +14,8 @@ export default function MatchesPage() {
       const nonDraft = data.filter((g) => g.status !== 'draft')
       setGames(nonDraft)
       if (!gameId && nonDraft.length > 0) {
-        setSearchParams({ game: nonDraft[0].id }, { replace: true })
+        const preferred = nonDraft.find((g) => g.status === 'open') ?? nonDraft[0]
+        setSearchParams({ game: preferred.id }, { replace: true })
       }
     }).catch(() => {})
   }, [])
@@ -86,10 +87,19 @@ export default function MatchesPage() {
   )
 }
 
+// Distinct colour per option so the bar reads as a 3-way split.
+const COLOR_A = '#2b4dff'   // team A — FIFA blue
+const COLOR_DRAW = '#9ca3af' // draw — gray
+const COLOR_B = '#f05a00'   // team B — FIFA orange
+
 function MatchCard({ match }) {
-  const teamA = match.pick_pct?.team_a ?? 0
-  const draw = match.pick_pct?.draw ?? 0
-  const teamB = match.pick_pct?.team_b ?? 0
+  const a = Number(match.team_a_count) || 0
+  const d = Number(match.draw_count) || 0
+  const b = Number(match.team_b_count) || 0
+  const total = a + d + b
+  // Exact widths so the segments fill the bar; rounded values for the labels.
+  const width = (n) => (total ? (n / total) * 100 : 0)
+  const pct = (n) => (total ? Math.round((n / total) * 100) : 0)
   const hasResult = !!match.result
 
   return (
@@ -112,19 +122,29 @@ function MatchCard({ match }) {
       {/* Community picks bar */}
       <div>
         <div className="flex justify-between text-xs text-gray-500 mb-1 font-semibold">
-          <span>Community Picks</span>
+          <span>Community Picks{total > 0 ? ` · ${total} ${total === 1 ? 'pick' : 'picks'}` : ''}</span>
           {hasResult && <span className="text-green-600 font-bold">Result: {match.result === 'team_a' ? match.team_a : match.result === 'team_b' ? match.team_b : 'Draw'}</span>}
         </div>
-        <div className="w-full h-2.5 rounded-full flex overflow-hidden bg-gray-200">
-          <div className={`h-full transition-all ${hasResult && match.result === 'team_a' ? 'bg-green-500' : 'bg-[#2b4dff]'}`} style={{ width: `${teamA}%` }} />
-          <div className={`h-full transition-all ${hasResult && match.result === 'draw' ? 'bg-green-500' : 'bg-gray-400'}`} style={{ width: `${draw}%` }} />
-          <div className={`h-full transition-all ${hasResult && match.result === 'team_b' ? 'bg-green-500' : 'bg-[#4b69ff]'}`} style={{ width: `${teamB}%` }} />
-        </div>
-        <div className="flex justify-between mt-1 text-xs text-gray-500">
-          <span>{teamA}% {match.team_a}</span>
-          {draw > 0 && <span>{draw}% Draw</span>}
-          <span>{teamB}% {match.team_b}</span>
-        </div>
+
+        {total === 0 ? (
+          <>
+            <div className="w-full h-2.5 rounded-full bg-gray-200" />
+            <p className="text-center text-xs text-gray-400 mt-1.5">No community picks yet</p>
+          </>
+        ) : (
+          <>
+            <div className="w-full h-3 rounded-full flex overflow-hidden bg-gray-200">
+              <div className="h-full transition-all" style={{ width: `${width(a)}%`, backgroundColor: hasResult && match.result === 'team_a' ? '#16a34a' : COLOR_A }} />
+              <div className="h-full transition-all" style={{ width: `${width(d)}%`, backgroundColor: hasResult && match.result === 'draw' ? '#16a34a' : COLOR_DRAW }} />
+              <div className="h-full transition-all" style={{ width: `${width(b)}%`, backgroundColor: hasResult && match.result === 'team_b' ? '#16a34a' : COLOR_B }} />
+            </div>
+            <div className="flex justify-between mt-1.5 text-xs font-semibold">
+              <span style={{ color: COLOR_A }}>{pct(a)}% {match.team_a}</span>
+              <span style={{ color: COLOR_DRAW }}>{pct(d)}% Draw</span>
+              <span style={{ color: COLOR_B }}>{pct(b)}% {match.team_b}</span>
+            </div>
+          </>
+        )}
       </div>
     </div>
   )
