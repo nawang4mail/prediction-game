@@ -18,11 +18,12 @@ function resultLabel(result, match) {
   return null
 }
 
+// Cell background colour reflects the outcome of the pick.
 function cellClass(pred, result) {
-  if (!pred) return 'text-gray-300'
-  if (!result) return 'text-blue-600 font-semibold'
-  if (pred === result) return 'text-green-600 font-bold'
-  return 'text-red-500 font-semibold'
+  if (!pred) return 'bg-white text-gray-300'
+  if (!result) return 'bg-blue-50 text-blue-700'
+  if (pred === result) return 'bg-green-100 text-green-800'
+  return 'bg-red-100 text-red-700'
 }
 
 export default function AdminPredictionsPage() {
@@ -47,6 +48,13 @@ export default function AdminPredictionsPage() {
   }
 
   const { users = [], matches = [], predictions = {} } = data
+
+  // A player's score is one point per correct pick (only matches with a result count).
+  const scoreFor = (userId) =>
+    matches.reduce((acc, m) => {
+      const pred = predictions[userId]?.[m.id]
+      return acc + (pred && m.result && pred === m.result ? 1 : 0)
+    }, 0)
 
   return (
     <div className="space-y-4">
@@ -81,6 +89,9 @@ export default function AdminPredictionsPage() {
                     )}
                   </th>
                 ))}
+                <th className="sticky right-0 bg-gray-50 z-10 py-3 px-4 text-center text-xs font-semibold text-gray-500 uppercase border-b border-l border-gray-100 min-w-[70px]">
+                  Score
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
@@ -99,13 +110,16 @@ export default function AdminPredictionsPage() {
                   {matches.map((m) => {
                     const pred = predictions[u.id]?.[m.id]
                     return (
-                      <td key={m.id} className="py-2.5 px-3 text-center">
-                        <span className={`text-xs ${cellClass(pred, m.result)}`}>
+                      <td key={m.id} className="p-1.5 text-center">
+                        <div className={`rounded-md py-2 px-2 text-xs font-semibold ${cellClass(pred, m.result)}`}>
                           {pred ? predLabel(pred, m) : '·'}
-                        </span>
+                        </div>
                       </td>
                     )
                   })}
+                  <td className="sticky right-0 bg-white z-10 py-2.5 px-4 text-center border-l border-gray-100">
+                    <span className="font-oswald text-base font-bold text-gray-900">{scoreFor(u.id)}</span>
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -113,12 +127,13 @@ export default function AdminPredictionsPage() {
         )}
       </div>
 
-      <div className="text-xs text-gray-400 flex gap-4 flex-wrap">
-        <span><span className="font-bold text-green-600">Pick</span> = correct</span>
-        <span><span className="font-bold text-red-500">Pick</span> = wrong</span>
-        <span><span className="font-bold text-blue-600">Pick</span> = no result yet</span>
+      <div className="text-xs text-gray-400 flex gap-3 flex-wrap items-center">
+        <span className="inline-flex items-center gap-1.5"><span className="w-3 h-3 rounded bg-green-100 border border-green-200" /> correct</span>
+        <span className="inline-flex items-center gap-1.5"><span className="w-3 h-3 rounded bg-red-100 border border-red-200" /> wrong</span>
+        <span className="inline-flex items-center gap-1.5"><span className="w-3 h-3 rounded bg-blue-50 border border-blue-200" /> no result yet</span>
+        <span className="inline-flex items-center gap-1.5"><span className="w-3 h-3 rounded bg-white border border-gray-200" /> no pick</span>
         <span className="text-gray-300">·</span>
-        <span>= no pick</span>
+        <span>Score = 1 point per correct pick</span>
       </div>
     </div>
   )

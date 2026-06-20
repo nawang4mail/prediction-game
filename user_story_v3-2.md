@@ -522,3 +522,18 @@
 - Colour coding retained: green = correct, red = wrong, blue = no result yet,
   grey dot = no pick
 - Header shows a "Read-only" indicator
+
+---
+
+### US-101 · Prediction Grid — Coloured Cells & Score Column
+
+**As an** admin
+**I want to** see coloured cells and a score per player in the prediction grid
+**So that** I can scan results at a glance and see who's leading
+
+**Acceptance Criteria:**
+- Each pick is shown as a coloured cell (background), not just coloured text:
+  - green = correct, red = wrong, blue = picked but no result yet, white = no pick
+- A "Score" column is pinned at the right end showing each player's points
+- Score = 1 point per correct pick (matches the leaderboard calculation)
+- Legend updated to show colour swatches and the scoring rule
