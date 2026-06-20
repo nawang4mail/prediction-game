@@ -383,7 +383,7 @@
 
 ---
 
-### US-93 · My Game — Accordion List with Type Filter
+### US-93 · My Game — Accordion List with Type Filter ✅
 
 **As a** participant
 **I want to** see my entered games as an expandable list with a type filter
