@@ -192,16 +192,22 @@ export default function LeaderboardPage() {
   const selectedId = searchParams.get('game') ? Number(searchParams.get('game')) : null
 
   useEffect(() => {
-    api.get('/games').then(({ data }) => {
-      setGames(data)
-      // Default to the latest open game (games are newest-first); fall back to the
-      // most recent game if none are open, so the logo never lands on a stale one.
-      if (!searchParams.get('game') && data.length > 0) {
-        const preferred = data.find((g) => g.status === 'open') ?? data[0]
-        setSearchParams({ game: preferred.id }, { replace: true })
-      }
-    }).catch(() => {}).finally(() => setGamesLoading(false))
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+    api.get('/games')
+      .then(({ data }) => setGames(data))
+      .catch(() => {})
+      .finally(() => setGamesLoading(false))
+  }, [])
+
+  // Default to the latest open game (games are newest-first); fall back to the
+  // most recent game if none are open. Runs whenever there's no `?game=` param —
+  // including when the logo clears it while we're already on this page — so the
+  // logo never lands on an empty leaderboard.
+  useEffect(() => {
+    if (!searchParams.get('game') && games.length > 0) {
+      const preferred = games.find((g) => g.status === 'open') ?? games[0]
+      setSearchParams({ game: preferred.id }, { replace: true })
+    }
+  }, [games, searchParams, setSearchParams])
 
   const loadLeaderboard = useCallback(async () => {
     if (!selectedId) return
