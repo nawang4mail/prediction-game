@@ -665,3 +665,46 @@
 - A `<meta name="description">` is present for SEO/non-OG consumers
 - Image source is `src/assets/banner.jpg` (1100×614)
 - client-2 only; no backend changes
+
+---
+
+### US-107 · Admin — Jump to Tab by Type, Edit Stages & Combined Stages
+
+**As an** admin on the Games tab
+**I want to** click a game's name to jump straight to its picks tab
+**So that** I land on the right editor without manually switching game + tab
+
+**Acceptance Criteria:**
+- Clicking a game's **name** on `/admin/games` selects that game (scopes the admin
+  panel to it) and navigates to:
+  - `/admin/bracket` when `type === 'bracket_prediction'`
+  - `/admin/matches` when `type === 'guess_winners'`
+- The name is visibly interactive (link styling / hover)
+
+**As an** admin managing a Bracket game
+**I want to** edit a stage after it's created
+**So that** I can fix names, teams, pick counts, points, and bonuses without deleting
+
+**Acceptance Criteria:**
+- Each stage card has an **Edit** action (shown while the game is `draft`/`open`)
+- Edit opens the stage form pre-filled; saving calls `PUT /api/admin/bracket/:id`
+- The add/edit form is shared (one form, "Add" vs "Edit" mode)
+- Fix: Set Results sends `team_ids` (was `winner_ids`, so results never saved)
+- Fix: Entries tab reads the API's `stages`/`name` shape (was `picks`/`stage_name`)
+
+**As an** admin
+**I want to** build a combined stage from earlier stages
+**So that** e.g. Stage C = the union of A and B, and each player only re-picks from
+the teams they advanced in A and B
+
+**Acceptance Criteria:**
+- The stage form offers "Combine from earlier stages" — a multi-select of existing
+  stages; selecting any makes it a combined stage (`parent_ids`)
+- A combined stage hides the teams input (teams are inherited; backend derives them
+  via `recomputeDerived`)
+- Stage cards show a "🔗 Combined from A + B" label for combined stages
+- Player picks pages honour combined stages (chain-aware): a combined stage only
+  offers the teams the player advanced in its parents; a hint is shown until the
+  parent picks are made
+- Applies to both the join/play flow (`/leagues/:id/play`) and My Game
+- client-2 only; backend already supports edit + `parent_ids` (US-52)

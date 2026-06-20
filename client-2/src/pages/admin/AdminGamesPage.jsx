@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import api from '../../services/api.js'
 import { useAdminGame } from '../../context/AdminGameContext.jsx'
 
@@ -13,7 +14,14 @@ const TYPE_LABELS = { guess_winners: 'Guess Winners', bracket_prediction: 'Brack
 
 export default function AdminGamesPage() {
   const { games, loading, refresh, select } = useAdminGame()
+  const navigate = useNavigate()
   const [selected, setSelected] = useState(new Set())
+
+  // Clicking a game name scopes the panel to it and jumps to its picks editor.
+  const openGame = (game) => {
+    select(game.id)
+    navigate(game.type === 'bracket_prediction' ? '/admin/bracket' : '/admin/matches')
+  }
   const [showCreate, setShowCreate] = useState(false)
   const [creating, setCreating] = useState(false)
   const [newName, setNewName] = useState('')
@@ -149,7 +157,15 @@ export default function AdminGamesPage() {
                   <td className="py-3 pl-4">
                     <input type="checkbox" checked={selected.has(game.id)} onChange={() => toggleSelect(game.id)} />
                   </td>
-                  <td className="py-3 px-4 font-medium text-gray-900 text-sm">{game.name}</td>
+                  <td className="py-3 px-4 text-sm">
+                    <button
+                      onClick={() => openGame(game)}
+                      className="font-medium text-blue-600 hover:text-blue-800 hover:underline text-left"
+                      title={`Open ${game.type === 'bracket_prediction' ? 'Bracket' : 'Matches'} editor`}
+                    >
+                      {game.name}
+                    </button>
+                  </td>
                   <td className="py-3 px-4 text-sm text-gray-500">{TYPE_LABELS[game.type] ?? game.type}</td>
                   <td className="py-3 px-4">
                     <span className={`inline-block px-2.5 py-0.5 rounded-full text-xs font-semibold ${STATUS_COLORS[game.status]}`}>
