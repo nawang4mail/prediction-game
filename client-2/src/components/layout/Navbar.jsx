@@ -18,11 +18,8 @@ export default function Navbar({ pendingCount = 0 }) {
 
           {/* Left: logo + desktop nav links */}
           <div className="flex items-center gap-8 pt-4">
-            <NavLink
-              to="/leaderboard"
-              className="font-oswald text-white text-xl font-bold tracking-widest uppercase pb-3 shrink-0"
-            >
-              🏆 BRACKET
+            <NavLink to="/leaderboard" className="shrink-0 pb-3" aria-label="MATKA home">
+              <span className="logo-matka text-3xl sm:text-4xl uppercase leading-none">MATKA</span>
             </NavLink>
 
             {/* Desktop nav links */}
