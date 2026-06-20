@@ -138,10 +138,10 @@ function MatchCard({ match }) {
               <div className="h-full transition-all" style={{ width: `${width(d)}%`, backgroundColor: hasResult && match.result === 'draw' ? '#16a34a' : COLOR_DRAW }} />
               <div className="h-full transition-all" style={{ width: `${width(b)}%`, backgroundColor: hasResult && match.result === 'team_b' ? '#16a34a' : COLOR_B }} />
             </div>
-            <div className="flex justify-between mt-1.5 text-xs font-semibold">
-              <span style={{ color: COLOR_A }}>{pct(a)}% {match.team_a}</span>
-              <span style={{ color: COLOR_DRAW }}>{pct(d)}% Draw</span>
-              <span style={{ color: COLOR_B }}>{pct(b)}% {match.team_b}</span>
+            <div className="grid grid-cols-3 mt-1.5 text-xs font-semibold gap-1">
+              <span className="text-left truncate" style={{ color: COLOR_A }}>{pct(a)}% {match.team_a} ({a})</span>
+              <span className="text-center" style={{ color: COLOR_DRAW }}>{pct(d)}% Draw ({d})</span>
+              <span className="text-right truncate" style={{ color: COLOR_B }}>{pct(b)}% {match.team_b} ({b})</span>
             </div>
           </>
         )}
