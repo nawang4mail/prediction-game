@@ -75,7 +75,7 @@ export default function JoinPage() {
             )}
             <div className="flex flex-col gap-3 mt-6">
               <Link
-                to={`/prediction?game=${id}`}
+                to={`/my-game?game=${id}`}
                 className="block w-full py-3 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold transition-colors text-center"
               >
                 View My Prediction
@@ -98,10 +98,10 @@ export default function JoinPage() {
       <div className="bg-gradient-to-br from-blue-600 to-blue-800 py-10 px-4">
         <div className="max-w-md mx-auto">
           <Link
-            to="/games"
+            to="/leagues"
             className="inline-flex items-center gap-1.5 text-blue-200 hover:text-white text-sm mb-4 transition-colors"
           >
-            ← Back to Games
+            ← Back to Leagues
           </Link>
           <h1 className="font-oswald text-4xl font-bold text-white uppercase tracking-wider">
             Join Game

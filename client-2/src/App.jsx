@@ -5,6 +5,7 @@ import LeaderboardPage from './pages/LeaderboardPage.jsx'
 import GamesPage from './pages/GamesPage.jsx'
 import JoinPage from './pages/JoinPage.jsx'
 import PredictionPage from './pages/PredictionPage.jsx'
+import MatchesPage from './pages/MatchesPage.jsx'
 import AdminLayout from './components/layout/AdminLayout.jsx'
 import AdminLoginPage from './pages/admin/AdminLoginPage.jsx'
 import AdminDashboard from './pages/admin/AdminDashboard.jsx'
@@ -24,9 +25,14 @@ export default function App() {
           <Route element={<PublicLayout />}>
             <Route index element={<Navigate to="/leaderboard" replace />} />
             <Route path="/leaderboard" element={<LeaderboardPage />} />
-            <Route path="/games" element={<GamesPage />} />
-            <Route path="/games/:id/join" element={<JoinPage />} />
-            <Route path="/prediction" element={<PredictionPage />} />
+            <Route path="/leagues" element={<GamesPage />} />
+            <Route path="/leagues/:id/join" element={<JoinPage />} />
+            <Route path="/my-game" element={<PredictionPage />} />
+            <Route path="/matches" element={<MatchesPage />} />
+            {/* Backward-compat redirects */}
+            <Route path="/games" element={<Navigate to="/leagues" replace />} />
+            <Route path="/games/:id/join" element={<Navigate to="/leagues/:id/join" replace />} />
+            <Route path="/prediction" element={<Navigate to="/my-game" replace />} />
           </Route>
 
           {/* Admin routes */}

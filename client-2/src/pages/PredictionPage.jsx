@@ -36,7 +36,7 @@ function MyGamesSelector({ games, loading }) {
           <div className="text-center py-20 text-gray-400">
             <p className="text-4xl mb-3">🎯</p>
             <p className="text-sm mb-4">You haven't joined any games yet.</p>
-            <Link to="/games" className="inline-block px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-xl transition-colors">
+            <Link to="/leagues" className="inline-block px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-xl transition-colors">
               Browse Games
             </Link>
           </div>
@@ -60,7 +60,7 @@ function MyGamesSelector({ games, loading }) {
                     <span className="text-xs text-gray-400">{entries.length} entr{entries.length !== 1 ? 'ies' : 'y'}</span>
                   </div>
                   <button
-                    onClick={() => navigate(`/prediction?game=${game.id}`)}
+                    onClick={() => navigate(`/my-game?game=${game.id}`)}
                     className="mt-auto w-full py-2.5 px-4 rounded-xl bg-orange-500 hover:bg-orange-600 text-white text-sm font-semibold transition-colors"
                   >
                     View Predictions
@@ -132,7 +132,7 @@ export default function PredictionPage() {
       {/* Hero */}
       <div className="bg-gradient-to-br from-blue-600 to-blue-800 py-10 px-4">
         <div className="max-w-3xl mx-auto">
-          <Link to="/prediction" className="inline-flex items-center gap-1.5 text-blue-200 hover:text-white text-sm mb-4 transition-colors">
+          <Link to="/my-game" className="inline-flex items-center gap-1.5 text-blue-200 hover:text-white text-sm mb-4 transition-colors">
             ← My Predictions
           </Link>
           <h1 className="font-oswald text-4xl sm:text-5xl font-bold text-white uppercase tracking-wider">
@@ -172,7 +172,7 @@ function NoEntry({ gameId }) {
       <h2 className="font-oswald text-xl font-bold text-gray-900 mb-2">You haven't joined this game yet</h2>
       <p className="text-gray-500 text-sm mb-6">Join to make predictions and appear on the leaderboard.</p>
       <Link
-        to={`/games/${gameId}/join`}
+        to={`/leagues/${gameId}/join`}
         className="inline-block px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-xl transition-colors"
       >
         Join This Game

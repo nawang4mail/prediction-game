@@ -323,3 +323,60 @@
 - Locked/finished without entry: shows "View Leaderboard" (gray)
 - Clicking "Join Game" opens the join form (`/games/:id/join`) which creates a new entry
 - client-2 only; no backend changes
+
+---
+
+### US-90 · FIFA-Style 4-Tab Navigation & Color Theme ✅
+
+**As a** participant
+**I want to** see a redesigned navbar with 4 tabs matching the FIFA-style sample design
+**So that** navigation is clear, visually on-brand, and covers all key sections
+
+**Acceptance Criteria:**
+- Navbar background: `#0b0b0d` (FIFA black) — updated from `bg-gray-900`
+- Logo (🏆 BRACKET) and nav links are left-aligned together
+- 4 nav links: **MY GAME · LEAGUES · LEADERBOARD · MATCHES** (uppercase, tracking-wide)
+- Active link: white text + white bottom border (`border-b-4 border-white`) — replaces orange underline
+- Right side: user profile icon (SVG person circle)
+- Mobile hamburger shows all 4 links in dropdown
+- Tailwind config adds FIFA color tokens: `fifa.blue` (#2b4dff), `fifa.orange` (#f05a00), `fifa.black` (#0b0b0d)
+- Routes updated: `/prediction` → `/my-game`, `/games` → `/leagues`, `/games/:id/join` → `/leagues/:id/join`
+- Backward-compat redirects keep old URLs working
+- All internal `<Link>` references across pages updated to new routes
+
+---
+
+### US-91 · Leaderboard Visual Upgrade ✅
+
+**As a** participant
+**I want to** see a richer leaderboard with avatar initials, medal icons, and a card-overlap layout
+**So that** the standings feel premium and match the FIFA-style sample
+
+**Acceptance Criteria:**
+- Max width updated to `max-w-7xl` across public pages
+- Main content card pulls up over hero: `-mt-8 relative z-20` overlap
+- Hero gradient: `linear-gradient(135deg, #2b4dff 0%, #1a33cc 100%)` with decorative ellipse
+- Game selector shows "Game" label above the `<select>` (two-line styled card format)
+- Leaderboard rows show avatar: colored initials circle (stable color from first char of name)
+- Top 3 rows: medal emojis (🥇/🥈/🥉) instead of rank numbers
+- Vertical border divider between rank and name columns
+- Sticky bottom bar uses `#f05a00` (FIFA orange)
+
+---
+
+### US-92 · Matches Page ✅
+
+**As a** participant
+**I want to** see all matches for the selected game with community pick percentages
+**So that** I can understand how the crowd is predicting each fixture
+
+**Acceptance Criteria:**
+- New route: `/matches`
+- Fetches `GET /api/matches?game_id=<id>` for match list
+- Blue gradient hero ("MATCHES" title) + labeled "Game" selector dropdown
+- Content card pulls up over hero (-mt-8), consistent with leaderboard layout
+- Match cards: date/label, Team A vs Team B, 3-segment pick percentage bar
+- Pick bar colours: FIFA blue (team A) / gray (draw) / lighter blue (team B)
+- If match has a result, winning segment highlighted green
+- Empty state if no matches; loading skeletons
+- Degrades gracefully if `pick_pct` data not returned by API (shows 0% bars)

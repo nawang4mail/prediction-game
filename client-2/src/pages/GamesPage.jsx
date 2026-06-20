@@ -111,7 +111,7 @@ function GameCard({ game, navigate }) {
       <div className="mt-auto pt-2 border-t border-gray-100 flex flex-col gap-2">
         {game.status === 'open' && (
           <button
-            onClick={() => navigate(`/games/${game.id}/join`)}
+            onClick={() => navigate(`/leagues/${game.id}/join`)}
             className="block w-full text-center py-2.5 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold transition-colors"
           >
             + Join Game
@@ -119,7 +119,7 @@ function GameCard({ game, navigate }) {
         )}
         {hasEntry && (
           <Link
-            to={`/prediction?game=${game.id}`}
+            to={`/my-game?game=${game.id}`}
             className="block w-full text-center py-2.5 px-4 rounded-xl bg-orange-500 hover:bg-orange-600 text-white text-sm font-semibold transition-colors"
           >
             View My Prediction
