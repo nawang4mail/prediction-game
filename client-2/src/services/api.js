@@ -29,6 +29,7 @@ api.interceptors.request.use((config) => {
     adminGameId &&
     url.startsWith('/admin') &&
     !url.startsWith('/admin/games') &&
+    !url.startsWith('/admin/teams') &&
     !url.startsWith('/admin/auth')
   ) {
     config.params = { ...config.params, game_id: adminGameId }

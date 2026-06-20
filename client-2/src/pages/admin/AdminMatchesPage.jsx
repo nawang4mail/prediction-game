@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import api from '../../services/api.js'
 import { useAdminGame } from '../../context/AdminGameContext.jsx'
+import TeamSelect from '../../components/TeamSelect.jsx'
 
 const RESULTS = [
   { value: 'team_a', label: 'Team A' },
@@ -91,8 +92,8 @@ export default function AdminMatchesPage() {
 
       {showAdd && (
         <form onSubmit={addMatch} className="bg-white rounded-2xl shadow-sm p-5 grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
-          <input value={form.team_a} onChange={(e) => setForm({ ...form, team_a: e.target.value })} placeholder="Team A *" className="px-3 py-2 rounded-lg border border-gray-200 text-sm outline-none focus:border-blue-400" />
-          <input value={form.team_b} onChange={(e) => setForm({ ...form, team_b: e.target.value })} placeholder="Team B *" className="px-3 py-2 rounded-lg border border-gray-200 text-sm outline-none focus:border-blue-400" />
+          <TeamSelect value={form.team_a} onChange={(v) => setForm({ ...form, team_a: v })} placeholder="Team A *" />
+          <TeamSelect value={form.team_b} onChange={(v) => setForm({ ...form, team_b: v })} placeholder="Team B *" />
           <input value={form.label} onChange={(e) => setForm({ ...form, label: e.target.value })} placeholder="Label (optional)" className="px-3 py-2 rounded-lg border border-gray-200 text-sm outline-none focus:border-blue-400" />
           <input type="date" value={form.match_date} onChange={(e) => setForm({ ...form, match_date: e.target.value })} className="px-3 py-2 rounded-lg border border-gray-200 text-sm outline-none focus:border-blue-400" />
           <div className="sm:col-span-2 lg:col-span-4 flex gap-2">
@@ -128,8 +129,8 @@ export default function AdminMatchesPage() {
                     <>
                       <td colSpan={2} className="py-2 px-4">
                         <div className="flex gap-2 flex-wrap">
-                          <input value={editForm.team_a ?? ''} onChange={(e) => setEditForm({ ...editForm, team_a: e.target.value })} className="px-2 py-1 rounded border border-gray-200 text-sm outline-none w-28" placeholder="Team A" />
-                          <input value={editForm.team_b ?? ''} onChange={(e) => setEditForm({ ...editForm, team_b: e.target.value })} className="px-2 py-1 rounded border border-gray-200 text-sm outline-none w-28" placeholder="Team B" />
+                          <TeamSelect value={editForm.team_a ?? ''} onChange={(v) => setEditForm({ ...editForm, team_a: v })} placeholder="Team A" className="w-40" />
+                          <TeamSelect value={editForm.team_b ?? ''} onChange={(v) => setEditForm({ ...editForm, team_b: v })} placeholder="Team B" className="w-40" />
                           <input value={editForm.label ?? ''} onChange={(e) => setEditForm({ ...editForm, label: e.target.value })} className="px-2 py-1 rounded border border-gray-200 text-sm outline-none w-32" placeholder="Label" />
                           <input type="date" value={editForm.match_date ?? ''} onChange={(e) => setEditForm({ ...editForm, match_date: e.target.value })} className="px-2 py-1 rounded border border-gray-200 text-sm outline-none" />
                         </div>

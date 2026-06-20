@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react'
 import api from '../../services/api.js'
 import { useAdminGame } from '../../context/AdminGameContext.jsx'
+import TeamMultiSelect from '../../components/TeamMultiSelect.jsx'
 
 const EMPTY_FORM = {
   name: '',
   description: '',
-  teams: '',
+  teams: [],
   pick_count: 4,
   points_per_correct: 1,
   all_correct_bonus: 0,
@@ -55,7 +56,7 @@ export default function AdminBracketPage() {
     setForm({
       name: stage.name,
       description: stage.description ?? '',
-      teams: (stage.teams ?? []).map((t) => t.name).join(', '),
+      teams: (stage.teams ?? []).map((t) => t.name),
       pick_count: stage.pick_count,
       points_per_correct: stage.points_per_correct,
       all_correct_bonus: stage.all_correct_bonus,
@@ -80,7 +81,7 @@ export default function AdminBracketPage() {
       const payload = {
         name: form.name.trim(),
         description: form.description.trim() || null,
-        teams: form.teams.split(',').map((t) => t.trim()).filter(Boolean),
+        teams: form.teams,
         pick_count: Number(form.pick_count),
         points_per_correct: Number(form.points_per_correct),
         all_correct_bonus: Number(form.all_correct_bonus),
@@ -264,8 +265,8 @@ export default function AdminBracketPage() {
               </p>
             ) : (
               <div>
-                <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Teams (comma-separated)</label>
-                <textarea value={form.teams} onChange={(e) => setForm({ ...form, teams: e.target.value })} rows={3} className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm outline-none focus:border-blue-400" placeholder="Brazil, France, Argentina, England" />
+                <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Teams</label>
+                <TeamMultiSelect value={form.teams} onChange={(v) => setForm({ ...form, teams: v })} placeholder="Search and add teams…" />
               </div>
             )}
 

@@ -4,6 +4,7 @@ import api from '../services/api.js'
 import { entriesForGame, getEntries } from '../services/entries.js'
 import { useEntryStatus } from '../context/EntryContext.jsx'
 import { availabilityByStage, pruneSelections } from '../services/bracket.js'
+import { TeamIcon } from '../components/TeamLabel.jsx'
 
 const TYPE_LABELS = { guess_winners: 'Guess Winners', bracket_prediction: 'Bracket' }
 const STATUS_CONFIG = {
@@ -509,7 +510,12 @@ function MatchCard({ match, selected, saving, editable, onPick, result }) {
             onClick={() => onPick(value)}
             className={`py-3 px-2 rounded-xl border text-sm font-semibold transition-all ${btnCls(value)} disabled:cursor-not-allowed`}
           >
-            {saving && selected === value ? '…' : label}
+            {saving && selected === value ? '…' : (
+              <span className="inline-flex items-center justify-center gap-1">
+                {value !== 'draw' && <TeamIcon name={label} className="w-4 h-3" />}
+                {label}
+              </span>
+            )}
           </button>
         ))}
       </div>
@@ -707,10 +713,15 @@ function PickedSummaryCard({ stage, selectedIds, available }) {
       ) : (
         <div className="flex flex-wrap gap-2 mt-2">
           {picked.map((t) => {
-            let cls = 'px-3 py-1.5 rounded-full text-sm font-medium border '
+            let cls = 'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium border '
             if (hasResults) cls += t.is_winner ? 'bg-green-500 text-white border-green-400' : 'bg-red-100 text-red-700 border-red-200'
             else cls += 'bg-[#2b4dff] text-white border-[#2b4dff]'
-            return <span key={t.id} className={cls}>{hasResults && t.is_winner ? '✓ ' : ''}{t.name}</span>
+            return (
+              <span key={t.id} className={cls}>
+                <TeamIcon name={t.name} className="w-4 h-3" />
+                {hasResults && t.is_winner ? '✓ ' : ''}{t.name}
+              </span>
+            )
           })}
         </div>
       )}
@@ -769,7 +780,10 @@ function StageCard({ stage, selected, available, saving, editable, onToggle }) {
               onClick={() => onToggle(team.id)}
               className={cls + ' disabled:cursor-not-allowed'}
             >
-              {team.name}
+              <span className="inline-flex items-center gap-1.5">
+                <TeamIcon name={team.name} />
+                {team.name}
+              </span>
             </button>
           )
         })}

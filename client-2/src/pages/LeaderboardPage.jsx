@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import api from '../services/api.js'
 import { entriesForGame } from '../services/entries.js'
+import { TeamIcon } from '../components/TeamLabel.jsx'
 
 const POLL_MS = 15000
 
@@ -119,7 +120,14 @@ function GWPicksList({ matches, gameStatus }) {
                 } else {
                   cls += 'bg-white text-gray-400 border-gray-100'
                 }
-                return <div key={value} className={cls}>{label}</div>
+                return (
+                  <div key={value} className={cls}>
+                    <span className="inline-flex items-center justify-center gap-1">
+                      {value !== 'draw' && <TeamIcon name={label} className="w-4 h-3" />}
+                      {label}
+                    </span>
+                  </div>
+                )
               })}
             </div>
             {!picked && (
@@ -179,13 +187,16 @@ function BracketPicksList({ stages }) {
                 {picked.map((team) => {
                   const correctPick = hasResults && team.is_winner
                   const wrongPick = hasResults && !team.is_winner
-                  let chip = 'px-2.5 py-1 rounded-lg text-xs font-medium border '
+                  let chip = 'inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium border '
                   if (correctPick) chip += 'bg-green-500 text-white border-green-400'
                   else if (wrongPick) chip += 'bg-red-100 text-red-700 border-red-200'
                   else chip += 'bg-[#2b4dff] text-white border-[#2b4dff]'
                   return (
                     <span key={team.id} className="inline-flex items-center gap-1">
-                      <span className={chip}>{team.name}</span>
+                      <span className={chip}>
+                        <TeamIcon name={team.name} className="w-4 h-3" />
+                        {team.name}
+                      </span>
                       {correctPick && (
                         <span className="text-green-600 text-xs font-bold">+{stage.points_per_correct}</span>
                       )}

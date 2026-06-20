@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import api from '../services/api.js'
+import { TeamIcon } from '../components/TeamLabel.jsx'
 
 export default function MatchesPage() {
   const [searchParams, setSearchParams] = useSearchParams()
@@ -144,8 +145,9 @@ function TeamColumn({ team }) {
         won ? 'bg-green-50 border-green-400' : 'bg-gray-50 border-gray-200'
       }`}
     >
-      <p className={`font-semibold text-sm leading-tight min-h-[2.5rem] flex items-center justify-center ${won ? 'text-green-700' : 'text-gray-800'}`}>
-        {won ? '✓ ' : ''}{team.name}
+      <p className={`font-semibold text-sm leading-tight min-h-[2.5rem] flex items-center justify-center gap-1.5 ${won ? 'text-green-700' : 'text-gray-800'}`}>
+        <TeamIcon name={team.name} />
+        <span>{won ? '✓ ' : ''}{team.name}</span>
       </p>
       <p className={`font-oswald text-2xl font-bold mt-1 ${won ? 'text-green-600' : 'text-gray-900'}`}>
         {Number(team.picks) || 0}
@@ -181,11 +183,17 @@ function MatchCard({ match }) {
       )}
       <div className="flex justify-between items-center mb-4">
         <div className="text-right flex-1">
-          <span className={`font-bold text-lg ${hasResult && match.result === 'team_a' ? 'text-green-600' : 'text-gray-900'}`}>{match.team_a}</span>
+          <span className={`inline-flex items-center gap-2 font-bold text-lg ${hasResult && match.result === 'team_a' ? 'text-green-600' : 'text-gray-900'}`}>
+            <TeamIcon name={match.team_a} className="w-6 h-4" />
+            {match.team_a}
+          </span>
         </div>
         <div className="px-4 text-gray-400 font-bold text-sm">VS</div>
         <div className="text-left flex-1">
-          <span className={`font-bold text-lg ${hasResult && match.result === 'team_b' ? 'text-green-600' : 'text-gray-900'}`}>{match.team_b}</span>
+          <span className={`inline-flex items-center gap-2 font-bold text-lg ${hasResult && match.result === 'team_b' ? 'text-green-600' : 'text-gray-900'}`}>
+            <TeamIcon name={match.team_b} className="w-6 h-4" />
+            {match.team_b}
+          </span>
         </div>
       </div>
 

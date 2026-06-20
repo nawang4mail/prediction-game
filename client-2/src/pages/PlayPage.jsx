@@ -4,6 +4,7 @@ import api from '../services/api.js'
 import { upsertEntry } from '../services/entries.js'
 import { useEntryStatus } from '../context/EntryContext.jsx'
 import { availabilityByStage, pruneSelections } from '../services/bracket.js'
+import { TeamIcon } from '../components/TeamLabel.jsx'
 
 // The player has already entered their name/phone on the Join page. Here they
 // make their picks and submit. Nothing is written to the database until they
@@ -311,7 +312,10 @@ function MatchPick({ match, selected, onPick }) {
                   : 'bg-gray-50 hover:bg-blue-50 text-gray-700 border-gray-200 hover:border-[#2b4dff]/40'
               }`}
             >
-              {label}
+              <span className="inline-flex items-center justify-center gap-1">
+                {value !== 'draw' && <TeamIcon name={label} className="w-4 h-3" />}
+                {label}
+              </span>
             </button>
           )
         })}
@@ -422,7 +426,10 @@ function StagePick({ stage, selected, available, onToggle }) {
                     : 'bg-gray-50 hover:bg-blue-50 text-gray-700 border-gray-200 hover:border-blue-300'
                 }`}
               >
-                {team.name}
+                <span className="inline-flex items-center gap-1.5">
+                  <TeamIcon name={team.name} />
+                  {team.name}
+                </span>
               </button>
             )
           })}

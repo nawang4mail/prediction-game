@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { EntryProvider } from './context/EntryContext.jsx'
+import { TeamsProvider } from './context/TeamsContext.jsx'
 import PublicLayout from './components/layout/PublicLayout.jsx'
 import LeaderboardPage from './pages/LeaderboardPage.jsx'
 import GamesPage from './pages/GamesPage.jsx'
@@ -16,11 +17,13 @@ import AdminBracketPage from './pages/admin/AdminBracketPage.jsx'
 import AdminUsersPage from './pages/admin/AdminUsersPage.jsx'
 import AdminSettingsPage from './pages/admin/AdminSettingsPage.jsx'
 import AdminPredictionsPage from './pages/admin/AdminPredictionsPage.jsx'
+import AdminTeamsPage from './pages/admin/AdminTeamsPage.jsx'
 
 export default function App() {
   return (
     <BrowserRouter>
       <EntryProvider>
+        <TeamsProvider>
         <Routes>
           {/* Public routes */}
           <Route element={<PublicLayout />}>
@@ -46,10 +49,12 @@ export default function App() {
             <Route path="matches" element={<AdminMatchesPage />} />
             <Route path="bracket" element={<AdminBracketPage />} />
             <Route path="users" element={<AdminUsersPage />} />
+            <Route path="teams" element={<AdminTeamsPage />} />
             <Route path="settings" element={<AdminSettingsPage />} />
             <Route path="predictions" element={<AdminPredictionsPage />} />
           </Route>
         </Routes>
+        </TeamsProvider>
       </EntryProvider>
     </BrowserRouter>
   )

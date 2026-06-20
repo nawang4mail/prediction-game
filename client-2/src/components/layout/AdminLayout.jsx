@@ -8,6 +8,7 @@ const adminLinks = [
   { to: '/admin/matches', label: 'Matches', icon: '⚽' },
   { to: '/admin/bracket', label: 'Bracket', icon: '🏆' },
   { to: '/admin/users', label: 'Users', icon: '👥' },
+  { to: '/admin/teams', label: 'Teams', icon: '🌍' },
   { to: '/admin/predictions', label: 'Predictions', icon: '🎯' },
   { to: '/admin/settings', label: 'Settings', icon: '⚙️' },
 ]
