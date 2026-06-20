@@ -117,29 +117,28 @@ function MyGamesSelector({ games, loading }) {
 function AccordionRow({ game, isOpen, onToggle }) {
   const cfg = STATUS_CONFIG[game.status] ?? STATUS_CONFIG.finished
   const entries = entriesForGame(game.id)
+  const [selectedToken, setSelectedToken] = useState(entries[0]?.token ?? null)
   const [participant, setParticipant] = useState(null)
   const [loadState, setLoadState] = useState('idle') // idle | loading | done | error
-  const hasLoaded = loadState === 'done' || loadState === 'error'
+  const [reloadKey, setReloadKey] = useState(0)
 
   useEffect(() => {
-    if (!isOpen || hasLoaded) return
-    const entry = entries[0]
-    if (!entry) { setLoadState('done'); return }
+    if (!isOpen) return
+    if (!selectedToken) { setLoadState('done'); return }
     setLoadState('loading')
-    api.get('/participants/me', { params: { game_id: game.id } })
+    setParticipant(null)
+    api.get('/participants/me', {
+      params: { game_id: game.id },
+      headers: { 'x-entry-token': selectedToken },
+    })
       .then(({ data }) => { setParticipant(data); setLoadState('done') })
       .catch((err) => {
-        if (err.response?.status === 404 || err.response?.status === 401) {
-          setParticipant(null)
-        }
+        if (err.response?.status === 404 || err.response?.status === 401) setParticipant(null)
         setLoadState('error')
       })
-  }, [isOpen]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [isOpen, selectedToken, reloadKey]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  const refresh = () => {
-    setLoadState('idle')
-    setParticipant(null)
-  }
+  const refresh = () => setReloadKey((k) => k + 1)
 
   return (
     <div className="border-b border-gray-100 last:border-0">
@@ -171,6 +170,29 @@ function AccordionRow({ game, isOpen, onToggle }) {
       {/* Expanded content */}
       {isOpen && (
         <div className="px-4 pb-5 pt-1 bg-gray-50 border-t border-gray-100">
+          {/* Entry selector — only when this device has more than one entry */}
+          {entries.length > 1 && (
+            <div className="pt-3 pb-1">
+              <label className="block text-[10px] text-gray-500 font-semibold uppercase tracking-wider mb-1">
+                Viewing Entry
+              </label>
+              <div className="relative">
+                <select
+                  value={selectedToken ?? ''}
+                  onChange={(e) => setSelectedToken(e.target.value)}
+                  className="appearance-none w-full bg-white border border-gray-200 text-gray-800 text-sm font-semibold rounded-lg pl-3 pr-8 py-2 focus:outline-none focus:ring-2 focus:ring-[#2b4dff]/30 cursor-pointer"
+                >
+                  {entries.map((en) => (
+                    <option key={en.token} value={en.token}>
+                      {en.name}{en.status === 'declined' ? ' (pending)' : ''}
+                    </option>
+                  ))}
+                </select>
+                <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs">▾</span>
+              </div>
+            </div>
+          )}
+
           {loadState === 'loading' && (
             <div className="space-y-2 pt-2">
               {[...Array(3)].map((_, i) => (
@@ -184,17 +206,17 @@ function AccordionRow({ game, isOpen, onToggle }) {
               <button onClick={refresh} className="underline text-blue-600">Retry</button>
             </div>
           )}
-          {loadState === 'done' && !entries[0] && (
+          {loadState === 'done' && !selectedToken && (
             <NoEntry gameId={game.id} />
           )}
-          {loadState === 'done' && entries[0] && (
+          {loadState === 'done' && selectedToken && (
             <>
               {participant?.participant?.status === 'declined' && (
                 <PendingNotice message={participant?.participant?.status_message} />
               )}
               {game.type === 'bracket_prediction'
-                ? <BracketPredictions gameId={game.id} gameStatus={game.status} participant={participant} onRefresh={refresh} />
-                : <GuessWinnersPredictions gameId={game.id} gameStatus={game.status} participant={participant} onRefresh={refresh} />
+                ? <BracketPredictions gameId={game.id} gameStatus={game.status} participant={participant} entryToken={selectedToken} onRefresh={refresh} />
+                : <GuessWinnersPredictions gameId={game.id} gameStatus={game.status} participant={participant} entryToken={selectedToken} onRefresh={refresh} />
               }
             </>
           )}
@@ -216,7 +238,8 @@ export default function PredictionPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
 
-  const myEntry = gameId ? entriesForGame(gameId)[0] : null
+  const entries = gameId ? entriesForGame(gameId) : []
+  const [selectedToken, setSelectedToken] = useState(entries[0]?.token ?? null)
 
   useEffect(() => {
     setGamesLoading(true)
@@ -227,9 +250,13 @@ export default function PredictionPage() {
   }, [gameId])
 
   const load = useCallback(async () => {
-    if (!gameId || !myEntry) { setLoading(false); return }
+    if (!gameId || !selectedToken) { setLoading(false); return }
+    setLoading(true)
     try {
-      const { data } = await api.get('/participants/me', { params: { game_id: gameId } })
+      const { data } = await api.get('/participants/me', {
+        params: { game_id: gameId },
+        headers: { 'x-entry-token': selectedToken },
+      })
       setParticipant(data)
       setError(null)
     } catch (err) {
@@ -241,7 +268,7 @@ export default function PredictionPage() {
     } finally {
       setLoading(false)
     }
-  }, [gameId, myEntry?.token]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [gameId, selectedToken]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => { load() }, [load])
 
@@ -252,7 +279,7 @@ export default function PredictionPage() {
   const gameName = game?.name ?? 'Game'
   const gameType = game?.type
   const gameStatus = game?.status
-  const commonProps = { gameId, gameName, gameStatus, participant, onRefresh: load }
+  const commonProps = { gameId, gameName, gameStatus, participant, entryToken: selectedToken, onRefresh: load }
 
   return (
     <div className="min-h-screen bg-gray-100">
@@ -290,7 +317,7 @@ export default function PredictionPage() {
                 <div key={i} className="h-20 bg-gray-100 rounded-xl animate-pulse" />
               ))}
             </div>
-          ) : !myEntry ? (
+          ) : !selectedToken ? (
             <div className="bg-white rounded-xl shadow-xl border border-gray-200 p-6">
               <NoEntry gameId={gameId} />
             </div>
@@ -298,6 +325,27 @@ export default function PredictionPage() {
             <div className="bg-white rounded-xl shadow-xl border border-gray-200 p-6 text-center py-12 text-red-500 text-sm">{error}</div>
           ) : (
             <>
+              {entries.length > 1 && (
+                <div className="bg-white rounded-xl shadow-sm border border-gray-200 px-4 py-3 mb-3">
+                  <label className="block text-[10px] text-gray-500 font-semibold uppercase tracking-wider mb-1">
+                    Viewing Entry
+                  </label>
+                  <div className="relative">
+                    <select
+                      value={selectedToken ?? ''}
+                      onChange={(e) => setSelectedToken(e.target.value)}
+                      className="appearance-none w-full bg-gray-50 border border-gray-200 text-gray-800 text-sm font-semibold rounded-lg pl-3 pr-8 py-2 focus:outline-none focus:ring-2 focus:ring-[#2b4dff]/30 cursor-pointer"
+                    >
+                      {entries.map((en) => (
+                        <option key={en.token} value={en.token}>
+                          {en.name}{en.status === 'declined' ? ' (pending)' : ''}
+                        </option>
+                      ))}
+                    </select>
+                    <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs">▾</span>
+                  </div>
+                </div>
+              )}
               {participant?.participant?.status === 'declined' && (
                 <PendingNotice message={participant?.participant?.status_message} />
               )}
@@ -348,13 +396,14 @@ function PendingNotice({ message }) {
 
 // ─── Guess Winners ───────────────────────────────────────────────────────────
 
-function GuessWinnersPredictions({ gameId, gameStatus, participant }) {
+function GuessWinnersPredictions({ gameId, gameStatus, participant, entryToken }) {
   const matches = participant?.matches ?? []
   const predictions = participant?.predictions ?? {}
   const [local, setLocal] = useState(predictions)
   const [saving, setSaving] = useState({})
   const [finished, setFinished] = useState(participant?.participant?.finished ?? false)
   const isEditable = gameStatus === 'open' && !finished
+  const authCfg = entryToken ? { headers: { 'x-entry-token': entryToken } } : undefined
 
   useEffect(() => { setLocal(participant?.predictions ?? {}) }, [participant])
 
@@ -364,7 +413,7 @@ function GuessWinnersPredictions({ gameId, gameStatus, participant }) {
     setLocal((l) => ({ ...l, [matchId]: value }))
     setSaving((s) => ({ ...s, [matchId]: true }))
     try {
-      await api.put('/participants/me/predictions', { match_id: matchId, prediction: value, game_id: gameId })
+      await api.put('/participants/me/predictions', { match_id: matchId, prediction: value, game_id: gameId }, authCfg)
     } catch {
       setLocal((l) => ({ ...l, [matchId]: prev }))
     } finally {
@@ -374,7 +423,7 @@ function GuessWinnersPredictions({ gameId, gameStatus, participant }) {
 
   const handleFinish = async () => {
     try {
-      await api.post('/participants/me/finish', { game_id: gameId })
+      await api.post('/participants/me/finish', { game_id: gameId }, authCfg)
       setFinished(true)
     } catch (err) {
       alert(err.response?.data?.message ?? 'Could not finish entry.')
@@ -463,12 +512,13 @@ function MatchCard({ match, selected, saving, editable, onPick, result }) {
 
 // ─── Bracket Prediction ──────────────────────────────────────────────────────
 
-function BracketPredictions({ gameId, gameStatus, participant }) {
+function BracketPredictions({ gameId, gameStatus, participant, entryToken }) {
   const stages = participant?.stages ?? []
   const [selections, setSelections] = useState({})
   const [saving, setSaving] = useState({})
   const [finished, setFinished] = useState(participant?.participant?.finished ?? false)
   const isEditable = gameStatus === 'open' && !finished
+  const authCfg = entryToken ? { headers: { 'x-entry-token': entryToken } } : undefined
 
   useEffect(() => {
     const init = {}
@@ -498,14 +548,14 @@ function BracketPredictions({ gameId, gameStatus, participant }) {
       const next = current.includes(teamId)
         ? current.filter((t) => t !== teamId)
         : current.length < pickCount ? [...current, teamId] : [...current.slice(1), teamId]
-      await api.put('/participants/me/bracket', { game_id: gameId, stage_id: stageId, team_ids: next })
+      await api.put('/participants/me/bracket', { game_id: gameId, stage_id: stageId, team_ids: next }, authCfg)
     } catch {}
     finally { setSaving((s) => ({ ...s, [stageId]: false })) }
   }
 
   const handleFinish = async () => {
     try {
-      await api.post('/participants/me/finish', { game_id: gameId })
+      await api.post('/participants/me/finish', { game_id: gameId }, authCfg)
       setFinished(true)
     } catch (err) {
       alert(err.response?.data?.message ?? 'Could not finish entry.')

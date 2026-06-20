@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import api from '../services/api.js'
+import { entriesForGame } from '../services/entries.js'
 
 const TYPE_LABELS = {
   guess_winners: 'Guess Winners',
@@ -40,9 +41,16 @@ function GameModal({ game, onClose, navigate }) {
     return () => window.removeEventListener('keydown', handler)
   }, [onClose])
 
+  const hasEntry = entriesForGame(game.id).length > 0
+
   const handleJoin = useCallback(() => {
     onClose()
     navigate(`/leagues/${game.id}/join`)
+  }, [game.id, navigate, onClose])
+
+  const handleEdit = useCallback(() => {
+    onClose()
+    navigate(`/my-game?game=${game.id}`)
   }, [game.id, navigate, onClose])
 
   return (
@@ -118,26 +126,50 @@ function GameModal({ game, onClose, navigate }) {
 
         {/* Actions */}
         <div className="px-6 pb-6 pt-4 border-t border-gray-100 flex gap-3 shrink-0">
-          <button
-            disabled={game.status !== 'open'}
-            onClick={game.status === 'open' ? handleJoin : undefined}
-            className={`flex-1 py-3 px-4 rounded-xl font-semibold text-sm transition-colors ${
-              game.status === 'open'
-                ? 'text-white cursor-pointer'
-                : 'text-white/70 cursor-not-allowed opacity-50'
-            }`}
-            style={{ backgroundColor: game.status === 'open' ? '#2b4dff' : '#9ca3af' }}
-            onMouseOver={e => { if (game.status === 'open') e.currentTarget.style.backgroundColor = '#1a33cc' }}
-            onMouseOut={e => { if (game.status === 'open') e.currentTarget.style.backgroundColor = '#2b4dff' }}
-          >
-            {game.status === 'open' ? '+ Join Game' : `Game ${STATUS_CONFIG[game.status]?.label ?? game.status}`}
-          </button>
-          <button
-            onClick={onClose}
-            className="py-3 px-5 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold text-sm transition-colors"
-          >
-            Cancel
-          </button>
+          {hasEntry ? (
+            <>
+              {game.status === 'open' && (
+                <button
+                  onClick={handleJoin}
+                  className="flex-1 py-3 px-4 rounded-xl font-semibold text-sm text-white transition-colors"
+                  style={{ backgroundColor: '#2b4dff' }}
+                  onMouseOver={e => e.currentTarget.style.backgroundColor = '#1a33cc'}
+                  onMouseOut={e => e.currentTarget.style.backgroundColor = '#2b4dff'}
+                >
+                  + Add Another Entry
+                </button>
+              )}
+              <button
+                onClick={handleEdit}
+                className="flex-1 py-3 px-4 rounded-xl font-semibold text-sm text-white bg-[#f05a00] hover:bg-orange-600 transition-colors"
+              >
+                {game.status === 'open' ? 'Edit Entry' : 'View Entry'}
+              </button>
+            </>
+          ) : (
+            <>
+              <button
+                disabled={game.status !== 'open'}
+                onClick={game.status === 'open' ? handleJoin : undefined}
+                className={`flex-1 py-3 px-4 rounded-xl font-semibold text-sm transition-colors ${
+                  game.status === 'open'
+                    ? 'text-white cursor-pointer'
+                    : 'text-white/70 cursor-not-allowed opacity-50'
+                }`}
+                style={{ backgroundColor: game.status === 'open' ? '#2b4dff' : '#9ca3af' }}
+                onMouseOver={e => { if (game.status === 'open') e.currentTarget.style.backgroundColor = '#1a33cc' }}
+                onMouseOut={e => { if (game.status === 'open') e.currentTarget.style.backgroundColor = '#2b4dff' }}
+              >
+                {game.status === 'open' ? '+ Join Game' : `Game ${STATUS_CONFIG[game.status]?.label ?? game.status}`}
+              </button>
+              <button
+                onClick={onClose}
+                className="py-3 px-5 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold text-sm transition-colors"
+              >
+                Cancel
+              </button>
+            </>
+          )}
         </div>
       </div>
     </div>
@@ -148,6 +180,7 @@ function GameModal({ game, onClose, navigate }) {
 
 function GameCard({ game, onOpenModal, navigate }) {
   const cfg = STATUS_CONFIG[game.status] ?? STATUS_CONFIG.finished
+  const hasEntry = entriesForGame(game.id).length > 0
 
   return (
     <div
@@ -172,20 +205,42 @@ function GameCard({ game, onOpenModal, navigate }) {
         </span>
       </div>
 
-      <button
-        disabled={game.status !== 'open'}
-        onClick={(e) => { e.stopPropagation(); if (game.status === 'open') navigate(`/leagues/${game.id}/join`) }}
-        className={`mt-auto w-full py-2.5 px-4 rounded-xl text-sm font-semibold transition-colors ${
-          game.status === 'open'
-            ? 'text-white cursor-pointer'
-            : 'text-white/70 cursor-not-allowed opacity-50'
-        }`}
-        style={{ backgroundColor: game.status === 'open' ? '#2b4dff' : '#9ca3af' }}
-        onMouseOver={e => { if (game.status === 'open') e.currentTarget.style.backgroundColor = '#1a33cc' }}
-        onMouseOut={e => { if (game.status === 'open') e.currentTarget.style.backgroundColor = '#2b4dff' }}
-      >
-        {game.status === 'open' ? '+ Join Game' : `Game ${STATUS_CONFIG[game.status]?.label ?? game.status}`}
-      </button>
+      {hasEntry ? (
+        <div className="mt-auto flex gap-2">
+          {game.status === 'open' && (
+            <button
+              onClick={(e) => { e.stopPropagation(); navigate(`/leagues/${game.id}/join`) }}
+              className="flex-1 py-2.5 px-3 rounded-xl text-xs font-semibold text-white transition-colors"
+              style={{ backgroundColor: '#2b4dff' }}
+              onMouseOver={e => e.currentTarget.style.backgroundColor = '#1a33cc'}
+              onMouseOut={e => e.currentTarget.style.backgroundColor = '#2b4dff'}
+            >
+              + Add Entry
+            </button>
+          )}
+          <button
+            onClick={(e) => { e.stopPropagation(); navigate(`/my-game?game=${game.id}`) }}
+            className="flex-1 py-2.5 px-3 rounded-xl text-xs font-semibold text-white bg-[#f05a00] hover:bg-orange-600 transition-colors"
+          >
+            {game.status === 'open' ? 'Edit Entry' : 'View Entry'}
+          </button>
+        </div>
+      ) : (
+        <button
+          disabled={game.status !== 'open'}
+          onClick={(e) => { e.stopPropagation(); if (game.status === 'open') navigate(`/leagues/${game.id}/join`) }}
+          className={`mt-auto w-full py-2.5 px-4 rounded-xl text-sm font-semibold transition-colors ${
+            game.status === 'open'
+              ? 'text-white cursor-pointer'
+              : 'text-white/70 cursor-not-allowed opacity-50'
+          }`}
+          style={{ backgroundColor: game.status === 'open' ? '#2b4dff' : '#9ca3af' }}
+          onMouseOver={e => { if (game.status === 'open') e.currentTarget.style.backgroundColor = '#1a33cc' }}
+          onMouseOut={e => { if (game.status === 'open') e.currentTarget.style.backgroundColor = '#2b4dff' }}
+        >
+          {game.status === 'open' ? '+ Join Game' : `Game ${STATUS_CONFIG[game.status]?.label ?? game.status}`}
+        </button>
+      )}
     </div>
   )
 }

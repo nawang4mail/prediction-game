@@ -537,3 +537,25 @@
 - A "Score" column is pinned at the right end showing each player's points
 - Score = 1 point per correct pick (matches the leaderboard calculation)
 - Legend updated to show colour swatches and the scoring rule
+
+---
+
+### US-102 · Multi-Entry Selector & Leagues Has-Entry Actions
+
+**As a** player with more than one entry in a game
+**I want to** choose which entry to view, and clear actions on Leagues for games I've joined
+**So that** I can manage multiple entries without confusion
+
+**Acceptance Criteria:**
+- MY GAME: when a game has multiple entries on this device, a "Viewing Entry"
+  dropdown lists each entry by name (pending entries marked "(pending)")
+  - Shown in both the accordion row and the single-game detail view
+  - Selecting an entry loads that specific entry's picks (and edits save to it)
+- API: a caller may set `x-entry-token` explicitly to target a specific entry;
+  the interceptor only auto-fills the token when not provided
+- LEAGUES: when this device already has an entry for a game, the card and modal
+  show "Add Another Entry" (open games only) and "Edit Entry" / "View Entry"
+  instead of a single "Join Game" button
+  - "Add Another Entry" → name form → picks → submit (a second entry)
+  - "Edit Entry" (open) / "View Entry" (locked/finished) → opens that game in My Game
+- Games with no existing entry are unchanged ("Join Game" / disabled when not open)

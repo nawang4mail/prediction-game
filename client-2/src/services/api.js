@@ -8,8 +8,10 @@ api.interceptors.request.use((config) => {
 
   const url = config.url ?? ''
 
-  // Send entry token for participant routes
-  if (url.startsWith('/participants')) {
+  // Send entry token for participant routes. A caller may target a specific
+  // entry by setting x-entry-token itself (used when a device has multiple
+  // entries in one game); only auto-fill it when not already provided.
+  if (url.startsWith('/participants') && !config.headers['x-entry-token']) {
     const entries = getEntries()
     const gameId = config.params?.game_id
     if (gameId) {
