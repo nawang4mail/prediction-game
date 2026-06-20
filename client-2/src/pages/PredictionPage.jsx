@@ -1,8 +1,9 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useSearchParams, Link } from 'react-router-dom'
 import api from '../services/api.js'
 import { entriesForGame, getEntries } from '../services/entries.js'
 import { useEntryStatus } from '../context/EntryContext.jsx'
+import { availabilityByStage } from '../services/bracket.js'
 
 const TYPE_LABELS = { guess_winners: 'Guess Winners', bracket_prediction: 'Bracket' }
 const STATUS_CONFIG = {
@@ -519,7 +520,7 @@ function MatchCard({ match, selected, saving, editable, onPick, result }) {
 // ─── Bracket Prediction ──────────────────────────────────────────────────────
 
 function BracketPredictions({ gameId, gameStatus, participant, entryToken }) {
-  const stages = participant?.stages ?? []
+  const stages = useMemo(() => participant?.stages ?? [], [participant])
   const [selections, setSelections] = useState({})
   const [saving, setSaving] = useState({})
   const [editMode, setEditMode] = useState(false)
@@ -534,6 +535,9 @@ function BracketPredictions({ gameId, gameStatus, participant, entryToken }) {
     })
     setSelections(init)
   }, [participant])
+
+  // Combined stages only offer the teams advanced from their parents (US-107).
+  const availability = useMemo(() => availabilityByStage(stages, selections), [stages, selections])
 
   const toggleTeam = async (stageId, teamId, pickCount) => {
     if (!isEditable) return
@@ -573,6 +577,7 @@ function BracketPredictions({ gameId, gameStatus, participant, entryToken }) {
             key={stage.id}
             stage={stage}
             selected={selections[stage.id] ?? []}
+            available={availability[stage.id]}
             saving={saving[stage.id]}
             editable={isEditable}
             onToggle={(teamId) => toggleTeam(stage.id, teamId, stage.pick_count)}
@@ -583,9 +588,13 @@ function BracketPredictions({ gameId, gameStatus, participant, entryToken }) {
   )
 }
 
-function StageCard({ stage, selected, saving, editable, onToggle }) {
-  const teams = stage.teams ?? []
-  const pickedCount = selected.length
+function StageCard({ stage, selected, available, saving, editable, onToggle }) {
+  const isCombined = stage.parent_ids?.length > 0
+  // Combined stages only show the teams advanced from their parents.
+  const teams = available
+    ? (stage.teams ?? []).filter((t) => available.has(t.id))
+    : (stage.teams ?? [])
+  const pickedCount = teams.filter((t) => selected.includes(t.id)).length
 
   return (
     <div className="bg-white rounded-xl shadow-sm p-5">
@@ -598,6 +607,11 @@ function StageCard({ stage, selected, saving, editable, onToggle }) {
       {stage.description && (
         <p className="text-xs text-gray-400 mb-3">{stage.description}</p>
       )}
+      {isCombined && teams.length === 0 ? (
+        <p className="text-xs text-blue-600 bg-blue-50 border border-blue-100 rounded-lg px-3 py-2.5">
+          🔗 Make your picks in the earlier stages first — your advancing teams appear here.
+        </p>
+      ) : (
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mt-3">
         {teams.map((team) => {
           const isPicked = selected.includes(team.id)
@@ -626,6 +640,7 @@ function StageCard({ stage, selected, saving, editable, onToggle }) {
           )
         })}
       </div>
+      )}
       <p className="text-xs text-gray-400 mt-3">
         {stage.points_per_correct} pt{stage.points_per_correct !== 1 ? 's' : ''} per correct pick
         {stage.all_correct_bonus > 0 && ` · +${stage.all_correct_bonus} bonus if all correct`}

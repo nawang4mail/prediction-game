@@ -3,6 +3,7 @@ import { useParams, useNavigate, useLocation, Link } from 'react-router-dom'
 import api from '../services/api.js'
 import { upsertEntry } from '../services/entries.js'
 import { useEntryStatus } from '../context/EntryContext.jsx'
+import { availabilityByStage, pruneSelections } from '../services/bracket.js'
 
 // The player has already entered their name/phone on the Join page. Here they
 // make their picks and submit. Nothing is written to the database until they
@@ -65,6 +66,9 @@ export default function PlayPage() {
 
   const isBracket = game?.type === 'bracket_prediction'
 
+  // Combined stages only offer the teams the player advanced from their parents.
+  const availability = useMemo(() => availabilityByStage(stages, selections), [stages, selections])
+
   const pickMatch = (matchId, value) =>
     setPredictions((p) => ({ ...p, [matchId]: value }))
 
@@ -80,10 +84,14 @@ export default function PlayPage() {
 
   const complete = useMemo(() => {
     if (isBracket) {
-      return stages.length > 0 && stages.every((s) => (selections[s.id] ?? []).length === s.pick_count)
+      // Count only valid picks (a pick can fall out of a combined stage's pool
+      // when its parent picks change).
+      return stages.length > 0 && stages.every(
+        (s) => (selections[s.id] ?? []).filter((id) => availability[s.id]?.has(id)).length === s.pick_count
+      )
     }
     return matches.length > 0 && matches.every((m) => predictions[m.id])
-  }, [isBracket, stages, selections, matches, predictions])
+  }, [isBracket, stages, selections, matches, predictions, availability])
 
   const handleSubmit = async () => {
     if (!complete || submitting) return
@@ -95,7 +103,7 @@ export default function PlayPage() {
         display_name: identity.display_name,
         phone: identity.phone,
       }
-      if (isBracket) payload.bracket = selections
+      if (isBracket) payload.bracket = pruneSelections(stages, selections)
       else payload.predictions = predictions
 
       const { data } = await api.post('/participants/complete', payload)
@@ -170,6 +178,7 @@ export default function PlayPage() {
                     key={stage.id}
                     stage={stage}
                     selected={selections[stage.id] ?? []}
+                    available={availability[stage.id]}
                     onToggle={(teamId) => toggleTeam(stage.id, teamId, stage.pick_count)}
                   />
                 ))
@@ -309,39 +318,50 @@ function MatchPick({ match, selected, onPick }) {
   )
 }
 
-function StagePick({ stage, selected, onToggle }) {
-  const teams = stage.teams ?? []
+function StagePick({ stage, selected, available, onToggle }) {
+  const isCombined = stage.parent_ids?.length > 0
+  // For a combined stage, only the teams advanced from its parents are offered.
+  const teams = available
+    ? (stage.teams ?? []).filter((t) => available.has(t.id))
+    : (stage.teams ?? [])
+  const pickedCount = teams.filter((t) => selected.includes(t.id)).length
   return (
     <div className="bg-white rounded-2xl shadow-sm p-5">
       <div className="flex items-start justify-between gap-3 mb-1">
         <h3 className="font-oswald text-lg font-bold text-gray-900">{stage.name}</h3>
         <span className={`shrink-0 text-xs px-2.5 py-1 rounded-full font-semibold border ${
-          selected.length === stage.pick_count
+          pickedCount === stage.pick_count
             ? 'bg-green-50 text-green-700 border-green-200'
             : 'bg-blue-50 text-blue-700 border-blue-100'
         }`}>
-          {selected.length}/{stage.pick_count} picked
+          {pickedCount}/{stage.pick_count} picked
         </span>
       </div>
       {stage.description && <p className="text-xs text-gray-400 mb-3">{stage.description}</p>}
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mt-3">
-        {teams.map((team) => {
-          const isSel = selected.includes(team.id)
-          return (
-            <button
-              key={team.id}
-              onClick={() => onToggle(team.id)}
-              className={`border rounded-xl px-3 py-2.5 text-sm font-medium transition-all text-left ${
-                isSel
-                  ? 'bg-[#2b4dff] text-white border-[#2b4dff] shadow-sm'
-                  : 'bg-gray-50 hover:bg-blue-50 text-gray-700 border-gray-200 hover:border-blue-300'
-              }`}
-            >
-              {team.name}
-            </button>
-          )
-        })}
-      </div>
+      {isCombined && teams.length === 0 ? (
+        <p className="text-xs text-blue-600 bg-blue-50 border border-blue-100 rounded-lg px-3 py-2.5">
+          🔗 Make your picks in the earlier stages first — your advancing teams appear here.
+        </p>
+      ) : (
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mt-3">
+          {teams.map((team) => {
+            const isSel = selected.includes(team.id)
+            return (
+              <button
+                key={team.id}
+                onClick={() => onToggle(team.id)}
+                className={`border rounded-xl px-3 py-2.5 text-sm font-medium transition-all text-left ${
+                  isSel
+                    ? 'bg-[#2b4dff] text-white border-[#2b4dff] shadow-sm'
+                    : 'bg-gray-50 hover:bg-blue-50 text-gray-700 border-gray-200 hover:border-blue-300'
+                }`}
+              >
+                {team.name}
+              </button>
+            )
+          })}
+        </div>
+      )}
       <p className="text-xs text-gray-400 mt-3">
         {stage.points_per_correct} pt{stage.points_per_correct !== 1 ? 's' : ''} per correct pick
         {stage.all_correct_bonus > 0 && ` · +${stage.all_correct_bonus} bonus if all correct`}
