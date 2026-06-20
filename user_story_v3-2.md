@@ -417,3 +417,21 @@
 - Frontend: count displayed alongside the game type badge on each card
 - Shows "0 players" if no approved participants
 - Singular "1 player", plural "N players"
+
+---
+
+### US-95 · Leagues — Tap Game to View Rules & Join
+
+**As a** participant
+**I want to** tap a game card to read its rules before joining
+**So that** I understand the game before committing
+
+**Acceptance Criteria:**
+- Tapping/clicking a game card on `/leagues` expands it in place (accordion)
+- Only one card open at a time; opening a new one collapses the previous
+- Expanded area shows a "Rules" section fetched lazily from `GET /api/settings?game_id=<id>`
+- Shows loading skeleton while rules fetch, "No rules set" if empty
+- Bottom of expanded area: "Join Game" button (blue, only if status=open) OR "View Leaderboard" (blue, if locked/finished), plus "Cancel" button (gray) to collapse
+- "View My Prediction" button removed from all game cards
+- Changing the type filter collapses any open card
+- client-2 only; no backend changes
