@@ -380,3 +380,23 @@
 - If match has a result, winning segment highlighted green
 - Empty state if no matches; loading skeletons
 - Degrades gracefully if `pick_pct` data not returned by API (shows 0% bars)
+
+---
+
+### US-93 · My Game — Accordion List with Type Filter
+
+**As a** participant
+**I want to** see my entered games as an expandable list with a type filter
+**So that** I can quickly find and review my picks without navigating away
+
+**Acceptance Criteria:**
+- `/my-game` (no `?game=` param): shows full-width accordion list of games the device has entries in
+- Type filter dropdown above the list: All / Guess Winners / Bracket
+- Each row: full width, game name + type badge + status badge on left, chevron on right
+- No "View Predictions" button — tapping/clicking a row toggles it open/closed
+- When opened: fetches participant data and renders picks inline (GuessWinners or Bracket)
+- Lazy fetch: only loads data when the row is first expanded
+- Only one row can be open at a time (opening one collapses any other open row)
+- Pending/declined state renders the pending banner inline in the expanded row
+- Empty state if no entries anywhere; loading skeleton during games fetch
+- client-2 only; no backend changes
