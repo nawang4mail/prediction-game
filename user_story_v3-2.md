@@ -400,3 +400,20 @@
 - Pending/declined state renders the pending banner inline in the expanded row
 - Empty state if no entries anywhere; loading skeleton during games fetch
 - client-2 only; no backend changes
+
+---
+
+### US-94 · Leagues — Show Player Count Per Game
+
+**As a** participant
+**I want to** see how many players have joined each game on the Leagues page
+**So that** I can gauge activity before deciding to join
+
+**Acceptance Criteria:**
+- Each game card on `/leagues` shows a player count (e.g. "👥 3 players")
+- Count reflects approved participants only
+- `GET /api/games` response includes `participant_count` (integer) per game
+- Backend: `gameModel.findAll()` LEFT JOINs `users` filtered to `status = 'approved'`
+- Frontend: count displayed alongside the game type badge on each card
+- Shows "0 players" if no approved participants
+- Singular "1 player", plural "N players"

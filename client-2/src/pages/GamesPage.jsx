@@ -106,6 +106,9 @@ function GameCard({ game, navigate }) {
         <span className="text-xs font-medium px-2.5 py-1 rounded-full bg-blue-50 text-blue-700 border border-blue-100">
           {TYPE_LABELS[game.type] ?? game.type}
         </span>
+        <span className="text-xs text-gray-500 font-medium">
+          👥 {game.participant_count ?? 0} player{(game.participant_count ?? 0) !== 1 ? 's' : ''}
+        </span>
       </div>
 
       <div className="mt-auto pt-2 border-t border-gray-100 flex flex-col gap-2">

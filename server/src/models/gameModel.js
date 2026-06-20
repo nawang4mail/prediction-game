@@ -1,7 +1,14 @@
 import pool from '../config/db.js';
 
 export const findAll = async () => {
-  const [rows] = await pool.query('SELECT * FROM games ORDER BY created_at DESC, id DESC');
+  const [rows] = await pool.query(`
+    SELECT g.*,
+           COUNT(u.id) AS participant_count
+    FROM games g
+    LEFT JOIN users u ON u.game_id = g.id AND u.status = 'approved'
+    GROUP BY g.id
+    ORDER BY g.created_at DESC, g.id DESC
+  `);
   return rows;
 };
 
