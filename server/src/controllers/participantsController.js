@@ -103,7 +103,22 @@ export const me = async (req, res, next) => {
       return res.json({ ...base, predictions: [], stages, selections });
     }
 
-    res.json({ ...base, predictions: await findByUser(req.participant.id) });
+    // Transform flat rows into the shape the client expects:
+    // matches[] = array of match objects (id, team_a, team_b, label, match_date, result)
+    // predictions{} = object keyed by match_id → prediction value
+    const rows = await findByUser(req.participant.id);
+    const matches = rows.map((r) => ({
+      id: r.match_id,
+      team_a: r.team_a,
+      team_b: r.team_b,
+      label: r.match_label,
+      match_date: r.match_date,
+      result: r.match_result,
+    }));
+    const predictions = Object.fromEntries(
+      rows.filter((r) => r.prediction).map((r) => [r.match_id, r.prediction])
+    );
+    res.json({ ...base, matches, predictions });
   } catch (err) {
     next(err);
   }
