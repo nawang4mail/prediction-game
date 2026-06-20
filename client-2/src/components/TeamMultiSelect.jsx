@@ -45,7 +45,7 @@ export default function TeamMultiSelect({ value = [], onChange, placeholder = 'A
             key={`${name}-${i}`}
             className="inline-flex items-center gap-1 bg-gray-100 text-gray-700 text-xs font-medium pl-1.5 pr-1 py-1 rounded-lg"
           >
-            <TeamIcon name={name} className="w-4 h-3" />
+            <TeamIcon name={name} size="sm" />
             <span>{name}</span>
             <button
               type="button"

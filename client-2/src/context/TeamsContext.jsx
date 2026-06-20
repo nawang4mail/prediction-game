@@ -4,7 +4,12 @@ import api from '../services/api.js'
 // Reference list of teams (countries/clubs), loaded once for the whole app
 // (US-114). Pickers read `teams`; displays resolve a name → local icon path via
 // `iconFor`. Names remain the canonical identifier stored in matches/stages.
-const TeamsContext = createContext({ teams: [], iconFor: () => null, reload: () => {} })
+const TeamsContext = createContext({
+  teams: [],
+  iconFor: () => null,
+  codeFor: () => null,
+  reload: () => {},
+})
 
 export function TeamsProvider({ children }) {
   const [teams, setTeams] = useState([])
@@ -26,7 +31,16 @@ export function TeamsProvider({ children }) {
     [byName]
   )
 
-  const value = useMemo(() => ({ teams, iconFor, reload }), [teams, iconFor, reload])
+  // Short code (e.g. "BRA") used on small screens in place of the full name.
+  const codeFor = useCallback(
+    (name) => (name ? byName.get(String(name).toLowerCase())?.short_name ?? null : null),
+    [byName]
+  )
+
+  const value = useMemo(
+    () => ({ teams, iconFor, codeFor, reload }),
+    [teams, iconFor, codeFor, reload]
+  )
   return <TeamsContext.Provider value={value}>{children}</TeamsContext.Provider>
 }
 

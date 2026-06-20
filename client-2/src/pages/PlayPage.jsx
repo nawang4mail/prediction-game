@@ -4,7 +4,7 @@ import api from '../services/api.js'
 import { upsertEntry } from '../services/entries.js'
 import { useEntryStatus } from '../context/EntryContext.jsx'
 import { availabilityByStage, pruneSelections } from '../services/bracket.js'
-import { TeamIcon } from '../components/TeamLabel.jsx'
+import { TeamIcon, TeamName } from '../components/TeamLabel.jsx'
 
 // The player has already entered their name/phone on the Join page. Here they
 // make their picks and submit. Nothing is written to the database until they
@@ -306,15 +306,21 @@ function MatchPick({ match, selected, onPick }) {
             <button
               key={value}
               onClick={() => onPick(value)}
-              className={`py-3 px-2 rounded-xl border text-sm font-semibold transition-all ${
+              className={`py-3.5 px-2 rounded-xl border text-sm font-semibold transition-all active:scale-[0.97] ${
                 isSel
                   ? 'bg-[#2b4dff] text-white border-[#2b4dff] shadow-sm'
                   : 'bg-gray-50 hover:bg-blue-50 text-gray-700 border-gray-200 hover:border-[#2b4dff]/40'
               }`}
             >
-              <span className="inline-flex items-center justify-center gap-1">
-                {value !== 'draw' && <TeamIcon name={label} className="w-4 h-3" />}
-                {label}
+              <span className="inline-flex items-center justify-center gap-1.5">
+                {value !== 'draw' ? (
+                  <>
+                    <TeamIcon name={label} size="sm" />
+                    <TeamName name={label} />
+                  </>
+                ) : (
+                  label
+                )}
               </span>
             </button>
           )
@@ -420,15 +426,15 @@ function StagePick({ stage, selected, available, onToggle }) {
               <button
                 key={team.id}
                 onClick={() => onToggle(team.id)}
-                className={`border rounded-xl px-3 py-2.5 text-sm font-medium transition-all text-left ${
+                className={`border rounded-xl px-3 py-3 text-sm font-medium transition-all active:scale-[0.97] text-left ${
                   isSel
                     ? 'bg-[#2b4dff] text-white border-[#2b4dff] shadow-sm'
                     : 'bg-gray-50 hover:bg-blue-50 text-gray-700 border-gray-200 hover:border-blue-300'
                 }`}
               >
-                <span className="inline-flex items-center gap-1.5">
+                <span className="inline-flex items-center gap-2">
                   <TeamIcon name={team.name} />
-                  {team.name}
+                  <TeamName name={team.name} />
                 </span>
               </button>
             )

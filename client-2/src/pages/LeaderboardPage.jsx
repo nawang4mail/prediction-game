@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import api from '../services/api.js'
 import { entriesForGame } from '../services/entries.js'
-import { TeamIcon } from '../components/TeamLabel.jsx'
+import { TeamIcon, TeamName } from '../components/TeamLabel.jsx'
 
 const POLL_MS = 15000
 
@@ -123,8 +123,14 @@ function GWPicksList({ matches, gameStatus }) {
                 return (
                   <div key={value} className={cls}>
                     <span className="inline-flex items-center justify-center gap-1">
-                      {value !== 'draw' && <TeamIcon name={label} className="w-4 h-3" />}
-                      {label}
+                      {value !== 'draw' ? (
+                        <>
+                          <TeamIcon name={label} size="sm" />
+                          <TeamName name={label} />
+                        </>
+                      ) : (
+                        label
+                      )}
                     </span>
                   </div>
                 )
@@ -194,8 +200,8 @@ function BracketPicksList({ stages }) {
                   return (
                     <span key={team.id} className="inline-flex items-center gap-1">
                       <span className={chip}>
-                        <TeamIcon name={team.name} className="w-4 h-3" />
-                        {team.name}
+                        <TeamIcon name={team.name} size="sm" />
+                        <TeamName name={team.name} />
                       </span>
                       {correctPick && (
                         <span className="text-green-600 text-xs font-bold">+{stage.points_per_correct}</span>

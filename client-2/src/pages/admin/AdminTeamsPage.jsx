@@ -96,9 +96,9 @@ export default function AdminTeamsPage() {
                   <td className="py-2.5 px-4">
                     <div className="flex items-center gap-2.5">
                       {t.icon ? (
-                        <img src={t.icon} alt="" className="w-6 h-4 object-contain rounded-sm" />
+                        <img src={t.icon} alt="" className="w-12 h-8 object-contain rounded-sm ring-1 ring-black/10" />
                       ) : (
-                        <span className="w-6 h-4 rounded-sm bg-gray-100 inline-block" />
+                        <span className="w-12 h-8 rounded-sm bg-gray-100 inline-block" />
                       )}
                       <span className="text-sm font-medium text-gray-900">{t.full_name}</span>
                     </div>
