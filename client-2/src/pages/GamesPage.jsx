@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { useState, useEffect, useCallback } from 'react'
+import { useNavigate } from 'react-router-dom'
 import api from '../services/api.js'
 
 const TYPE_LABELS = {
@@ -8,18 +8,185 @@ const TYPE_LABELS = {
 }
 
 const STATUS_CONFIG = {
-  open: { label: 'Open', cls: 'bg-green-100 text-green-800 border-green-200' },
-  locked: { label: 'Locked', cls: 'bg-yellow-100 text-yellow-800 border-yellow-200' },
+  open:     { label: 'Open',     cls: 'bg-green-100 text-green-800 border-green-200' },
+  locked:   { label: 'Locked',   cls: 'bg-yellow-100 text-yellow-800 border-yellow-200' },
   finished: { label: 'Finished', cls: 'bg-gray-100 text-gray-600 border-gray-200' },
 }
 
 const FILTERS = ['All', 'Guess Winners', 'Bracket']
 
+// ─── Modal ───────────────────────────────────────────────────────────────────
+
+function GameModal({ game, onClose, navigate }) {
+  const [rules, setRules] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const cfg = STATUS_CONFIG[game.status] ?? STATUS_CONFIG.finished
+
+  useEffect(() => {
+    api.get('/settings', { params: { game_id: game.id } })
+      .then(({ data }) => setRules(data.rules_text ?? ''))
+      .catch(() => setRules(''))
+      .finally(() => setLoading(false))
+
+    // Lock body scroll while modal is open
+    document.body.style.overflow = 'hidden'
+    return () => { document.body.style.overflow = '' }
+  }, [game.id])
+
+  // Close on Escape
+  useEffect(() => {
+    const handler = (e) => { if (e.key === 'Escape') onClose() }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [onClose])
+
+  const handleJoin = useCallback(() => {
+    onClose()
+    navigate(`/leagues/${game.id}/join`)
+  }, [game.id, navigate, onClose])
+
+  return (
+    /* Backdrop */
+    <div
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4"
+      style={{ backgroundColor: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(2px)' }}
+      onClick={(e) => { if (e.target === e.currentTarget) onClose() }}
+    >
+      {/* Sheet / dialog */}
+      <div className="w-full sm:max-w-md bg-white rounded-t-3xl sm:rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+
+        {/* Header */}
+        <div
+          className="relative px-6 pt-6 pb-5 shrink-0"
+          style={{ background: 'linear-gradient(135deg, #2b4dff 0%, #1a33cc 100%)' }}
+        >
+          {/* Decorative ellipse */}
+          <div
+            className="absolute pointer-events-none"
+            style={{
+              right: '-5%', top: '-60%',
+              width: '50%', height: '220%',
+              borderRadius: '50%',
+              background: 'rgba(255,255,255,0.06)',
+              transform: 'rotate(-15deg)',
+            }}
+          />
+          {/* Close button */}
+          <button
+            onClick={onClose}
+            className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-full bg-white/20 hover:bg-white/30 text-white transition-colors"
+            aria-label="Close"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+
+          <div className="relative">
+            <div className="flex items-center gap-2 mb-2">
+              <span className={`text-xs font-semibold px-2.5 py-0.5 rounded-full border ${cfg.cls}`}>
+                {cfg.label}
+              </span>
+              <span className="text-xs font-medium px-2.5 py-0.5 rounded-full bg-white/15 text-white border border-white/20">
+                {TYPE_LABELS[game.type] ?? game.type}
+              </span>
+            </div>
+            <h2 className="font-oswald text-2xl font-bold text-white uppercase tracking-wide leading-tight">
+              {game.name}
+            </h2>
+            <p className="text-blue-200 text-xs mt-1 font-inter">
+              👥 {game.participant_count ?? 0} player{(game.participant_count ?? 0) !== 1 ? 's' : ''} joined
+            </p>
+          </div>
+        </div>
+
+        {/* Rules body */}
+        <div className="flex-1 overflow-y-auto px-6 py-5">
+          <p className="text-[10px] text-gray-400 font-semibold uppercase tracking-wider mb-3">Game Rules</p>
+          {loading ? (
+            <div className="space-y-2.5">
+              {[100, 85, 70, 90, 60].map((w, i) => (
+                <div key={i} className={`h-3 bg-gray-100 rounded animate-pulse`} style={{ width: `${w}%` }} />
+              ))}
+            </div>
+          ) : rules ? (
+            <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-line">{rules}</p>
+          ) : (
+            <p className="text-sm text-gray-400 italic">No rules have been set for this game.</p>
+          )}
+        </div>
+
+        {/* Actions */}
+        <div className="px-6 pb-6 pt-4 border-t border-gray-100 flex gap-3 shrink-0">
+          <button
+            onClick={handleJoin}
+            className="flex-1 py-3 px-4 rounded-xl font-semibold text-sm text-white transition-colors"
+            style={{ backgroundColor: '#2b4dff' }}
+            onMouseOver={e => e.currentTarget.style.backgroundColor = '#1a33cc'}
+            onMouseOut={e => e.currentTarget.style.backgroundColor = '#2b4dff'}
+          >
+            + Join Game
+          </button>
+          <button
+            onClick={onClose}
+            className="py-3 px-5 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold text-sm transition-colors"
+          >
+            Cancel
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ─── Card ────────────────────────────────────────────────────────────────────
+
+function GameCard({ game, onOpenModal, navigate }) {
+  const cfg = STATUS_CONFIG[game.status] ?? STATUS_CONFIG.finished
+
+  return (
+    <div
+      onClick={() => onOpenModal(game)}
+      className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 flex flex-col gap-4 hover:shadow-md hover:border-blue-100 transition-all cursor-pointer group"
+    >
+      <div className="flex items-start justify-between gap-2">
+        <h2 className="font-oswald text-lg font-semibold text-gray-900 leading-tight group-hover:text-[#2b4dff] transition-colors">
+          {game.name}
+        </h2>
+        <span className={`shrink-0 text-xs font-semibold px-2.5 py-1 rounded-full border ${cfg.cls}`}>
+          {cfg.label}
+        </span>
+      </div>
+
+      <div className="flex items-center gap-2 flex-wrap">
+        <span className="text-xs font-medium px-2.5 py-1 rounded-full bg-blue-50 text-blue-700 border border-blue-100">
+          {TYPE_LABELS[game.type] ?? game.type}
+        </span>
+        <span className="text-xs text-gray-500 font-medium">
+          👥 {game.participant_count ?? 0} player{(game.participant_count ?? 0) !== 1 ? 's' : ''}
+        </span>
+      </div>
+
+      <button
+        onClick={(e) => { e.stopPropagation(); navigate(`/leagues/${game.id}/join`) }}
+        className="mt-auto w-full py-2.5 px-4 rounded-xl text-white text-sm font-semibold transition-colors"
+        style={{ backgroundColor: '#2b4dff' }}
+        onMouseOver={e => e.currentTarget.style.backgroundColor = '#1a33cc'}
+        onMouseOut={e => e.currentTarget.style.backgroundColor = '#2b4dff'}
+      >
+        + Join Game
+      </button>
+    </div>
+  )
+}
+
+// ─── Page ────────────────────────────────────────────────────────────────────
+
 export default function GamesPage() {
   const [games, setGames] = useState([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState('All')
-  const [openId, setOpenId] = useState(null)
+  const [modalGame, setModalGame] = useState(null)
   const navigate = useNavigate()
 
   useEffect(() => {
@@ -35,11 +202,9 @@ export default function GamesPage() {
     return true
   })
 
-  const toggle = (id) => setOpenId((prev) => (prev === id ? null : id))
-
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Hero strip */}
+      {/* Hero */}
       <div className="bg-gradient-to-br from-blue-600 to-blue-800 py-10 px-4">
         <div className="max-w-5xl mx-auto">
           <h1 className="font-oswald text-4xl sm:text-5xl font-bold text-white uppercase tracking-wider mb-2">
@@ -55,7 +220,7 @@ export default function GamesPage() {
           {FILTERS.map((f) => (
             <button
               key={f}
-              onClick={() => { setFilter(f); setOpenId(null) }}
+              onClick={() => setFilter(f)}
               className={`px-4 py-2 rounded-full text-sm font-semibold transition-colors ${
                 filter === f
                   ? 'bg-blue-600 text-white shadow-sm'
@@ -70,7 +235,7 @@ export default function GamesPage() {
         {loading ? (
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {[...Array(4)].map((_, i) => (
-              <div key={i} className="h-36 bg-white rounded-2xl shadow-sm animate-pulse" />
+              <div key={i} className="h-44 bg-white rounded-2xl shadow-sm animate-pulse" />
             ))}
           </div>
         ) : filtered.length === 0 ? (
@@ -84,111 +249,21 @@ export default function GamesPage() {
               <GameCard
                 key={game.id}
                 game={game}
-                isOpen={openId === game.id}
-                onToggle={() => toggle(game.id)}
+                onOpenModal={setModalGame}
                 navigate={navigate}
               />
             ))}
           </div>
         )}
       </div>
-    </div>
-  )
-}
 
-function GameCard({ game, isOpen, onToggle, navigate }) {
-  const cfg = STATUS_CONFIG[game.status] ?? STATUS_CONFIG.finished
-  const [rules, setRules] = useState(null)
-  const [rulesLoading, setRulesLoading] = useState(false)
-  const hasLoaded = rules !== null
-
-  useEffect(() => {
-    if (!isOpen || hasLoaded) return
-    setRulesLoading(true)
-    api.get('/settings', { params: { game_id: game.id } })
-      .then(({ data }) => setRules(data.rules_text ?? ''))
-      .catch(() => setRules(''))
-      .finally(() => setRulesLoading(false))
-  }, [isOpen]) // eslint-disable-line react-hooks/exhaustive-deps
-
-  return (
-    <div
-      className={`bg-white rounded-2xl shadow-sm border transition-shadow ${
-        isOpen ? 'border-blue-200 shadow-md' : 'border-gray-100 hover:shadow-md'
-      }`}
-    >
-      {/* Clickable header */}
-      <button
-        onClick={onToggle}
-        className="w-full text-left p-5 flex flex-col gap-3"
-      >
-        <div className="flex items-start justify-between gap-2">
-          <h2 className="font-oswald text-lg font-semibold text-gray-900 leading-tight">{game.name}</h2>
-          <span className={`shrink-0 text-xs font-semibold px-2.5 py-1 rounded-full border ${cfg.cls}`}>
-            {cfg.label}
-          </span>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <span className="text-xs font-medium px-2.5 py-1 rounded-full bg-blue-50 text-blue-700 border border-blue-100">
-            {TYPE_LABELS[game.type] ?? game.type}
-          </span>
-          <span className="text-xs text-gray-500 font-medium">
-            👥 {game.participant_count ?? 0} player{(game.participant_count ?? 0) !== 1 ? 's' : ''}
-          </span>
-          <svg
-            className={`ml-auto w-4 h-4 text-gray-400 shrink-0 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}
-            fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}
-          >
-            <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-          </svg>
-        </div>
-      </button>
-
-      {/* Expanded: rules + actions */}
-      {isOpen && (
-        <div className="border-t border-gray-100">
-          {/* Rules */}
-          <div className="px-5 py-4">
-            <p className="text-xs text-gray-500 font-semibold uppercase tracking-wider mb-2">Rules</p>
-            {rulesLoading ? (
-              <div className="space-y-2">
-                <div className="h-3 bg-gray-100 rounded animate-pulse w-full" />
-                <div className="h-3 bg-gray-100 rounded animate-pulse w-4/5" />
-                <div className="h-3 bg-gray-100 rounded animate-pulse w-3/5" />
-              </div>
-            ) : rules ? (
-              <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-line">{rules}</p>
-            ) : (
-              <p className="text-sm text-gray-400 italic">No rules set for this game.</p>
-            )}
-          </div>
-
-          {/* Action buttons */}
-          <div className="px-5 pb-5 flex gap-2">
-            {game.status === 'open' ? (
-              <button
-                onClick={() => navigate(`/leagues/${game.id}/join`)}
-                className="flex-1 py-2.5 px-4 rounded-xl bg-[#2b4dff] hover:bg-[#1a33cc] text-white text-sm font-semibold transition-colors text-center"
-              >
-                + Join Game
-              </button>
-            ) : (
-              <Link
-                to={`/leaderboard?game=${game.id}`}
-                className="flex-1 py-2.5 px-4 rounded-xl bg-[#2b4dff] hover:bg-[#1a33cc] text-white text-sm font-semibold transition-colors text-center"
-              >
-                View Leaderboard
-              </Link>
-            )}
-            <button
-              onClick={onToggle}
-              className="py-2.5 px-4 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-semibold transition-colors"
-            >
-              Cancel
-            </button>
-          </div>
-        </div>
+      {/* Rules modal */}
+      {modalGame && (
+        <GameModal
+          game={modalGame}
+          onClose={() => setModalGame(null)}
+          navigate={navigate}
+        />
       )}
     </div>
   )

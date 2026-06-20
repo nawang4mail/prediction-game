@@ -435,3 +435,22 @@
 - "View My Prediction" button removed from all game cards
 - Changing the type filter collapses any open card
 - client-2 only; no backend changes
+
+---
+
+### US-96 · Leagues — Card Redesign with Rules Modal
+
+**As a** participant
+**I want to** see a Join Game button on every card and read the rules in a popup before joining
+**So that** the action is always one tap away and I can make an informed decision
+
+**Acceptance Criteria:**
+- Each game card always shows a "Join Game" button (clicking it navigates directly to `/leagues/:id/join`)
+- Clicking anywhere else on the card opens a modal sheet with the game's rules
+- Modal: FIFA blue gradient header with game name, status badge, type badge, player count
+- Modal body: rules text fetched from `GET /api/settings?game_id=<id>` with skeleton loader
+- Modal footer: "Join Game" button (blue) + "Cancel" button (gray)
+- Modal closes on Cancel, backdrop click, or Escape key
+- On mobile the modal slides up from the bottom (sheet style); on sm+ it is centered
+- Body scroll locked while modal is open
+- client-2 only; no backend changes
