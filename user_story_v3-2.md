@@ -640,3 +640,25 @@
   pick count
 - When a result is set, the winning option's segment turns green
 - "No community picks yet" shown when a match has zero picks
+
+---
+
+### US-106 · Social Share Preview Banner (Open Graph / Twitter Card)
+
+**As a** participant sharing the app link in a chat or social post
+**I want to** see the app's banner image and a title/description in the link preview
+**So that** the shared link looks polished and people know what it is before clicking
+
+**Acceptance Criteria:**
+- When the app URL is pasted into Facebook, Twitter/X, LinkedIn, Slack, iMessage,
+  WhatsApp, etc., the unfurled preview shows the banner image plus title + description
+- Open Graph meta tags added to `client-2/index.html`:
+  `og:title`, `og:description`, `og:type` (website), `og:image`, `og:image:width`
+  (1100), `og:image:height` (614)
+- Twitter Card meta tags added: `twitter:card` (`summary_large_image`),
+  `twitter:title`, `twitter:description`, `twitter:image`
+- The banner image is served from a stable, crawler-readable path (`/banner.jpg` in
+  `client-2/public/`) — not a hashed bundle path, since crawlers do not execute JS
+- A `<meta name="description">` is present for SEO/non-OG consumers
+- Image source is `src/assets/banner.jpg` (1100×614)
+- client-2 only; no backend changes
