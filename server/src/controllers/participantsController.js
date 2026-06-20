@@ -202,6 +202,55 @@ export const deleteMe = async (req, res, next) => {
 // Confirms a participant has finished entering predictions and returns the
 // admin-configured confirmation message (or a sensible default). Predictions
 // already save as they are picked, so this is a confirmation, not a lock. (US-35)
+// Public view of a participant's predictions — visible to any visitor on the
+// leaderboard. Only serves approved participants; hides picks while game is open.
+export const publicPicks = async (req, res, next) => {
+  try {
+    const game_id = Number(req.query.game_id);
+    if (!game_id) return res.status(400).json({ message: 'game_id is required' });
+
+    const participant = await User.findById(Number(req.params.id));
+    if (!participant || participant.game_id !== game_id || participant.status !== 'approved') {
+      return res.status(404).json({ message: 'Participant not found' });
+    }
+
+    const game = await Game.findById(game_id);
+    if (!game) return res.status(404).json({ message: 'Game not found' });
+
+    const base = {
+      participant: { id: participant.id, display_name: participant.display_name },
+      game: { type: game.type, status: game.status },
+    };
+
+    if (game.type === 'bracket_prediction') {
+      const reveal = game.status === 'finished';
+      const rawStages = await Stage.findByGame(game_id);
+      const selections = await Selection.findByUser(participant.id);
+      const selectedIds = new Set(selections.map((s) => s.stage_team_id));
+      const stages = rawStages.map((s) => ({
+        id: s.id,
+        name: s.name,
+        description: s.description,
+        pick_count: s.pick_count,
+        points_per_correct: s.points_per_correct,
+        all_correct_bonus: s.all_correct_bonus,
+        teams: s.teams.map((t) => ({
+          id: t.id,
+          name: t.name,
+          is_winner: reveal ? t.is_winner : 0,
+          selected: selectedIds.has(t.id),
+        })),
+      }));
+      return res.json({ ...base, stages });
+    }
+
+    const predictions = await findByUser(participant.id);
+    return res.json({ ...base, matches: predictions });
+  } catch (err) {
+    next(err);
+  }
+};
+
 export const finish = async (req, res, next) => {
   try {
     if (req.game.status !== 'open') {

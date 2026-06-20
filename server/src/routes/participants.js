@@ -8,6 +8,7 @@ import {
   saveBracketPick,
   deleteMe,
   finish,
+  publicPicks,
 } from '../controllers/participantsController.js';
 
 const router = Router();
@@ -19,5 +20,6 @@ router.put('/me/predictions', participantAuth, savePrediction);
 router.put('/me/bracket', participantAuth, saveBracketPick);
 router.delete('/me', participantAuth, deleteMe); // remove a cancelled, incomplete entry (US-68)
 router.post('/me/finish', participantAuth, finish);
+router.get('/:id/picks', publicPicks); // public view of a participant's picks (US-97)
 
 export default router;

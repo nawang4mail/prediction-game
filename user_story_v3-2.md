@@ -454,3 +454,25 @@
 - On mobile the modal slides up from the bottom (sheet style); on sm+ it is centered
 - Body scroll locked while modal is open
 - client-2 only; no backend changes
+
+---
+
+### US-97 · Leaderboard — Tap Player to View Picks
+
+**As a** visitor
+**I want to** tap a player on the leaderboard to see their predictions
+**So that** I can compare picks and follow how each player is doing
+
+**Acceptance Criteria:**
+- Every leaderboard row is tappable (cursor-pointer, blue hover highlight)
+- Tapping opens a modal with the player's avatar, name, rank and points in the header
+- Modal body shows all picks for that game:
+  - Guess Winners: match cards read-only (pick highlighted blue; correct=green, wrong=red when result set)
+  - Bracket: stage cards read-only (selected teams highlighted blue; winners green, wrong red when revealed)
+  - "No picks recorded yet" if player has no picks
+- Backend: new public `GET /api/participants/:id/picks?game_id=<id>` endpoint
+  - Returns 404 if participant not found, not in that game, or not approved
+  - Returns `{ participant, game: { type, status }, matches | stages }` depending on game type
+- Modal closes on Close button, backdrop click, or Escape
+- Changing the game selector closes any open modal
+- client-2 + server; no DB schema changes (query only)
