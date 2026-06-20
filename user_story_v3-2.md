@@ -774,3 +774,23 @@ wizard with my current picks pre-selected
 - Guess-winners games are unchanged (still show match fixtures + pick bars)
 - Data comes from the public `GET /bracket` breakdown (picks + is_winner, already
   sorted by picks DESC); client-2 only, no backend changes
+
+---
+
+### US-111 · Leaderboard Player Picks — Bracket Point Breakdown
+
+**As a** visitor clicking a player on a Bracket leaderboard
+**I want to** see only that player's picks with the points each earned
+**So that** it's transparent how their total was calculated
+
+**Acceptance Criteria:**
+- The expanded player panel shows **only the player's picked teams** per stage
+  (not the full team pool)
+- Once results are revealed (game finished): each **correct pick shows `+N`**
+  (the stage's points_per_correct) and is green; wrong picks are red
+- A stage where **all picks are correct shows its `+bonus`** (all_correct_bonus)
+- Each stage shows a subtotal ("Stage: X pt") and the panel shows a **grand
+  total** that matches the leaderboard
+- Before results are in, picks show in blue with no points
+- Uses the existing `GET /participants/:id/picks` (returns points_per_correct,
+  all_correct_bonus, is_winner, selected); client-2 only, no backend changes
