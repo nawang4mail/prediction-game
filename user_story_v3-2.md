@@ -794,3 +794,20 @@ wizard with my current picks pre-selected
 - Before results are in, picks show in blue with no points
 - Uses the existing `GET /participants/:id/picks` (returns points_per_correct,
   all_correct_bonus, is_winner, selected); client-2 only, no backend changes
+
+---
+
+### US-112 · Leaderboard Player Picks — Simpler Score Layout
+
+**As a** visitor reading a player's bracket picks
+**I want to** a clean, at-a-glance layout of how points were earned
+**So that** the scoring is obvious without a busy breakdown
+
+**Acceptance Criteria:**
+- Correct picks keep a green team chip; the `+points` is shown **outside** the
+  team chip (beside it, in green) — not inside the green background
+- A fully-correct stage shows its `+bonus` **beside the stage name** (not in a
+  footer)
+- The verbose per-stage math line ("N correct × P = … · Stage: X pt") is removed
+- The grand total bar remains
+- client-2 only; no backend changes (refines US-111)
