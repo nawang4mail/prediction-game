@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react'
-import { useParams, Link, useNavigate } from 'react-router-dom'
+import { useParams, Link, useNavigate, useLocation } from 'react-router-dom'
 import api from '../services/api.js'
 
 export default function JoinPage() {
   const { id } = useParams()
   const navigate = useNavigate()
+  const location = useLocation()
+  const forOther = location.state?.for_other === true
   const [game, setGame] = useState(null)
   const [name, setName] = useState('')
   const [phone, setPhone] = useState('')
@@ -27,7 +29,7 @@ export default function JoinPage() {
     if (!name.trim()) { setError('Display name is required.'); return }
     if (name.trim().length > 50) { setError('Name must be 50 characters or less.'); return }
     navigate(`/leagues/${id}/play`, {
-      state: { display_name: name.trim(), phone: phone.trim() || null },
+      state: { display_name: name.trim(), phone: phone.trim() || null, is_self: !forOther },
     })
   }
 

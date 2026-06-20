@@ -102,7 +102,7 @@ export default function PlayPage() {
         token: data.entry_token,
         name: data.participant?.display_name ?? identity.display_name,
         game_id: gameId,
-        is_self: true,
+        is_self: identity.is_self ?? true,
         status: data.participant?.status ?? 'declined',
       })
       reload()

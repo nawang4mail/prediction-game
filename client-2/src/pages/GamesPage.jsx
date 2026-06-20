@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import api from '../services/api.js'
-import { entriesForGame } from '../services/entries.js'
+import { entriesForGame, nextSelfName } from '../services/entries.js'
 
 const TYPE_LABELS = {
   guess_winners: 'Guess Winners',
@@ -16,9 +16,88 @@ const STATUS_CONFIG = {
 
 const FILTERS = ['All', 'Guess Winners', 'Bracket']
 
+// ─── Add-entry chooser ───────────────────────────────────────────────────────
+
+function AddEntryModal({ game, onClose, navigate }) {
+  const selfName = nextSelfName(game.id)
+
+  useEffect(() => {
+    document.body.style.overflow = 'hidden'
+    return () => { document.body.style.overflow = '' }
+  }, [])
+
+  useEffect(() => {
+    const handler = (e) => { if (e.key === 'Escape') onClose() }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [onClose])
+
+  const chooseSelf = () => {
+    // Skip the name form — reuse the player's base name with the next number.
+    navigate(`/leagues/${game.id}/play`, {
+      state: { display_name: selfName, phone: null, is_self: true },
+    })
+  }
+
+  const chooseOther = () => {
+    // Collect the other person's name and phone first.
+    navigate(`/leagues/${game.id}/join`, { state: { for_other: true } })
+  }
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4"
+      style={{ backgroundColor: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(2px)' }}
+      onClick={(e) => { if (e.target === e.currentTarget) onClose() }}
+    >
+      <div className="w-full sm:max-w-md bg-white rounded-t-3xl sm:rounded-2xl shadow-2xl overflow-hidden">
+        <div className="px-6 pt-6 pb-4 border-b border-gray-100">
+          <h2 className="font-oswald text-xl font-bold text-gray-900 uppercase tracking-wide">Add Another Entry</h2>
+          <p className="text-sm text-gray-500 mt-1">Who is this entry for?</p>
+        </div>
+
+        <div className="p-4 space-y-3">
+          <button
+            onClick={chooseSelf}
+            className="w-full text-left rounded-xl border border-gray-200 hover:border-[#2b4dff] hover:bg-blue-50 transition-colors p-4 flex items-center gap-3"
+          >
+            <span className="text-2xl">🙋</span>
+            <span className="flex-1">
+              <span className="block font-semibold text-gray-900 text-sm">Myself</span>
+              <span className="block text-xs text-gray-500 mt-0.5">Adds <span className="font-semibold text-[#2b4dff]">{selfName}</span> automatically</span>
+            </span>
+            <span className="text-gray-300">›</span>
+          </button>
+
+          <button
+            onClick={chooseOther}
+            className="w-full text-left rounded-xl border border-gray-200 hover:border-[#f05a00] hover:bg-orange-50 transition-colors p-4 flex items-center gap-3"
+          >
+            <span className="text-2xl">👥</span>
+            <span className="flex-1">
+              <span className="block font-semibold text-gray-900 text-sm">Someone else</span>
+              <span className="block text-xs text-gray-500 mt-0.5">Enter their name and phone number</span>
+            </span>
+            <span className="text-gray-300">›</span>
+          </button>
+        </div>
+
+        <div className="px-4 pb-5">
+          <button
+            onClick={onClose}
+            className="w-full py-3 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold text-sm transition-colors"
+          >
+            Cancel
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ─── Modal ───────────────────────────────────────────────────────────────────
 
-function GameModal({ game, onClose, navigate }) {
+function GameModal({ game, onClose, navigate, onAddEntry }) {
   const [rules, setRules] = useState(null)
   const [loading, setLoading] = useState(true)
   const cfg = STATUS_CONFIG[game.status] ?? STATUS_CONFIG.finished
@@ -130,7 +209,7 @@ function GameModal({ game, onClose, navigate }) {
             <>
               {game.status === 'open' && (
                 <button
-                  onClick={handleJoin}
+                  onClick={() => onAddEntry(game)}
                   className="flex-1 py-3 px-4 rounded-xl font-semibold text-sm text-white transition-colors"
                   style={{ backgroundColor: '#2b4dff' }}
                   onMouseOver={e => e.currentTarget.style.backgroundColor = '#1a33cc'}
@@ -178,7 +257,7 @@ function GameModal({ game, onClose, navigate }) {
 
 // ─── Card ────────────────────────────────────────────────────────────────────
 
-function GameCard({ game, onOpenModal, navigate }) {
+function GameCard({ game, onOpenModal, navigate, onAddEntry }) {
   const cfg = STATUS_CONFIG[game.status] ?? STATUS_CONFIG.finished
   const hasEntry = entriesForGame(game.id).length > 0
 
@@ -209,7 +288,7 @@ function GameCard({ game, onOpenModal, navigate }) {
         <div className="mt-auto flex gap-2">
           {game.status === 'open' && (
             <button
-              onClick={(e) => { e.stopPropagation(); navigate(`/leagues/${game.id}/join`) }}
+              onClick={(e) => { e.stopPropagation(); onAddEntry(game) }}
               className="flex-1 py-2.5 px-3 rounded-xl text-xs font-semibold text-white transition-colors"
               style={{ backgroundColor: '#2b4dff' }}
               onMouseOver={e => e.currentTarget.style.backgroundColor = '#1a33cc'}
@@ -252,7 +331,11 @@ export default function GamesPage() {
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState('All')
   const [modalGame, setModalGame] = useState(null)
+  const [addEntryGame, setAddEntryGame] = useState(null)
   const navigate = useNavigate()
+
+  // Opening the chooser closes the rules modal if it was open.
+  const openAddEntry = (game) => { setModalGame(null); setAddEntryGame(game) }
 
   useEffect(() => {
     api.get('/games')
@@ -316,6 +399,7 @@ export default function GamesPage() {
                 game={game}
                 onOpenModal={setModalGame}
                 navigate={navigate}
+                onAddEntry={openAddEntry}
               />
             ))}
           </div>
@@ -327,6 +411,16 @@ export default function GamesPage() {
         <GameModal
           game={modalGame}
           onClose={() => setModalGame(null)}
+          navigate={navigate}
+          onAddEntry={openAddEntry}
+        />
+      )}
+
+      {/* Add-entry chooser (myself / someone else) */}
+      {addEntryGame && (
+        <AddEntryModal
+          game={addEntryGame}
+          onClose={() => setAddEntryGame(null)}
           navigate={navigate}
         />
       )}

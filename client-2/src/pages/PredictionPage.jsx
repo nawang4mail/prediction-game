@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useSearchParams, Link } from 'react-router-dom'
 import api from '../services/api.js'
 import { entriesForGame, getEntries } from '../services/entries.js'
+import { useEntryStatus } from '../context/EntryContext.jsx'
 
 const TYPE_LABELS = { guess_winners: 'Guess Winners', bracket_prediction: 'Bracket' }
 const STATUS_CONFIG = {
@@ -237,6 +238,11 @@ export default function PredictionPage() {
   const [participant, setParticipant] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+
+  // Subscribing to the entry context makes this page re-render after stale
+  // entries (deleted by an admin) are pruned; refresh() reconciles on mount.
+  const { refresh: refreshEntries } = useEntryStatus()
+  useEffect(() => { refreshEntries() }, [refreshEntries])
 
   const entries = gameId ? entriesForGame(gameId) : []
   const [selectedToken, setSelectedToken] = useState(entries[0]?.token ?? null)

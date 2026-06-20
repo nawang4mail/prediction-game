@@ -559,3 +559,30 @@
   - "Add Another Entry" → name form → picks → submit (a second entry)
   - "Edit Entry" (open) / "View Entry" (locked/finished) → opens that game in My Game
 - Games with no existing entry are unchanged ("Join Game" / disabled when not open)
+
+---
+
+### US-103 · Add-Entry Chooser & Prune Deleted Entries
+
+**As a** player adding another entry
+**I want to** say whether the entry is for myself or someone else
+**So that** my own extra entries are named automatically and others get their own details
+
+**Acceptance Criteria:**
+- On Leagues, "Add Entry" / "Add Another Entry" opens a chooser: "Who is this entry for?"
+  - **Myself** → skips the name form; uses the base name + " #2", " #3", … (next
+    available number derived from this device's existing entries) and goes straight
+    to the picks page
+  - **Someone else** → opens the name form to enter a fresh display name + phone
+- The auto-numbered name is shown as a preview on the "Myself" option
+- Entry "is_self" flag is stored accordingly (false for someone-else entries)
+
+**As a** player whose entry was deleted by an admin
+**I want to** stop seeing that entry on my device
+**So that** My Game shows an accurate list**
+
+**Acceptance Criteria:**
+- `refreshStatuses` prunes any local entry whose token the server no longer
+  recognises (deleted server-side), in addition to refreshing statuses
+- My Game reconciles on mount and re-renders, so stale/deleted entries disappear
+  and entry counts are correct

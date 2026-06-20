@@ -29,7 +29,27 @@ export const entriesForGame = (gameId) =>
 
 export const allTokens = () => getEntries().map((e) => e.token)
 
-// Refresh all stored entry statuses from the server
+// The next auto-numbered name for an additional "myself" entry in a game, based
+// on the entries already on this device: base name + " #2", " #3", … (US-103).
+const stripSuffix = (name) => name.replace(/\s*#\d+\s*$/, '').trim()
+
+export const nextSelfName = (gameId) => {
+  const entries = entriesForGame(gameId)
+  if (!entries.length) return ''
+  const base = stripSuffix(entries[0].name)
+  let max = 1
+  for (const e of entries) {
+    if (stripSuffix(e.name) !== base) continue
+    const m = e.name.match(/#(\d+)\s*$/)
+    const n = m ? Number(m[1]) : 1
+    if (n > max) max = n
+  }
+  return `${base} #${max + 1}`
+}
+
+// Refresh all stored entry statuses from the server. Entries the server no
+// longer knows about (e.g. deleted by an admin) are pruned from the device, so
+// the player only ever sees entries that still exist. (US-103)
 export const refreshStatuses = async () => {
   const entries = getEntries()
   if (!entries.length) return entries
@@ -37,11 +57,13 @@ export const refreshStatuses = async () => {
   try {
     const { data } = await api.post('/participants/statuses', { tokens })
     const statusMap = Object.fromEntries(data.map((s) => [s.token, s]))
-    const updated = entries.map((e) => ({
-      ...e,
-      status: statusMap[e.token]?.status ?? e.status,
-      status_message: statusMap[e.token]?.status_message ?? e.status_message,
-    }))
+    const updated = entries
+      .filter((e) => statusMap[e.token]) // drop entries deleted server-side
+      .map((e) => ({
+        ...e,
+        status: statusMap[e.token].status ?? e.status,
+        status_message: statusMap[e.token].status_message ?? e.status_message,
+      }))
     saveEntries(updated)
     return updated
   } catch {
